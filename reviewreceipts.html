@@ -4,17 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Review Receipt</title>
+    <script src="i18n.js"></script>
+    <link rel="stylesheet" href="theme.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 2rem; background: #f8f8f8; }
-        h1 { color: #b5651d; }
-        .receipt-form { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px #eee; max-width: 500px; margin: 0 auto 2rem auto; }
-        .receipt-display { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px #eee; max-width: 500px; margin: 0 auto; }
+        body { margin: 2rem; }
+        h1 { color: var(--text); margin-bottom: 1.5rem; }
+        .receipt-form { background: var(--surface); padding: 1.5rem; border-radius: var(--r-lg); box-shadow: var(--sh-sm); border: 1px solid var(--border); max-width: 500px; margin: 0 auto 2rem auto; }
+        .receipt-display { background: var(--surface); padding: 1.5rem; border-radius: var(--r-lg); box-shadow: var(--sh-sm); border: 1px solid var(--border); max-width: 500px; margin: 0 auto; }
         .receipt-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
-        .receipt-table th, .receipt-table td { border-bottom: 1px solid #eee; padding: 0.5em 0.7em; text-align: left; }
-        .receipt-table th { background: #f4f4f4; }
-        .receipt-total { font-size: 1.2em; font-weight: bold; text-align: right; margin-top: 1em; }
-        .receipt-meta { margin-bottom: 1em; color: #555; }
-        .paid-type { font-weight: bold; color: #27ae60; }
+        .receipt-table th, .receipt-table td { border-bottom: 1px solid var(--border); padding: 0.5em 0.7em; text-align: left; }
+        .receipt-table th { background: var(--bg); color: var(--text-3); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .receipt-total { font-size: 1.2em; font-weight: bold; text-align: right; margin-top: 1em; color: var(--text); }
+        .receipt-meta { margin-bottom: 1em; color: var(--text-2); }
+        .paid-type { font-weight: bold; color: var(--green); }
+        #printBtnContainer { text-align: center; margin-bottom: 1rem; }
         @media (max-width: 600px) {
             body { margin: 0.5rem; }
             .receipt-form, .receipt-display { padding: 0.7rem; max-width: 98vw; }
@@ -52,16 +55,18 @@
     </style>
 </head>
 <body>
-    <h1>Review Receipt</h1>
+    <h1 data-i18n="receipts.title">Review Receipt</h1>
     <div class="receipt-form">
-        <label for="receiptFile"><b>Load Receipt JSON:</b></label>
+        <label for="receiptFile"><b data-i18n="receipts.loadLabel">Load Receipt JSON:</b></label>
         <input type="file" id="receiptFile" accept="application/json" style="margin-top:0.5em;">
     </div>
     <div id="printBtnContainer" style="text-align:center;display:none;">
-        <button id="printReceiptBtn" style="margin-bottom:1em;">Print Receipt</button>
+        <button id="printReceiptBtn" class="btn btn-primary" data-i18n="receipts.printBtn">Print Receipt</button>
     </div>
     <div id="receiptDisplay"></div>
     <script>
+    document.addEventListener('DOMContentLoaded', () => i18n.init());
+
     document.getElementById('receiptFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -71,7 +76,7 @@
                 const data = JSON.parse(evt.target.result);
                 renderReceipt(data);
             } catch (err) {
-                document.getElementById('receiptDisplay').innerHTML = '<div style="color:#e74c3c;">Invalid JSON file.</div>';
+                document.getElementById('receiptDisplay').innerHTML = `<div style="color:#e74c3c;">${t('receipts.invalidJson')}</div>`;
                 document.getElementById('printBtnContainer').style.display = 'none';
             }
         };
@@ -79,17 +84,17 @@
     });
     function renderReceipt(data) {
         let html = '<div class="receipt-display">';
-        html += `<div class='receipt-meta'><b>Date:</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}</div>`;
-        html += `<div class='receipt-meta'><b>Payment Type:</b> <span class='paid-type'>${data.paymentType ? data.paymentType.toUpperCase() : 'N/A'}</span></div>`;
+        html += `<div class='receipt-meta'><b>${t('receipts.colDate')}</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}</div>`;
+        html += `<div class='receipt-meta'><b>${t('receipts.colType')}</b> <span class='paid-type'>${data.paymentType ? data.paymentType.toUpperCase() : 'N/A'}</span></div>`;
         html += '<table class="receipt-table">';
-        html += '<tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr>';
+        html += `<tr><th>${t('receipts.colItem')}</th><th>${t('receipts.colQty')}</th><th>${t('receipts.colPrice')}</th><th>${t('receipts.colSubtotal')}</th></tr>`;
         if (Array.isArray(data.items)) {
             data.items.forEach(item => {
                 html += `<tr><td>${item.name || ''}</td><td>${item.qty || 0}</td><td>$${item.price ? item.price.toFixed(2) : '0.00'}</td><td>$${item.qty && item.price ? (item.qty * item.price).toFixed(2) : '0.00'}</td></tr>`;
             });
         }
         html += '</table>';
-        html += `<div class='receipt-total'>Total Paid: $${data.total ? data.total.toFixed(2) : '0.00'}</div>`;
+        html += `<div class='receipt-total'>${t('receipts.totalPaid', { amount: data.total ? data.total.toFixed(2) : '0.00' })}</div>`;
         html += '</div>';
         document.getElementById('receiptDisplay').innerHTML = html;
         document.getElementById('printBtnContainer').style.display = '';

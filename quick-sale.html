@@ -4,28 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quick Sales / Venta Rápida</title>
-    <meta name="theme-color" content="#15202b">
+    <script src="i18n.js"></script>
+    <meta name="theme-color" content="#1C1917">
     <link rel="apple-touch-icon" href="images/sweetplace logo.png">
-    <link rel="stylesheet" href="https://menobass.github.io/snapnpay/styles.css">
+    <link rel="stylesheet" href="theme.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: var(--background-color); color: var(--text-primary); margin: 0; padding: 0; }
-        .container { max-width: 420px; margin: 2.5em auto; background: var(--card-background); border-radius: var(--border-radius); box-shadow: var(--shadow); padding: 2em 1.5em 2.5em 1.5em; border: 1px solid var(--border-color); }
-        h1 { color: var(--primary-color); font-size: 2em; margin-bottom: 0.2em; text-align: center; }
-        .subtitle { color: var(--text-secondary); font-size: 1em; text-align: center; margin-bottom: 2em; }
-        label { font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 0.3em; }
+        .container { max-width: 420px; margin: 2.5em auto; background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-lg); padding: 2em 1.5em 2.5em 1.5em; border: 1px solid var(--border); }
+        h1 { color: var(--text); font-size: 2em; margin-bottom: 0.2em; text-align: center; }
+        .subtitle { color: var(--text-2); font-size: 1em; text-align: center; margin-bottom: 2em; }
         .row { display: flex; align-items: center; gap: 0.7em; margin-bottom: 1.2em; }
         input[type=text], input[type=number] { font-size: 1.1em; }
-        .form-control { width: 100%; padding: 0.75em; border: 1px solid var(--border-color); border-radius: 8px; background: var(--background-color); color: var(--text-primary); }
-        .current-account { font-size: 0.98em; color: var(--text-secondary); margin-bottom: 1.2em; text-align: left; }
-        .amount-input { font-size: 1.6em; text-align: center; width: 100%; margin-bottom: 1.2em; border: 1px solid var(--border-color); background: var(--background-color); color: var(--text-primary); border-radius: 8px; padding: 0.6em; }
-    .generate-btn { width: 100%; margin-bottom: 1.5em; }
-    #qrContainer { display: flex; flex-direction: column; align-items: center; margin-top: 2em; }
-    #qrCode { margin-bottom: 1.2em; }
-    /* Provide a clear white quiet zone around the QR for better scanning */
-    .qr-box { background:#fff; padding:16px; border-radius:12px; box-shadow: 0 4px 18px rgba(0,0,0,0.15); }
-    #qrCode canvas { image-rendering: pixelated; display:block; }
-    #paymentStatus { font-size: 1.05em; color: var(--success-color); margin-bottom: 1.2em; text-align: center; }
-    .reset-btn { width: auto; }
+        .form-control { width: 100%; }
+        .current-account { font-size: 0.98em; color: var(--text-2); margin-bottom: 1.2em; text-align: left; }
+        .amount-input { font-size: 1.6em; text-align: center; width: 100%; margin-bottom: 1.2em; }
+        .generate-btn { width: 100%; margin-bottom: 1.5em; }
+        #qrContainer { display: flex; flex-direction: column; align-items: center; margin-top: 2em; }
+        #qrCode { margin-bottom: 1.2em; }
+        /* Provide a clear white quiet zone around the QR for better scanning */
+        .qr-box { background: #fff; padding: 16px; border-radius: var(--r-lg); box-shadow: var(--sh); }
+        #qrCode canvas { image-rendering: pixelated; display: block; }
+        #paymentStatus { font-size: 1.05em; color: var(--green); margin-bottom: 1.2em; text-align: center; }
+        .reset-btn { width: auto; }
         @media (max-width: 600px) {
             .container { padding: 1em 0.5em; }
             h1 { font-size: 1.6em; }
@@ -36,34 +35,34 @@
 </head>
 <body>
     <div class="container">
-        <h1>Quick Sales / Venta Rápida</h1>
-        <div class="subtitle">Generate QR Payments quickly - Powered by Distriator</div>
-        <label for="hiveAccountInput">Receiving Hive Account</label>
+        <h1 data-i18n="quicksale.title">Quick Sales</h1>
+        <div class="subtitle" data-i18n="quicksale.subtitle">Generate QR Payments quickly - Powered by Distriator</div>
+        <label for="hiveAccountInput" data-i18n="quicksale.accountLabel">Receiving Hive Account</label>
         <div class="row">
-            <input type="text" id="hiveAccountInput" class="form-control" placeholder="e.g. myshop.hive" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform: lowercase;" />
-            <button class="btn btn-primary" id="updateAccountBtn">Update</button>
+            <input type="text" id="hiveAccountInput" class="form-control" data-i18n-placeholder="quicksale.accountPlaceholder" placeholder="e.g. myshop.hive" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform: lowercase;" />
+            <button class="btn btn-primary" id="updateAccountBtn" data-i18n="quicksale.updateBtn">Update</button>
         </div>
         <div class="current-account" id="currentAccountDisplay">
-            <span id="currentAccountAvatar" style="vertical-align:middle;display:inline-block;width:32px;height:32px;border-radius:50%;background: var(--border-color);overflow:hidden;margin-right:0.5em;"></span>
+            <span id="currentAccountAvatar" style="vertical-align:middle;display:inline-block;width:32px;height:32px;border-radius:50%;background:var(--border);overflow:hidden;margin-right:0.5em;"></span>
             Current: <span id="currentAccount">none</span>
         </div>
-        <label for="amountInput">Amount (HBD)</label>
+        <label for="amountInput" data-i18n="quicksale.amountLabel">Amount (HBD)</label>
     <input type="number" id="amountInput" class="amount-input form-control" min="0.01" step="0.01" placeholder="0.00" />
-    <button class="btn btn-success generate-btn" id="generateQrBtn">Generate QR</button>
+    <button class="btn btn-success generate-btn" id="generateQrBtn" data-i18n="quicksale.generateBtn">Generate QR</button>
         <div id="qrContainer" style="display:none;">
             <div id="qrCode"></div>
             <div id="qrDetails"></div>
             <div id="paymentStatus"></div>
-            <button class="btn btn-secondary reset-btn" id="resetBtn" style="display:none;">New Sale</button>
+            <button class="btn btn-secondary reset-btn" id="resetBtn" style="display:none;" data-i18n="common.newSale">New Sale</button>
         </div>
 
         <!-- Recent Incoming Payments -->
         <div class="card" id="recentPaymentsCard" style="margin-top: 2rem;">
             <div class="card-header">
-                <h2>Recent Incoming Payments</h2>
+                <h2 data-i18n="quicksale.recentTitle">Recent Incoming Payments</h2>
             </div>
             <div class="card-body">
-                <div id="recentStatus" class="text-muted" style="margin-bottom: 0.75rem;">Set a receiving account to view recent payments.</div>
+                <div id="recentStatus" class="text-muted" style="margin-bottom: 0.75rem;"></div>
                 <ul id="recentList" style="list-style: none; padding: 0; margin: 0;"></ul>
             </div>
         </div>
@@ -84,6 +83,8 @@
     function setStoredAccount(acc) {
         localStorage.setItem('quick_hive_account', acc);
     }
+    document.addEventListener('DOMContentLoaded', () => i18n.init());
+
     // --- UI Elements ---
     const hiveAccountInput = document.getElementById('hiveAccountInput');
     const updateAccountBtn = document.getElementById('updateAccountBtn');
@@ -124,18 +125,18 @@
     // --- Update account logic ---
     updateAccountBtn.onclick = function() {
         const acc = hiveAccountInput.value.trim().toLowerCase().replace(/^@+/, '');
-        if (!acc) { alert('Please enter a Hive account.'); return; }
+        if (!acc) { alert(t('quicksale.enterAccount')); return; }
         setStoredAccount(acc);
         renderCurrentAccount();
-    updateRecentTransactions();
+        updateRecentTransactions();
         hiveAccountInput.value = '';
     };
     // --- Generate QR logic ---
     generateQrBtn.onclick = function() {
         const acc = getStoredAccount();
         const amt = parseFloat(amountInput.value);
-        if (!acc) { alert('No receiving account set.'); return; }
-        if (!amt || amt < 0.01) { alert('Enter a valid amount.'); return; }
+        if (!acc) { alert(t('quicksale.noAccount')); return; }
+        if (!amt || amt < 0.01) { alert(t('quicksale.enterAmount')); return; }
         // Memo
         const memo = generateKcsHposMemo();
         window.lastPaymentMemo = memo;
@@ -166,7 +167,7 @@
         });
     qrDetails.innerHTML = `<b>To:</b> @${acc}<br><b>Amount:</b> ${amt.toFixed(3)} HBD<br><b>Memo:</b> <span style='font-family:monospace;'>${memo}</span>
     <div style="margin-top:0.75em;word-break:break-all;font-size:0.92em;background:#f4f4f4;color:#000;padding:0.5em 0.6em;border-radius:6px;font-family:monospace;">${uri}</div>`;
-        paymentStatus.textContent = '⏳ Waiting for payment...';
+        paymentStatus.textContent = t('quicksale.waitingPayment');
         resetBtn.style.display = 'none';
         startPaymentListener(acc, amt.toFixed(3) + ' HBD', memo);
     };
@@ -196,22 +197,22 @@
                         op[1].to === hiveAccount &&
                         op[1].amount === expectedAmount &&
                         op[1].memo === expectedMemo) {
-                        paymentStatus.textContent = '✅ Payment received!';
+                        paymentStatus.textContent = t('quicksale.paymentReceived');
                         clearInterval(paymentListenerInterval);
                         paymentListenerInterval = null;
                         resetBtn.style.display = 'block';
                         // Refresh recent transactions after a confirmed payment
                         updateRecentTransactions();
-                        alert('Payment confirmed!');
+                        alert(t('quicksale.paymentConfirmed'));
                         return;
                     }
                 }
-                paymentStatus.textContent = '⏳ Waiting for payment...';
+                paymentStatus.textContent = t('quicksale.waitingPayment');
             } catch (e) {
-                paymentStatus.textContent = 'Error checking payment.';
+                paymentStatus.textContent = t('quicksale.paymentError');
             }
             if (attempts > 100) {
-                paymentStatus.textContent = 'Payment not detected. Please check manually.';
+                paymentStatus.textContent = t('quicksale.paymentTimeout');
                 clearInterval(paymentListenerInterval);
                 paymentListenerInterval = null;
                 resetBtn.style.display = 'block';
@@ -281,12 +282,12 @@
         const status = document.getElementById('recentStatus');
         const ul = document.getElementById('recentList');
         if (!list) {
-            status.textContent = 'Failed to load recent payments.';
+            status.textContent = t('quicksale.loadFail');
             ul.innerHTML = '';
             return;
         }
         if (list.length === 0) {
-            status.textContent = 'No recent incoming payments found.';
+            status.textContent = t('quicksale.noRecent');
             ul.innerHTML = '';
             return;
         }
@@ -296,7 +297,7 @@
             const timeStr = isNaN(when.getTime()) ? tx.timestamp : when.toLocaleString();
             const memo = tx.memo ? ` • <span class="text-muted">${truncateMemo(tx.memo)}</span>` : '';
             return `
-                <li style="padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
+                <li style="padding: 0.6rem 0; border-bottom: 1px solid var(--border);">
                     <div style="display:flex; justify-content: space-between; gap: 0.75rem;">
                         <div>
                             <strong>${formatAmount(tx.amount)}</strong> from @${tx.from}${memo}
@@ -313,11 +314,11 @@
         const status = document.getElementById('recentStatus');
         const ul = document.getElementById('recentList');
         if (!acc) {
-            status.textContent = 'Set a receiving account to view recent payments.';
+            status.textContent = t('quicksale.setAccount');
             ul.innerHTML = '';
             return;
         }
-        status.textContent = 'Loading recent payments…';
+        status.textContent = t('quicksale.loadingPayments');
         ul.innerHTML = '';
         const list = await fetchRecentIncoming(acc, 10);
         renderRecentTransactions(list);

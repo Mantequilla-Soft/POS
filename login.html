@@ -4,16 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HIVE POS - Login</title>
+    <script src="i18n.js"></script>
+    <link rel="stylesheet" href="theme.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -22,9 +16,10 @@
         }
 
         .login-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-xl);
+            box-shadow: var(--sh-lg);
             overflow: hidden;
             width: 100%;
             max-width: 400px;
@@ -32,8 +27,8 @@
         }
 
         .login-header {
-            background: #b5651d;
-            color: white;
+            background: var(--ink);
+            color: var(--ink-text);
             text-align: center;
             padding: 2rem 1.5rem 1.5rem;
         }
@@ -42,11 +37,13 @@
             font-size: 2rem;
             margin-bottom: 0.5rem;
             font-weight: 600;
+            color: var(--ink-text);
         }
 
         .login-header p {
-            opacity: 0.9;
+            opacity: 0.85;
             font-size: 0.95rem;
+            color: var(--ink-text);
         }
 
         .form-container {
@@ -56,8 +53,8 @@
         .form-toggle {
             display: flex;
             margin-bottom: 2rem;
-            background: #f8f9fa;
-            border-radius: 8px;
+            background: var(--surface-2);
+            border-radius: var(--r);
             padding: 4px;
         }
 
@@ -68,48 +65,39 @@
             border: none;
             background: transparent;
             cursor: pointer;
-            border-radius: 6px;
+            border-radius: var(--r-sm);
             font-weight: 500;
-            transition: all 0.3s ease;
-            color: #6c757d;
+            transition: var(--ease);
+            color: var(--text-2);
+            font-family: var(--font);
         }
 
         .toggle-btn.active {
-            background: #b5651d;
-            color: white;
-            box-shadow: 0 2px 8px rgba(181, 101, 29, 0.3);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #374151;
-            font-weight: 500;
-            font-size: 0.9rem;
+            background: var(--ink);
+            color: var(--ink-text);
+            box-shadow: var(--sh-xs);
         }
 
         .form-input {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r);
             font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #fff;
+            transition: var(--ease);
+            background: var(--surface);
+            font-family: var(--font);
+            color: var(--text);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #b5651d;
-            box-shadow: 0 0 0 3px rgba(181, 101, 29, 0.1);
+            border-color: var(--ink);
+            box-shadow: 0 0 0 3px rgba(28,25,23,0.07);
         }
 
         .form-input:invalid {
-            border-color: #ef4444;
+            border-color: var(--red);
         }
 
         .password-container {
@@ -124,7 +112,7 @@
             background: none;
             border: none;
             cursor: pointer;
-            color: #6b7280;
+            color: var(--text-3);
             font-size: 0.9rem;
             padding: 4px;
         }
@@ -132,25 +120,27 @@
         .submit-btn {
             width: 100%;
             padding: 14px;
-            background: #b5651d;
-            color: white;
+            background: var(--ink);
+            color: var(--ink-text);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--r);
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--ease);
             margin-bottom: 1.5rem;
+            font-family: var(--font);
         }
 
         .submit-btn:hover:not(:disabled) {
-            background: #9d5419;
+            background: var(--ink-hover);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(181, 101, 29, 0.3);
+            box-shadow: var(--sh);
         }
 
         .submit-btn:disabled {
-            background: #d1d5db;
+            background: var(--border);
+            color: var(--text-3);
             cursor: not-allowed;
             transform: none;
         }
@@ -160,7 +150,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            color: #6b7280;
+            color: var(--text-2);
             font-size: 0.9rem;
         }
 
@@ -171,8 +161,8 @@
         .spinner {
             width: 16px;
             height: 16px;
-            border: 2px solid #e5e7eb;
-            border-top: 2px solid #b5651d;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--ink);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -183,24 +173,24 @@
         }
 
         .error-message {
-            background: #fef2f2;
-            color: #dc2626;
+            background: var(--red-light);
+            color: var(--red);
             padding: 12px 16px;
-            border-radius: 8px;
+            border-radius: var(--r);
             margin-bottom: 1rem;
             font-size: 0.9rem;
-            border-left: 4px solid #dc2626;
+            border-left: 4px solid var(--red);
             display: none;
         }
 
         .success-message {
-            background: #f0fdf4;
-            color: #16a34a;
+            background: var(--green-light);
+            color: var(--green);
             padding: 12px 16px;
-            border-radius: 8px;
+            border-radius: var(--r);
             margin-bottom: 1rem;
             font-size: 0.9rem;
-            border-left: 4px solid #16a34a;
+            border-left: 4px solid var(--green);
             display: none;
         }
 
@@ -210,7 +200,7 @@
         }
 
         .forgot-password a {
-            color: #b5651d;
+            color: var(--ink);
             text-decoration: none;
             font-size: 0.9rem;
         }
@@ -229,7 +219,7 @@
 
         .requirements {
             font-size: 0.8rem;
-            color: #6b7280;
+            color: var(--text-3);
             margin-top: 0.5rem;
             line-height: 1.4;
         }
@@ -238,9 +228,9 @@
         .debug-section {
             margin-top: 2rem;
             padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
+            background: var(--surface-2);
+            border-radius: var(--r);
+            border: 1px solid var(--border);
         }
 
         .debug-header {
@@ -252,27 +242,28 @@
 
         .debug-header h3 {
             margin: 0;
-            color: #6c757d;
+            color: var(--text-2);
             font-size: 1rem;
         }
 
         .service-status-btn {
-            background: #17a2b8;
+            background: var(--blue);
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 4px;
+            border-radius: var(--r-sm);
             cursor: pointer;
             font-size: 0.9rem;
-            transition: background 0.3s ease;
+            font-family: var(--font);
+            transition: var(--ease);
         }
 
         .service-status-btn:hover {
-            background: #138496;
+            opacity: 0.85;
         }
 
         .service-status-btn:disabled {
-            background: #6c757d;
+            background: var(--text-2);
             cursor: not-allowed;
         }
 
@@ -284,27 +275,12 @@
             font-size: 0.9rem;
         }
 
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #6c757d;
-        }
-
-        .status-dot.online {
-            background: #28a745;
-        }
-
-        .status-dot.offline {
-            background: #dc3545;
-        }
-
         .debug-console {
             background: #2d3748;
             color: #e2e8f0;
             padding: 1rem;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
+            border-radius: var(--r-sm);
+            font-family: var(--mono);
             font-size: 0.8rem;
             max-height: 200px;
             overflow-y: auto;
@@ -348,29 +324,30 @@
         }
 
         .debug-clear {
-            background: #e53e3e;
+            background: var(--red);
             color: white;
             border: none;
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: var(--r-sm);
             cursor: pointer;
             font-size: 0.8rem;
             margin-left: 1rem;
+            font-family: var(--font);
         }
 
         .debug-clear:hover {
-            background: #c53030;
+            background: #b91c1c;
         }
 
         @media (max-width: 480px) {
             .login-container {
                 margin: 10px;
             }
-            
+
             .form-container {
                 padding: 1.5rem 1rem;
             }
-            
+
             .login-header {
                 padding: 1.5rem 1rem 1rem;
             }
@@ -391,13 +368,13 @@
     <div class="login-container">
         <div class="login-header">
             <h1>HIVE POS</h1>
-            <p>Point of Sale Administration</p>
+            <p data-i18n="login.subtitle">Point of Sale Administration</p>
         </div>
         
         <div class="form-container">
             <div class="form-toggle">
-                <button class="toggle-btn active" id="loginToggle">Login</button>
-                <button class="toggle-btn" id="registerToggle">Register</button>
+                <button class="toggle-btn active" id="loginToggle" data-i18n="login.tabLogin">Login</button>
+                <button class="toggle-btn" id="registerToggle" data-i18n="login.tabRegister">Register</button>
             </div>
 
             <div class="error-message" id="errorMessage"></div>
@@ -410,64 +387,67 @@
             <!-- Login Form -->
             <form class="form-section active" id="loginForm">
                 <div class="form-group">
-                    <label for="loginUsername">Username</label>
+                    <label for="loginUsername" data-i18n="login.usernameLabel">Username</label>
                     <input type="text" id="loginUsername" class="form-input" required autocomplete="username">
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="loginPassword">Password</label>
+                    <label for="loginPassword" data-i18n="login.passwordLabel">Password</label>
                     <div class="password-container">
                         <input type="password" id="loginPassword" class="form-input" required autocomplete="current-password">
                         <button type="button" class="password-toggle" data-target="loginPassword">👁️</button>
                     </div>
                 </div>
-                
-                <button type="submit" class="submit-btn" id="loginBtn">Sign In</button>
-                
+
+                <button type="submit" class="submit-btn" id="loginBtn" data-i18n="login.signIn">Sign In</button>
+
                 <div class="forgot-password">
-                    <a href="#" id="forgotPasswordLink">Forgot your password?</a>
+                    <a href="#" id="forgotPasswordLink" data-i18n="login.forgotPassword">Forgot your password?</a>
                 </div>
             </form>
 
             <!-- Register Form -->
             <form class="form-section" id="registerForm">
                 <div class="form-group">
-                    <label for="registerUsername">Username</label>
+                    <label for="registerUsername" data-i18n="login.usernameLabel">Username</label>
                     <input type="text" id="registerUsername" class="form-input" required autocomplete="username" minlength="3">
-                    <div class="requirements">Username must be at least 3 characters long</div>
+                    <div class="requirements" data-i18n="login.minChars3">At least 3 characters</div>
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="registerEmail">Email Address</label>
-                    <input type="email" id="registerEmail" class="form-input" required autocomplete="email">
+                    <label for="registerHive"><span data-i18n="login.hiveLabel">Hive Account</span> <span style="font-weight:400;color:var(--text-3)" data-i18n="login.hiveOptional">(optional)</span></label>
+                    <input type="text" id="registerHive" class="form-input" autocomplete="off" data-i18n-placeholder="login.hivePlaceholder" placeholder="yourhiveaccount">
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="registerPassword">Password</label>
+                    <label for="registerPassword" data-i18n="login.passwordLabel">Password</label>
                     <div class="password-container">
                         <input type="password" id="registerPassword" class="form-input" required autocomplete="new-password" minlength="6">
                         <button type="button" class="password-toggle" data-target="registerPassword">👁️</button>
                     </div>
-                    <div class="requirements">Password must be at least 6 characters long</div>
+                    <div class="requirements" data-i18n="login.minChars6">At least 6 characters</div>
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
+                    <label for="confirmPassword" data-i18n="login.confirmPassword">Confirm Password</label>
                     <div class="password-container">
                         <input type="password" id="confirmPassword" class="form-input" required autocomplete="new-password">
                         <button type="button" class="password-toggle" data-target="confirmPassword">👁️</button>
                     </div>
                 </div>
-                
-                <button type="submit" class="submit-btn" id="registerBtn">Create Account</button>
+
+                <button type="submit" class="submit-btn" id="registerBtn" data-i18n="login.requestAccess">Request Access</button>
             </form>
 
-            <!-- Debug Section -->
+            <!-- Language Toggle + Debug Section -->
+            <div style="text-align:right;margin-bottom:1rem">
+                <span id="langToggleContainer"></span>
+            </div>
             <div class="debug-section">
                 <div class="debug-header">
-                    <h3>🔧 Debug Tools</h3>
+                    <h3 data-i18n="login.debugTools">🔧 Debug Tools</h3>
                     <div>
-                        <button class="service-status-btn" id="checkServiceBtn">Check Service Status</button>
+                        <button class="service-status-btn" id="checkServiceBtn" data-i18n="login.checkService">Check Service Status</button>
                         <span class="status-indicator" id="serviceStatus">
                             <span class="status-dot" id="statusDot"></span>
                             <span id="statusText">Unknown</span>
@@ -485,8 +465,13 @@
     </div>
 
     <script>
-        // API Configuration
-        const API_BASE_URL = 'https://hive-pos-backend.onrender.com/api';
+        // API Configuration — set 'pos_api_base' in localStorage to override
+        const API_BASE_URL = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            i18n.init();
+            i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+        });
         
         // DOM Elements
         const loginToggle = document.getElementById('loginToggle');
@@ -556,7 +541,7 @@
             const confirmPassword = this.value;
             
             if (confirmPassword && password !== confirmPassword) {
-                this.setCustomValidity('Passwords do not match');
+                this.setCustomValidity(t('login.passwordsMismatch'));
             } else {
                 this.setCustomValidity('');
             }
@@ -570,7 +555,7 @@
             const password = document.getElementById('loginPassword').value;
             
             if (!username || !password) {
-                showError('Please fill in all fields');
+                showError(t('login.fillAllFields'));
                 return;
             }
             
@@ -586,25 +571,26 @@
                 });
                 
                 if (response.ok) {
-                    // Store the token
                     localStorage.setItem('pos_admin_token', data.token);
                     localStorage.setItem('pos_admin_user', JSON.stringify({
                         username: data.user?.username || username,
-                        id: data.user?.id
+                        id: data.user?.id,
+                        role: data.user?.role
                     }));
-                    
-                    showSuccess('Login successful! Redirecting...');
-                    
-                    // Redirect to admin page after a short delay
+
+                    showSuccess(t('login.loginSuccess'));
+
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
+                        window.location.href = data.user?.role === 'superadmin'
+                            ? 'superadmin.html'
+                            : 'dashboard.html';
+                    }, 1000);
                 } else {
-                    showError(data.message || 'Login failed. Please check your credentials.');
+                    showError(data.error || data.message || t('login.loginFailed'));
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showError('Network error. Please check your connection and try again.');
+                showError(t('common.networkError'));
             } finally {
                 setLoading(false);
             }
@@ -613,62 +599,49 @@
         async function handleRegister(e) {
             e.preventDefault();
             clearMessages();
-            
+
             const username = document.getElementById('registerUsername').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
+            const hiveAccount = document.getElementById('registerHive').value.trim().replace('@', '');
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            if (!username || !email || !password || !confirmPassword) {
-                showError('Please fill in all fields');
+
+            if (!username || !password || !confirmPassword) {
+                showError(t('login.fillRequired'));
                 return;
             }
-            
+
             if (password !== confirmPassword) {
-                showError('Passwords do not match');
+                showError(t('login.passwordsMismatch'));
                 return;
             }
-            
+
             if (password.length < 6) {
-                showError('Password must be at least 6 characters long');
+                showError(t('login.passwordMin6'));
                 return;
             }
-            
+
             if (username.length < 3) {
-                showError('Username must be at least 3 characters long');
+                showError(t('login.usernameMin3'));
                 return;
             }
-            
+
             setLoading(true);
-            
+
             try {
                 const { response, data } = await debugFetch(`${API_BASE_URL}/auth/register`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username, email, password })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, hiveAccount, password })
                 });
-                
+
                 if (response.ok) {
-                    showSuccess('Account created successfully! You can now log in.');
-                    
-                    // Mark this as a new user for the onboarding flow
-                    localStorage.setItem('pos_new_user_flag', 'true');
-                    
-                    // Reset form and switch to login
+                    showSuccess(t('login.registerSuccess'));
                     registerForm.reset();
-                    setTimeout(() => {
-                        switchForm('login');
-                        // Pre-fill username in login form
-                        document.getElementById('loginUsername').value = username;
-                    }, 2000);
                 } else {
-                    showError(data.message || 'Registration failed. Please try again.');
+                    showError(data.error || data.message || t('login.registerFailed'));
                 }
             } catch (error) {
-                console.error('Registration error:', error);
-                showError('Network error. Please check your connection and try again.');
+                showError(t('common.networkError'));
             } finally {
                 setLoading(false);
             }
@@ -720,7 +693,7 @@
         // Forgot password handler (placeholder)
         document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
             e.preventDefault();
-            alert('Password reset functionality will be implemented soon. Please contact your administrator.');
+            alert(t('login.forgotMsg'));
         });
 
         // Debug event listeners

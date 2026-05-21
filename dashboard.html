@@ -4,26 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HIVE POS Administration Console</title>
+    <script src="i18n.js"></script>
+    <link rel="stylesheet" href="theme.css">
     <style>
-        /* CSS Variables for consistent theming */
+        /* Map legacy variables to theme tokens */
         :root {
-            --primary-color: #b5651d;
-            --primary-hover: #9d5419;
-            --success-color: #28a745;
-            --success-hover: #218838;
-            --danger-color: #e74c3c;
-            --danger-hover: #c0392b;
-            --warning-color: #f39c12;
-            --warning-hover: #e67e22;
-            --info-color: #007bff;
-            --info-hover: #0056b3;
-            --light-bg: #f8f8f8;
-            --white: #ffffff;
-            --border-color: #dee2e6;
-            --text-muted: #6c757d;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --border-radius: 8px;
-            --transition: all 0.3s ease;
+            --primary-color: var(--ink);
+            --primary-hover: var(--ink-hover);
+            --success-color: var(--green);
+            --danger-color: var(--red);
+            --warning-color: var(--amber);
+            --info-color: var(--blue);
+            --light-bg: var(--bg);
+            --white: var(--surface);
+            --border-color: var(--border);
+            --text-muted: var(--text-2);
+            --shadow: var(--sh-sm);
+            --border-radius: var(--r);
+            --transition: var(--ease);
         }
 
         /* Reset and base styles */
@@ -33,755 +31,126 @@
             padding: 0;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: var(--light-bg);
-            min-height: 100vh;
-        }
+        body { background: var(--bg); }
 
-        /* Header styles */
-        .header {
-            background: var(--white);
-            box-shadow: var(--shadow);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header h1 {
-            color: var(--primary-color);
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .username {
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* Button styles */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: var(--border-radius);
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-
-        .btn-primary {
-            background: var(--primary-color);
-            color: var(--white);
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-success {
-            background: var(--success-color);
-            color: var(--white);
-        }
-
-        .btn-success:hover {
-            background: var(--success-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-danger {
-            background: var(--danger-color);
-            color: var(--white);
-        }
-
-        .btn-danger:hover {
-            background: var(--danger-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-warning {
-            background: var(--warning-color);
-            color: var(--white);
-        }
-
-        .btn-warning:hover {
-            background: var(--warning-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-sm {
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
-        }
-
-        .btn-icon {
-            width: 40px;
-            height: 40px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
+        /* Header */
+        .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.875rem 2rem; position: sticky; top: 0; z-index: 100; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .header h1 { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; }
+        .username { color: var(--text-2); font-size: 0.875rem; }
 
         /* Main content */
-        .main-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+        .main-content { max-width: 1200px; margin: 0 auto; padding: 1.75rem 2rem; }
 
-        /* Section styles */
-        .section {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-            overflow: hidden;
-        }
-
-        .section-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #333;
-            margin: 0;
-        }
-
-        .section-content {
-            padding: 2rem;
-        }
+        /* Sections → card style */
+        .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-sm); margin-bottom: 1.5rem; overflow: hidden; }
+        .section-header { padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+        .section-content { padding: 1.5rem; }
 
         /* Store display */
-        .store-display {
-            border: 2px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background: var(--white);
-            transition: var(--transition);
-            overflow: hidden;
-        }
+        .store-display { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; transition: var(--ease); }
+        .store-display:hover { border-color: var(--border-strong); box-shadow: var(--sh); }
 
-        .store-display:hover {
-            border-color: var(--primary-color);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
+        .store-banner { position: relative; height: 170px; background: linear-gradient(135deg, var(--card-thumb), var(--border-strong)); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .store-banner::before { content: ''; position: absolute; inset: 0; background: rgba(28,25,23,0.25); }
+        .store-banner-content { position: relative; z-index: 2; text-align: center; color: #fff; }
+        .store-banner-name { font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+        .store-banner-status { display: inline-block; padding: 0.3rem 0.9rem; border-radius: var(--r-full); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); }
+        .store-banner-status.published { background: rgba(22,163,74,0.75); border-color: rgba(22,163,74,0.9); }
+        .store-banner-status.draft { background: rgba(217,119,6,0.75); border-color: rgba(217,119,6,0.9); }
 
-        /* Store banner */
-        .store-banner {
-            position: relative;
-            height: 200px;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            overflow: hidden;
-        }
+        .store-content { padding: 1.5rem; }
+        .store-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; }
+        .store-info h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.4rem; }
 
-        .store-banner:hover {
-            transform: scale(1.02);
-        }
+        .store-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.25rem; }
+        .metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.1rem 1.25rem; text-align: center; }
+        .metric-number { font-size: 1.75rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem; line-height: 1; }
+        .metric-label { font-size: 0.75rem; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
 
-        .store-banner::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.3);
-            transition: var(--transition);
-        }
+        .stores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+        .store-card { border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.25rem; transition: var(--ease); cursor: pointer; background: var(--surface); box-shadow: var(--sh-xs); }
+        .store-card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--sh); }
+        .store-card.new-store { border: 1.5px dashed var(--border-strong); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px; text-align: center; }
+        .store-name { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .store-status { display: inline-block; padding: 0.2em 0.65em; border-radius: var(--r-full); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .store-status.published { background: var(--green-light); color: var(--green); }
+        .store-status.draft { background: var(--amber-light); color: var(--amber); }
+        .store-meta { margin-top: 0.875rem; padding-top: 0.875rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--text-2); }
 
-        .store-banner:hover::before {
-            background: rgba(0, 0, 0, 0.2);
-        }
+        /* Table */
+        .table-container { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .table th, .table td { padding: 0.875rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        .table th { background: var(--bg); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); }
+        .table tbody tr:hover td { background: var(--bg); }
 
-        .store-banner-content {
-            position: relative;
-            z-index: 2;
-            text-align: center;
-            color: white;
-        }
+        /* Forms */
+        .form-group { margin-bottom: 1.1rem; }
+        .form-label { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 500; color: var(--text); }
+        .form-control { width: 100%; padding: 0.625rem 0.875rem; border: 1.5px solid var(--border); border-radius: var(--r); font-size: 0.9rem; color: var(--text); transition: border-color 0.15s, box-shadow 0.15s; font-family: var(--font); background: var(--surface); }
+        .form-control:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(28,25,23,0.07); }
+        .form-row { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; }
+        .actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
-        .store-banner-name {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin: 0;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            margin-bottom: 0.5rem;
-        }
+        /* Badges */
+        .badge { display: inline-block; padding: 0.2em 0.6em; font-size: 0.72rem; font-weight: 600; border-radius: var(--r-full); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+        .badge-success { background: var(--green-light); color: var(--green); }
+        .badge-warning { background: var(--amber-light); color: var(--amber); }
+        .badge-danger  { background: var(--red-light); color: var(--red); }
+        .badge-neutral { background: var(--surface-2); color: var(--text-2); }
 
-        .store-banner-status {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
+        /* Modal */
+        .modal { position: fixed; inset: 0; background: rgba(28,25,23,0.45); backdrop-filter: blur(3px); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; }
+        .modal.show { display: flex; }
+        .modal-content { background: var(--surface); border-radius: var(--r-lg); padding: 1.75rem; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: var(--sh-lg); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-title { font-size: 1.05rem; font-weight: 600; }
+        .modal-close { background: var(--bg); border: none; border-radius: var(--r-full); width: 30px; height: 30px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-2); transition: var(--ease); }
+        .modal-close:hover { background: var(--border); color: var(--text); }
+        .modal-footer { margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: flex-end; }
 
-        .store-banner-status.published {
-            background: rgba(40, 167, 69, 0.8);
-            border-color: rgba(40, 167, 69, 0.9);
-        }
+        /* Spinner */
+        .loading { opacity: 0.6; pointer-events: none; }
+        .spinner { display: inline-block; width: 1rem; height: 1rem; border: 2px solid rgba(255,255,255,0.3); border-top-color: currentColor; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .store-banner-status.draft {
-            background: rgba(243, 156, 18, 0.8);
-            border-color: rgba(243, 156, 18, 0.9);
-        }
+        /* Empty state */
+        .empty-state { text-align: center; padding: 3rem 2rem; color: var(--text-3); }
+        .empty-state h3 { margin-bottom: 0.75rem; color: var(--text-2); font-size: 0.95rem; }
 
-        .store-content {
-            padding: 2rem;
-        }
+        /* Debug window (keep dark theme) */
+        .debug-window { position: fixed; bottom: 0; left: 0; right: 0; height: 300px; background: #1e1e1e; color: #d4d4d4; font-family: var(--mono); font-size: 12px; border-top: 3px solid #007acc; z-index: 1000; transform: translateY(100%); transition: transform 0.3s ease; }
+        .debug-window.open { transform: translateY(0); }
+        .debug-header { background: #2d2d30; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3e3e42; }
+        .debug-title { color: #ccc; font-weight: bold; font-size: 13px; }
+        .debug-controls { display: flex; gap: 8px; }
+        .debug-btn { background: #0e639c; color: white; border: none; padding: 4px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; }
+        .debug-btn:hover { background: #1177bb; }
+        .debug-content { padding: 12px; height: calc(100% - 45px); overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .debug-entry { margin-bottom: 12px; padding: 8px; border-left: 3px solid #007acc; background: #252526; border-radius: 3px; }
+        .debug-timestamp { color: #608b4e; font-size: 11px; margin-bottom: 4px; }
+        .debug-method { color: #c586c0; font-weight: bold; }
+        .debug-url { color: #4fc1ff; }
+        .debug-status-success { color: #4ec9b0; }
+        .debug-status-error { color: #f44747; }
+        .debug-response { margin-top: 6px; padding: 6px; background: #1e1e1e; border-radius: 2px; border: 1px solid #3e3e42; max-height: 120px; overflow-y: auto; }
+        .debug-toggle { position: fixed; bottom: 10px; right: 10px; background: #007acc; color: white; border: none; border-radius: 20px; width: 40px; height: 40px; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,122,204,0.3); z-index: 1001; }
+        .debug-toggle:hover { background: #1177bb; }
 
-        .store-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1.5rem;
-        }
-
-        .store-info h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.5rem;
-        }
-
-        .store-metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .metric-card {
-            background: #f8f9fa;
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            text-align: center;
-            border: 1px solid var(--border-color);
-        }
-
-        .metric-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-
-        .metric-label {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        /* Store grid */
-        .stores-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .store-card {
-            border: 2px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            transition: var(--transition);
-            cursor: pointer;
-            position: relative;
-            background: var(--white);
-        }
-
-        .store-card:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .store-card.new-store {
-            border: 2px dashed var(--primary-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 150px;
-            text-align: center;
-        }
-
-        .store-card.new-store:hover {
-            background: rgba(181, 101, 29, 0.05);
-        }
-
-        .store-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #333;
-        }
-
-        .store-status {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .store-status.published {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--success-color);
-        }
-
-        .store-status.draft {
-            background: rgba(243, 156, 18, 0.1);
-            color: var(--warning-color);
-        }
-
-        .store-meta {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: var(--text-muted);
-        }
-
-        .empty-state h3 {
-            margin-bottom: 1rem;
-            color: #333;
-        }
-
-        /* Table styles */
-        .table-container {
-            overflow-x: auto;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        .table th,
-        .table td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
-            position: sticky;
-            top: 0;
-        }
-
-        .table tbody tr:hover {
-            background: rgba(0, 0, 0, 0.02);
-        }
-
-        /* Form styles */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(181, 101, 29, 0.25);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 1rem;
-            align-items: end;
-        }
-
-        /* Action buttons container */
-        .actions {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        /* Badge styles */
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-            border-radius: 0.25rem;
-            white-space: nowrap;
-        }
-
-        .badge-success {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--success-color);
-        }
-
-        .badge-warning {
-            background: rgba(243, 156, 18, 0.1);
-            color: var(--warning-color);
-        }
-
-        /* Modal styles */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-title {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-footer {
-            margin-top: 2rem;
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-        }
-
-        /* Loading states */
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid transparent;
-            border-top: 2px solid currentColor;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Responsive design */
+        /* Responsive */
         @media (max-width: 768px) {
-            .header {
-                padding: 1rem;
-            }
-
-            .header-container {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-
-            .main-content {
-                padding: 1rem;
-            }
-
-            .section-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-
-            .section-content {
-                padding: 1rem;
-            }
-
-            .stores-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .actions {
-                width: 100%;
-                justify-content: flex-start;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            /* Store banner responsive */
-            .store-banner {
-                height: 150px;
-            }
-
-            .store-banner-name {
-                font-size: 1.8rem;
-            }
-
-            .store-banner-status {
-                font-size: 0.8rem;
-                padding: 0.4rem 0.8rem;
-            }
-
-            .store-content {
-                padding: 1rem;
-            }
-
-            .store-metrics {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1rem;
-            }
-        }
-
-        /* Accessibility improvements */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        /* Focus styles */
-        .btn:focus,
-        .form-control:focus,
-        .store-card:focus {
-            outline: 2px solid var(--primary-color);
-            outline-offset: 2px;
-        }
-
-        /* Print styles */
-        @media print {
-            .header,
-            .btn,
-            .actions {
-                display: none !important;
-            }
-        }
-
-        /* Debug Window Styles */
-        .debug-window {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 300px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            border-top: 3px solid #007acc;
-            z-index: 1000;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
-        .debug-window.open {
-            transform: translateY(0);
-        }
-        .debug-header {
-            background: #2d2d30;
-            padding: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #3e3e42;
-        }
-        .debug-title {
-            color: #cccccc;
-            font-weight: bold;
-            font-size: 13px;
-        }
-        .debug-controls {
-            display: flex;
-            gap: 8px;
-        }
-        .debug-btn {
-            background: #0e639c;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .debug-btn:hover {
-            background: #1177bb;
-        }
-        .debug-btn.clear {
-            background: #d13438;
-        }
-        .debug-btn.clear:hover {
-            background: #f14c4c;
-        }
-        .debug-content {
-            padding: 12px;
-            height: calc(100% - 45px);
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        .debug-entry {
-            margin-bottom: 12px;
-            padding: 8px;
-            border-left: 3px solid #007acc;
-            background: #252526;
-            border-radius: 3px;
-        }
-        .debug-timestamp {
-            color: #608b4e;
-            font-size: 11px;
-            margin-bottom: 4px;
-        }
-        .debug-method {
-            color: #c586c0;
-            font-weight: bold;
-        }
-        .debug-url {
-            color: #4fc1ff;
-        }
-        .debug-status-success {
-            color: #4ec9b0;
-        }
-        .debug-status-error {
-            color: #f44747;
-        }
-        .debug-response {
-            margin-top: 6px;
-            padding: 6px;
-            background: #1e1e1e;
-            border-radius: 2px;
-            border: 1px solid #3e3e42;
-            max-height: 120px;
-            overflow-y: auto;
-        }
-        .debug-toggle {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: #007acc;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            width: 40px;
-            height: 40px;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
-            transition: all 0.3s ease;
-            z-index: 1001;
-        }
-        .debug-toggle:hover {
-            background: #1177bb;
-            transform: scale(1.1);
+            .header { padding: 0.875rem 1rem; }
+            .header-container { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+            .main-content { padding: 1rem; }
+            .section-header { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+            .section-content { padding: 1rem; }
+            .store-metrics { grid-template-columns: repeat(2, 1fr); }
+            .store-banner { height: 130px; }
+            .store-banner-name { font-size: 1.5rem; }
+            .store-content { padding: 1rem; }
         }
     </style>
 </head>
@@ -789,10 +158,12 @@
     <!-- Header -->
     <header class="header">
         <div class="header-container">
-            <h1>🛍️ HIVE POS Administration Console</h1>
+            <h1 data-i18n="dashboard.title">🛍️ HIVE POS Administration Console</h1>
             <div class="user-info">
-                <span class="username">Welcome, <span id="usernameDisplay"></span></span>
-                <button class="btn btn-danger btn-sm" id="logoutBtn">
+                <span class="username" id="welcomeSpan">Welcome, <span id="usernameDisplay"></span></span>
+                <a href="members.html" class="btn btn-primary btn-sm" id="membersNavBtn" style="display:none" data-i18n="common.members">Members</a>
+                <span id="langToggleContainer"></span>
+                <button class="btn btn-danger btn-sm" id="logoutBtn" data-i18n="common.logout">
                     🚪 Logout
                 </button>
             </div>
@@ -804,8 +175,8 @@
         <!-- Store Section -->
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">Your Store</h2>
-                <button class="btn btn-primary" id="editStoreBtn" style="display: none;">
+                <h2 class="section-title" data-i18n="dashboard.yourStore">Your Store</h2>
+                <button class="btn btn-primary" id="editStoreBtn" style="display: none;" data-i18n="dashboard.editStore">
                     ✏️ Edit Store
                 </button>
             </div>
@@ -816,9 +187,9 @@
                 </div>
                 <!-- No Store State -->
                 <div class="empty-state" id="noStoreState" style="display: none;">
-                    <h3>No Store Created</h3>
-                    <p>Create your store to get started with HIVE POS</p>
-                    <button class="btn btn-primary" id="createStoreBtn">
+                    <h3 data-i18n="dashboard.noStore">No Store Created</h3>
+                    <p data-i18n="dashboard.noStoreMsg">Create your store to get started with HIVE POS</p>
+                    <button class="btn btn-primary" id="createStoreBtn" data-i18n="dashboard.createStore">
                         ➕ Create Your Store
                     </button>
                 </div>
@@ -828,8 +199,8 @@
         <!-- Cashiers Section -->
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">Active Cashiers</h2>
-                <button class="btn btn-success" id="addCashierBtn">
+                <h2 class="section-title" data-i18n="dashboard.activeCashiers">Active Cashiers</h2>
+                <button class="btn btn-success" id="addCashierBtn" data-i18n="dashboard.addCashier">
                     👤 Add Cashier
                 </button>
             </div>
@@ -838,10 +209,10 @@
                     <table class="table" id="cashiersTable">
                         <thead>
                             <tr>
-                                <th>Username</th>
-                                <th>Store Access</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th data-i18n="common.username">Username</th>
+                                <th data-i18n="dashboard.storeAccess">Store Access</th>
+                                <th data-i18n="common.status">Status</th>
+                                <th data-i18n="common.actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="cashiersTableBody">
@@ -864,24 +235,24 @@
     <div class="modal" id="cashierModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="cashierModalTitle">Add New Cashier</h3>
+                <h3 class="modal-title" id="cashierModalTitle" data-i18n="dashboard.addCashierTitle">Add New Cashier</h3>
                 <button class="modal-close" onclick="closeCashierModal()">×</button>
             </div>
             <form id="cashierForm">
                 <input type="hidden" id="cashierId">
                 <div class="form-group">
-                    <label class="form-label" for="cashierUsername">Username</label>
+                    <label class="form-label" for="cashierUsername" data-i18n="common.username">Username</label>
                     <input type="text" class="form-control" id="cashierUsername" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="cashierPassword">Password</label>
+                    <label class="form-label" for="cashierPassword" data-i18n="common.password">Password</label>
                     <input type="password" class="form-control" id="cashierPassword" required>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeCashierModal()">Cancel</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCashierModal()" data-i18n="common.cancel">Cancel</button>
                     <button type="submit" class="btn btn-success" id="saveCashierBtn">
                         <span class="spinner" style="display: none;"></span>
-                        Confirm
+                        <span data-i18n="common.confirm">Confirm</span>
                     </button>
                 </div>
             </form>
@@ -909,8 +280,18 @@
     <button class="debug-toggle" id="debugToggle" title="Toggle Debug Console">🐛</button>
 
     <script>
-        // API Configuration
-        const API_BASE_URL = 'https://hive-pos-backend.onrender.com/api';
+        // API Configuration — set 'pos_api_base' in localStorage to override
+        const API_BASE_URL = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            i18n.init();
+            i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+            const user = getUserInfo();
+            if (user?.username) {
+                const span = document.getElementById('welcomeSpan');
+                if (span) span.textContent = t('dashboard.welcome', { name: user.username });
+            }
+        });
 
         // Authentication helpers
         function getAuthToken() {
@@ -956,7 +337,7 @@
         // API Functions - Load user's store config
         async function loadUserStore() {
             try {
-                const response = await fetch(`${API_BASE_URL}/config`, {
+                const response = await fetch(`${API_BASE_URL}/store/config`, {
                     method: 'GET',
                     headers: getAuthHeaders()
                 });
@@ -994,7 +375,7 @@
 
         async function loadCashiers() {
             try {
-                const response = await fetch(`${API_BASE_URL}/users`, {
+                const response = await fetch(`${API_BASE_URL}/cashiers`, {
                     method: 'GET',
                     headers: getAuthHeaders()
                 });
@@ -1055,6 +436,11 @@
             noStoreState.style.display = 'none';
             editStoreBtn.style.display = 'inline-flex';
 
+            if (userStore.features?.memberships) {
+                const btn = document.getElementById('membersNavBtn');
+                if (btn) btn.style.display = 'inline-flex';
+            }
+
             const storeName = userStore.settings?.businessName || userStore.businessName || userStore.name || 'Unnamed Store';
             const storeStatus = userStore.published ? 'Published' : 'Draft';
             const statusClass = userStore.published ? 'published' : 'draft';
@@ -1074,11 +460,11 @@
 
             storeDisplay.innerHTML = `
                 <div class="store-display">
-                    <div class="store-banner" style="${bannerStyle}" onclick="editStore()" title="Click to edit store">
+                    <div class="store-banner" style="${bannerStyle}" onclick="editStore()">
                         <div class="store-banner-content">
                             <h1 class="store-banner-name">${escapeHtml(storeName)}</h1>
                             <div class="store-banner-status ${statusClass}">
-                                ${storeStatus}
+                                ${storeStatus === 'Published' ? t('common.published') : t('common.draft')}
                             </div>
                         </div>
                     </div>
@@ -1086,19 +472,23 @@
                         <div class="store-metrics">
                             <div class="metric-card">
                                 <div class="metric-number">${itemsCount}</div>
-                                <div class="metric-label">Items</div>
+                                <div class="metric-label">${t('dashboard.metricItems')}</div>
                             </div>
                             <div class="metric-card">
                                 <div class="metric-number">${categoriesCount}</div>
-                                <div class="metric-label">Categories</div>
+                                <div class="metric-label">${t('dashboard.metricCategories')}</div>
                             </div>
                             <div class="metric-card">
                                 <div class="metric-number">${cashiersCount}</div>
-                                <div class="metric-label">Cashiers</div>
+                                <div class="metric-label">${t('dashboard.metricCashiers')}</div>
                             </div>
                             <div class="metric-card">
                                 <div class="metric-number">${todayOrders}</div>
-                                <div class="metric-label">Today's Orders</div>
+                                <div class="metric-label">${t('dashboard.metricOrders')}</div>
+                            </div>
+                            <div class="metric-card" id="overdueWidget" style="display:none;border-color:#f39c12;cursor:pointer" onclick="window.location.href='members.html?status=overdue'">
+                                <div class="metric-number" id="overdueCount" style="color:#e67e22">0</div>
+                                <div class="metric-label" style="color:#e67e22">${t('dashboard.metricOverdue')}</div>
                             </div>
                         </div>
                     </div>
@@ -1116,10 +506,10 @@
                 
                 // Always show cashier-focused empty state regardless of store availability
                 emptyState.innerHTML = `
-                    <h3>No Cashiers Assigned</h3>
-                    <p>No cashiers are currently assigned to your store</p>
+                    <h3>${t('dashboard.noCashiersAssigned')}</h3>
+                    <p>${t('dashboard.noCashiersAssignedMsg')}</p>
                     <button class="btn btn-success" onclick="openAddCashierModal()">
-                        👤 Add Your First Cashier
+                        ${t('dashboard.addFirstCashier')}
                     </button>
                 `;
                 return;
@@ -1132,18 +522,18 @@
                 <tr>
                     <td>${escapeHtml(cashier.username)}</td>
                     <td>
-                        <span class="badge badge-success">${escapeHtml(userStore?.settings?.businessName || userStore?.businessName || userStore?.name || 'Current Store')}</span>
+                        <span class="badge badge-success">${escapeHtml(userStore?.settings?.businessName || userStore?.businessName || userStore?.name || t('dashboard.currentStore'))}</span>
                     </td>
                     <td>
-                        <span class="badge badge-success">Active</span>
+                        <span class="badge badge-success">${t('common.active')}</span>
                     </td>
                     <td>
                         <div class="actions">
                             <button class="btn btn-primary btn-sm" onclick="editCashier('${cashier._id || cashier.id}')">
-                                ✏️ Edit
+                                ✏️ ${t('common.edit')}
                             </button>
                             <button class="btn btn-danger btn-sm" onclick="deleteCashier('${cashier._id || cashier.id}')">
-                                🗑️ Delete
+                                🗑️ ${t('common.delete')}
                             </button>
                         </div>
                     </td>
@@ -1172,7 +562,7 @@
 
         // Cashier functions
         function openAddCashierModal() {
-            document.getElementById('cashierModalTitle').textContent = 'Add New Cashier';
+            document.getElementById('cashierModalTitle').textContent = t('dashboard.addCashierTitle');
             document.getElementById('cashierForm').reset();
             document.getElementById('cashierId').value = '';
             document.getElementById('cashierModal').classList.add('show');
@@ -1186,11 +576,11 @@
             const cashier = cashiers.find(c => (c._id || c.id) === cashierId);
             if (!cashier) return;
 
-            document.getElementById('cashierModalTitle').textContent = 'Edit Cashier';
+            document.getElementById('cashierModalTitle').textContent = t('dashboard.editCashierTitle');
             document.getElementById('cashierId').value = cashier._id || cashier.id;
             document.getElementById('cashierUsername').value = cashier.username;
             document.getElementById('cashierPassword').value = '';
-            document.getElementById('cashierPassword').placeholder = 'Leave blank to keep current password';
+            document.getElementById('cashierPassword').placeholder = t('dashboard.passwordPlaceholder');
             document.getElementById('cashierPassword').required = false;
 
             document.getElementById('cashierModal').classList.add('show');
@@ -1232,7 +622,7 @@
                     cashierData.password = password;
                 }
 
-                const url = cashierId ? `${API_BASE_URL}/users/${cashierId}` : `${API_BASE_URL}/users`;
+                const url = cashierId ? `${API_BASE_URL}/cashiers/${cashierId}` : `${API_BASE_URL}/cashiers`;
                 const method = cashierId ? 'PUT' : 'POST';
 
                 const response = await fetch(url, {
@@ -1242,7 +632,7 @@
                 });
 
                 if (response.ok) {
-                    showToast(`Cashier ${cashierId ? 'updated' : 'created'} successfully`, 'success');
+                    showToast(cashierId ? t('dashboard.cashierUpdated') : t('dashboard.cashierCreated'), 'success');
                     closeCashierModal();
                     await loadCashiers();
                 } else {
@@ -1269,16 +659,16 @@
             const cashier = cashiers.find(c => (c._id || c.id) === cashierId);
             if (!cashier) return;
 
-            if (!confirm(`Are you sure you want to delete cashier "${cashier.username}"?`)) return;
+            if (!confirm(t('dashboard.deleteConfirm', { name: cashier.username }))) return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/users/${cashierId}`, {
+                const response = await fetch(`${API_BASE_URL}/cashiers/${cashierId}`, {
                     method: 'DELETE',
                     headers: getAuthHeaders()
                 });
 
                 if (response.ok) {
-                    showToast('Cashier deleted successfully', 'success');
+                    showToast(t('dashboard.cashierDeleted'), 'success');
                     await loadCashiers();
                 } else {
                     const errorText = await response.text();
@@ -1437,6 +827,20 @@
             }
         };
 
+        async function loadOverdueMembers() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/members?status=overdue`, { headers: getAuthHeaders() });
+                if (!res.ok) return;
+                const members = await res.json();
+                const widget = document.getElementById('overdueWidget');
+                const count = document.getElementById('overdueCount');
+                if (widget && count && members.length >= 0) {
+                    widget.style.display = 'block';
+                    count.textContent = members.length;
+                }
+            } catch {}
+        }
+
         // Authentication check and dashboard initialization
         async function initializeDashboard() {
             // Check authentication
@@ -1452,7 +856,8 @@
             try {
                 await Promise.all([
                     loadUserStore(),
-                    loadCashiers()
+                    loadCashiers(),
+                    loadOverdueMembers()
                 ]);
             } catch (error) {
                 console.error('Failed to initialize dashboard:', error);

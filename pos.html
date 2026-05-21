@@ -4,63 +4,259 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale</title>
+    <script src="i18n.js"></script>
     <meta name="theme-color" content="#b5651d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Hive POS">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/sweetplace logo.png">
+    <link rel="stylesheet" href="theme.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 2rem; background: #f8f8f8; }
-        h1 { color: #b5651d; }
-        #categoryTabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-        .menu-list { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
-        .menu-item { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 1rem; width: 160px; min-width: 120px; cursor: pointer; transition: box-shadow 0.2s; display: flex; flex-direction: column; align-items: center; }
-        .menu-item:hover { box-shadow: 0 4px 16px #ccc; }
-        .menu-item img { width: 100%; height: 90px; object-fit: cover; border-radius: 4px; }
-        .menu-item h3 { font-size: 1.1em; margin: 0.5em 0 0.2em 0; text-align: center; }
-        .menu-item p { font-size: 1em; margin: 0; text-align: center; }
-        .cart { margin-top: 2rem; background: hsl(0, 0%, 100%); border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 1rem; max-width: 100%; width: 100%; box-sizing: border-box; }
-        .cart h2 { margin-top: 0; font-size: 1.2em; }
-        .cart-list { list-style: none; padding: 0; margin: 0; }
-        .cart-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee; font-size: 1em; }
-        .cart-list button { font-size: 1.1em; padding: 0.3em 0.7em; margin: 0 2px; border-radius: 4px; border: none; background: #eee; color: #333; cursor: pointer; }
-        .cart-list button:active { background: #b5651d; color: #fff; }
-        .cart-list .remove-btn { background: #e74c3c; color: #fff; }
-        .cart-total { font-size: 1.2em; font-weight: bold; text-align: right; margin-top: 1rem; }
-        .pay-btn { width: 100%; background: #27ae60; color: #fff; border: none; padding: 1rem; border-radius: 4px; font-size: 1.2em; margin-top: 1rem; cursor: pointer; }
-        @media (max-width: 600px) {
-            body { margin: 0.5rem; }
-            .menu-list { gap: 0.5rem; }
-            .menu-item { width: 45vw; min-width: 100px; padding: 0.5rem; }
-            .menu-item img { height: 60px; }
-            .cart { padding: 0.5rem; }
-            .cart-list li { font-size: 0.95em; }
-            .pay-btn { padding: 0.7rem; font-size: 1em; }
+        /* ── POS page layout ── */
+        body { margin: 0; }
+
+        .pos-page {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: var(--bg);
+        }
+
+        /* Top bar */
+        .pos-topbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        .pos-biz-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .pos-hive-badge {
+            font-size: 0.8rem;
+            color: var(--text-2);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--r-full);
+            padding: 0.3em 0.8em;
+            white-space: nowrap;
+        }
+        #configSourceBar {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-size: 0.8rem;
+            color: var(--text-3);
+        }
+        #configSourceText { white-space: nowrap; }
+
+        /* Banner */
+        #bannerContainer img {
+            max-height: 90px;
+            border-radius: var(--r);
+        }
+
+        /* Body: catalog + cart */
+        .pos-body {
+            display: flex;
+            flex: 1;
+            gap: 0;
+            overflow: hidden;
+        }
+
+        /* Catalog (left) */
+        .pos-catalog {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.875rem;
+        }
+
+        /* Cart (right panel) */
+        .pos-cart-panel {
+            width: 300px;
+            flex-shrink: 0;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .cart-head {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .cart-head h2 { font-size: 1rem; font-weight: 600; }
+
+        .cart-body {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .cart-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .cart-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .cart-item-name { font-weight: 500; color: var(--text); flex: 1; min-width: 0; }
+        .cart-item-qty  { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
+        .cart-item-price { font-weight: 600; color: var(--text); flex-shrink: 0; min-width: 52px; text-align: right; }
+
+        .qty-btn {
+            width: 24px; height: 24px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.875rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: var(--ease);
+            flex-shrink: 0;
+        }
+        .qty-btn:hover { background: var(--border); }
+        .qty-num { font-size: 0.85rem; font-weight: 600; min-width: 18px; text-align: center; }
+
+        .remove-btn {
+            width: 24px; height: 24px;
+            border: none;
+            border-radius: var(--r-sm);
+            background: var(--red-light);
+            color: var(--red);
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: var(--ease);
+            flex-shrink: 0;
+        }
+        .remove-btn:hover { background: var(--red); color: #fff; }
+
+        .cart-empty {
+            padding: 3rem 1.5rem;
+            text-align: center;
+            color: var(--text-3);
+            font-size: 0.875rem;
+        }
+
+        .cart-foot {
+            border-top: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .cart-total {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* QR / payment overlay */
+        #qrInlineContainer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(28,25,23,0.45);
+            backdrop-filter: blur(3px);
+            z-index: 800;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #qrInlineContainer.open { display: flex; }
+
+        /* Post-sale row */
+        #postSaleRow {
+            background: var(--surface);
+            border-radius: var(--r-lg);
+            padding: 1.25rem;
+            box-shadow: var(--sh-lg);
+            max-width: 380px;
+            width: 100%;
+        }
+
+        /* Mobile: stack catalog above cart */
+        @media (max-width: 768px) {
+            .pos-body { flex-direction: column; overflow: visible; }
+            .pos-cart-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+            .pos-catalog { padding: 1rem; }
+            .product-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.625rem; }
         }
     </style>
 </head>
 <body>
-    <div id="configSourceBar" style="position:absolute;top:1rem;left:1.5rem;background:#fff7e6;border-radius:6px;padding:0.5em 1em;box-shadow:0 2px 8px #eee;z-index:10;display:flex;align-items:center;gap:1em;min-width:180px;font-size:0.98em;">
-        <span id="configSourceText">Source: Local Storage</span>
-        <button id="updateStoreBtn" style="background:#b5651d;color:#fff;border:none;border-radius:4px;padding:0.3em 0.8em;cursor:pointer;font-size:1em;">Update Store</button>
-        <input type="file" id="storeFileInput" accept="application/json" style="display:none;" />
+<div class="pos-page">
+    <!-- Top bar -->
+    <header class="pos-topbar">
+        <span id="businessNameHeader" class="pos-biz-name">Point of Sale</span>
+        <div id="bannerContainer"></div>
+        <div id="hiveAccountDisplay" class="pos-hive-badge" style="display:none;"></div>
+        <div id="configSourceBar">
+            <span id="configSourceText"></span>
+            <button id="updateStoreBtn" class="btn btn-secondary btn-sm" data-i18n="pos.updateStore">Update Store</button>
+            <input type="file" id="storeFileInput" accept="application/json" style="display:none;" />
+        </div>
+    </header>
+
+    <!-- Main body -->
+    <div class="pos-body">
+        <!-- Product catalog -->
+        <main class="pos-catalog">
+            <div class="filter-pills" id="categoryTabs"></div>
+            <div class="product-grid" id="menuList"></div>
+        </main>
+
+        <!-- Cart panel -->
+        <aside class="pos-cart-panel">
+            <div class="cart-head">
+                <h2>Cart</h2>
+                <button id="clearCartBtn" class="btn btn-ghost btn-sm" title="Clear Cart">🗑</button>
+            </div>
+            <div class="cart-body" id="cart">
+                <ul class="cart-list" id="cartList"></ul>
+            </div>
+            <div class="cart-foot" id="cartFoot">
+                <div class="cart-total" id="cartTotal">Total: $0.00</div>
+            </div>
+        </aside>
     </div>
-    <div id="bannerContainer" style="text-align:center;margin-bottom:1rem;"></div>
-    <h1 id="businessNameHeader">Point of Sale</h1>
-    <div id="categoryTabs"></div>
-    <div class="menu-list" id="menuList"></div>
-    <div class="cart" id="cart">
-        <h2 style="display:inline-flex;align-items:center;gap:0.5em;">Cart
-            <button id="clearCartBtn" title="Clear Cart" style="background:#e74c3c;color:#fff;border:none;border-radius:50%;width:2em;height:2em;display:inline-flex;align-items:center;justify-content:center;font-size:1.2em;margin-left:0.5em;cursor:pointer;vertical-align:middle;">
-                🗑️
-            </button>
-        </h2>
-        <ul class="cart-list" id="cartList"></ul>
-        <div class="cart-total" id="cartTotal">Total: $0.00</div>
-    </div>
-    <div id="hiveAccountDisplay" style="position:absolute;top:1.5rem;right:2rem;font-size:1.1em;color:#333;background:#fff2;border-radius:6px;padding:0.4em 1em;box-shadow:0 2px 8px #eee;"></div>
-    <div id="qrInlineContainer" style="display:none;justify-content:center;margin-top:1.5rem;"></div>
+
+    <!-- QR / payment overlay -->
+    <div id="qrInlineContainer"></div>
+</div>
     <!-- Add QR code library if not already present -->
     <script>
     if (!window.QRCode) {
@@ -70,6 +266,7 @@
     }
     </script>
     <script>
+        document.addEventListener('DOMContentLoaded', () => i18n.init());
         // --- Bitcoin Lightning minimum amount check ---
         function isLightningAmountValid(amount, currency) {
             // Accept both 'USD' and 'usd' for safety
@@ -89,7 +286,7 @@
             const bannerDiv = document.getElementById('bannerContainer');
             bannerDiv.innerHTML = settings.bannerUrl ? `<img src="${settings.bannerUrl}" alt="Banner" style="max-width:100%;max-height:120px;border-radius:8px;">` : '';
             // Business Name
-            document.getElementById('businessNameHeader').textContent = settings.businessName || 'Point of Sale';
+            document.getElementById('businessNameHeader').textContent = settings.businessName || t('pos.title');
         }
         // --- Category Tabs Logic (updated to use store settings) ---
         function getCategories(items) {
@@ -102,17 +299,18 @@
             const cats = getCategories(items);
             const tabs = document.getElementById('categoryTabs');
             tabs.innerHTML = '';
-            // All button
+            // All pill
             const allBtn = document.createElement('button');
-            allBtn.textContent = 'All';
-            allBtn.style.fontWeight = currentCategory === 'all' ? 'bold' : '';
+            allBtn.className = 'pill' + (currentCategory === 'all' ? ' active' : '');
+            allBtn.innerHTML = `${t('pos.all')} <span class="pill-count">${items.length}</span>`;
             allBtn.onclick = () => { currentCategory = 'all'; renderMenu(); };
             tabs.appendChild(allBtn);
-            // Category buttons
+            // Category pills
             cats.forEach(cat => {
+                const count = items.filter(i => i.category === cat).length;
                 const btn = document.createElement('button');
-                btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
-                btn.style.fontWeight = currentCategory === cat ? 'bold' : '';
+                btn.className = 'pill' + (currentCategory === cat ? ' active' : '');
+                btn.innerHTML = `${cat.charAt(0).toUpperCase() + cat.slice(1)} <span class="pill-count">${count}</span>`;
                 btn.onclick = () => { currentCategory = cat; renderMenu(); };
                 tabs.appendChild(btn);
             });
@@ -128,11 +326,16 @@
             const filtered = currentCategory === 'all' ? items : items.filter(i => i.category === currentCategory);
             filtered.forEach(item => {
                 const div = document.createElement('div');
-                div.className = 'menu-item';
+                div.className = 'product-card';
+                const initial = item.name.charAt(0).toUpperCase();
                 div.innerHTML = `
-                    <img src="${item.image}" alt="${item.name}">
-                    <h3>${item.name}</h3>
-                    <p><b>Price:</b> $${item.price.toFixed(2)}</p>
+                    <div class="product-thumb">
+                        ${item.image ? `<img src="${item.image}" alt="${item.name}">` : `<span class="product-initial">${initial}</span>`}
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name">${item.name}</div>
+                        <div class="product-price">$${item.price.toFixed(2)}</div>
+                    </div>
                 `;
                 div.onclick = () => addToCart(item);
                 menu.appendChild(div);
@@ -153,29 +356,36 @@
         function renderCart() {
             const list = document.getElementById('cartList');
             list.innerHTML = '';
-            cart.forEach((item, idx) => {
-                const lineTotal = item.price * item.qty;
-                list.innerHTML += `<li>
-                    <span>${item.name} x${item.qty}</span>
-                    <span>
-                        <button onclick="changeQty(${idx}, -1)" style="margin-right:2px;">-</button>
-                        <button onclick="changeQty(${idx}, 1)" style="margin-right:8px;">+</button>
-                        <button onclick="removeFromCart(${idx})" style="background:#e74c3c;">🗑️</button>
-                        $${lineTotal.toFixed(2)}
-                    </span>
-                </li>`;
-            });
+            if (cart.length === 0) {
+                list.innerHTML = '<div class="cart-empty">No items yet</div>';
+            } else {
+                cart.forEach((item, idx) => {
+                    const lineTotal = item.price * item.qty;
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span class="cart-item-name">${item.name}</span>
+                        <span class="cart-item-qty">
+                            <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
+                            <span class="qty-num">${item.qty}</span>
+                            <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
+                            <button class="remove-btn" onclick="removeFromCart(${idx})">✕</button>
+                        </span>
+                        <span class="cart-item-price">$${lineTotal.toFixed(2)}</span>
+                    `;
+                    list.appendChild(li);
+                });
+            }
             const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-            document.getElementById('cartTotal').textContent = `Total: $${total.toFixed(2)}`;
+            document.getElementById('cartTotal').textContent = t('pos.total', { amount: total.toFixed(2) });
         }
         function renderHiveAccount() {
             const settings = getStoreSettings();
             const hiveDiv = document.getElementById('hiveAccountDisplay');
             if (settings.hiveAccount) {
-                hiveDiv.innerHTML = `<b>Receiving Hive:</b> @${settings.hiveAccount}`;
+                hiveDiv.textContent = `@${settings.hiveAccount}`;
                 hiveDiv.style.display = '';
             } else {
-                hiveDiv.innerHTML = '';
+                hiveDiv.textContent = '';
                 hiveDiv.style.display = 'none';
             }
         }
@@ -184,7 +394,7 @@
             const settings = getStoreSettings();
             const hiveAccount = settings.hiveAccount;
             if (!hiveAccount) {
-                alert('No Hive account set for receiving payments.');
+                alert(t('pos.noHiveAccount'));
                 return;
             }
             const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -213,16 +423,14 @@
 
             // Generate QR code
             const qrDiv = document.getElementById('qrInlineContainer');
-            qrDiv.innerHTML = `<div style='background:#fff;padding:1.5rem 1rem 1rem 1rem;border-radius:12px;box-shadow:0 4px 24px #0002;display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:350px;margin:auto;'>
-                <h2 style='margin-top:0;text-align:center;'>Scan to Pay with Hive Keychain</h2>
-                <div id='qrCodeInline' style='margin:1rem 0;min-height:240px;'></div>
-                <div style='font-size:1.1em;margin-bottom:1rem;text-align:center;'><b>To:</b> @${hiveAccount}<br><b>Amount:</b> ${total.toFixed(3)} HBD</div>
-                <div style='word-break:break-all;font-size:0.95em;background:#f4f4f4;padding:0.5em 0.7em;border-radius:6px;margin-top:0.5em;text-align:center;'>${uri}</div>
-                <div id='paymentStatus' style='margin-top:1em;font-size:1.1em;color:#27ae60;'></div>
+            qrDiv.innerHTML = `<div style='background:var(--surface);padding:2rem 1.5rem;border-radius:var(--r-xl);box-shadow:var(--sh-lg);display:flex;flex-direction:column;align-items:center;max-width:360px;width:100%;'>
+                <h2 style='margin:0 0 1.25rem;text-align:center;font-size:1.1rem;'>${t('pos.scanToPay')}</h2>
+                <div id='qrCodeInline' style='margin-bottom:1.25rem;min-height:240px;display:flex;align-items:center;justify-content:center;'></div>
+                <div style='font-size:0.95rem;margin-bottom:1rem;text-align:center;color:var(--text-2);line-height:1.6;'><b style="color:var(--text);">To:</b> @${hiveAccount}<br><b style="color:var(--text);">Amount:</b> ${total.toFixed(3)} HBD</div>
+                <div style='word-break:break-all;font-size:0.78rem;background:var(--bg);padding:0.6em 0.8em;border-radius:var(--r);text-align:center;color:var(--text-3);border:1px solid var(--border);width:100%;'>${uri}</div>
+                <div id='paymentStatus' style='margin-top:1rem;font-size:0.95rem;font-weight:500;color:var(--green);text-align:center;'></div>
             </div>`;
-            qrDiv.style.display = 'flex';
-            qrDiv.style.justifyContent = 'center';
-            qrDiv.style.alignItems = 'center';
+            qrDiv.classList.add('open');
             setTimeout(() => {
                 const qrCodeDiv = document.getElementById('qrCodeInline');
                 qrCodeDiv.innerHTML = '';
@@ -236,7 +444,7 @@
                         correctLevel: QRCode.CorrectLevel.H
                     });
                 } else {
-                    qrCodeDiv.textContent = 'QR code library not loaded.';
+                    qrCodeDiv.textContent = t('pos.qrLibMissing');
                 }
             }, 0);
             // Start payment listener
@@ -275,7 +483,7 @@
                             op[1].to === hiveAccount &&
                             op[1].amount === expectedAmount &&
                             op[1].memo === expectedMemo) {
-                            statusDiv.textContent = '✅ Payment received!';
+                            statusDiv.textContent = t('pos.paymentReceived');
                             clearInterval(paymentListenerInterval);
                             paymentListenerInterval = null;
                             // Show post-sale actions for HBD
@@ -288,19 +496,18 @@
                             return;
                         }
                     }
-                    statusDiv.textContent = '⏳ Waiting for payment...';
+                    statusDiv.textContent = t('pos.waitingPayment');
                 } catch (e) {
-                    statusDiv.textContent = 'Error checking payment.';
+                    statusDiv.textContent = t('pos.paymentError');
                 }
                 if (attempts > 100) {
-                    statusDiv.textContent = 'Payment not detected. Please check manually.';
+                    statusDiv.textContent = t('pos.paymentTimeout');
                     clearInterval(paymentListenerInterval);
                     paymentListenerInterval = null;
                 }
             }, 3000);
         }
-        // --- Payment Buttons (side by side) ---
-        const cartDiv = document.getElementById('cart');
+        // --- Payment Buttons ---
         function isBitcoinLightningEnabled() {
             const settings = getStoreSettings();
             return !!settings.bitcoinLightningEnabled && settings.bitcoinLightningConfig;
@@ -309,26 +516,30 @@
             return cart && cart.length > 0;
         }
         function renderPaymentButtons() {
-            let html = `<div id="paymentButtonsRow" style="display:flex;gap:1em;margin-top:1.5em;justify-content:center;">`;
+            const cartFoot = document.getElementById('cartFoot');
+            // Remove existing payment sections
+            ['paymentButtonsRow', 'cashPaymentSection'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            });
             const cartHasItems = getCartHasItems();
-            html += `<button id="payWithCashBtn" type="button" style="flex:1 1 0%;background:#f5b041;color:#fff;font-size:1.2em;padding:1em 0.5em;border:none;border-radius:6px;min-width:0;" ${cartHasItems ? '' : 'disabled'}>Pay with Cash</button>`;
-            html += `<button id="payWithHbdBtn" type="button" style="flex:1 1 0%;background:#27ae60;color:#fff;font-size:1.2em;padding:1em 0.5em;border:none;border-radius:6px;min-width:0;" ${cartHasItems ? '' : 'disabled'}>Pay with HBD</button>`;
+            const dis = cartHasItems ? '' : 'disabled';
+            let html = `<div id="paymentButtonsRow" style="display:flex;flex-direction:column;gap:0.5rem;">`;
+            html += `<button id="payWithHbdBtn" type="button" class="btn btn-success btn-block" ${dis}>${t('pos.payHbd')}</button>`;
+            html += `<button id="payWithCashBtn" type="button" class="btn btn-block" style="background:var(--amber);color:#fff;border-color:var(--amber);" ${dis}>${t('pos.payCash')}</button>`;
             if (isBitcoinLightningEnabled()) {
-                html += `<button id="payWithBtcBtn" type="button" style="flex:1 1 0%;background:#f7931a;color:#fff;font-size:1.2em;padding:1em 0.5em;border:none;border-radius:6px;min-width:0;" ${cartHasItems ? '' : 'disabled'}>Bitcoin Lightning</button>`;
+                html += `<button id="payWithBtcBtn" type="button" class="btn btn-block" style="background:#f7931a;color:#fff;border-color:#f7931a;" ${dis}>${t('pos.payBtc')}</button>`;
             }
             html += `</div>`;
-            html += `<div id="cashPaymentSection" style="display:none;margin-top:1.5em;text-align:center;">
-      <div style="margin-bottom:1em;">
-        <label for="cashGivenInput"><b>Cash Given:</b></label>
-        <input id="cashGivenInput" type="number" min="0" step="0.01" style="width:100px;font-size:1.1em;margin-left:0.5em;" />
-      </div>
-      <div id="changeDueDisplay" style="font-size:1.2em;margin-bottom:1em;"></div>
-      <button id="finishCashSaleBtn" style="background:#27ae60;color:#fff;font-size:1.2em;padding:0.7em 2em;border:none;border-radius:6px;position:relative;right:0;">Finish Sale</button>
-    </div>`;
-            // Replace or insert payment buttons
-            let oldRow = document.getElementById('paymentButtonsRow');
-            if (oldRow) oldRow.parentNode.removeChild(oldRow);
-            cartDiv.insertAdjacentHTML('afterend', html);
+            html += `<div id="cashPaymentSection" style="display:none;padding-top:0.75rem;">
+                <div class="form-group">
+                    <label for="cashGivenInput">${t('pos.cashGiven')}</label>
+                    <input id="cashGivenInput" type="number" min="0" step="0.01" />
+                </div>
+                <div id="changeDueDisplay" style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;min-height:1.5em;"></div>
+                <button id="finishCashSaleBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
+            </div>`;
+            cartFoot.insertAdjacentHTML('beforeend', html);
         }
         function setupPaymentButtons() {
             renderPaymentButtons();
@@ -344,11 +555,11 @@
                 return cart.reduce(function(sum, item) { return sum + item.price * item.qty; }, 0);
             }
             function showKeychain() {
-                qrInline.style.display = 'flex';
+                qrInline.classList.add('open');
                 cashSection.style.display = 'none';
             }
             function showCash() {
-                qrInline.style.display = 'none';
+                qrInline.classList.remove('open');
                 cashSection.style.display = 'block';
                 cashInput.value = '';
                 changeDue.textContent = '';
@@ -363,18 +574,18 @@
                 const settings = getStoreSettings();
                 const bl = settings.bitcoinLightningConfig;
                 if (!bl) {
-                    alert('Bitcoin Lightning config missing.');
+                    alert(t('pos.lightningMissing'));
                     return;
                 }
                 // Calculate total in USD (or use POS currency logic if needed)
                 const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
                 if (!total || total <= 0) {
-                    alert('Cart is empty.');
+                    alert(t('pos.cartEmpty'));
                     return;
                 }
                 const currency = bl.currency || 'USD';
                 if (!isLightningAmountValid(total, currency)) {
-                    alert('Minimum amount for Bitcoin Lightning is $0.25 USD.');
+                    alert(t('pos.lightningMin'));
                     return;
                 }
                 // --- Generate short memo BEFORE invoice creation ---
@@ -383,8 +594,8 @@
                 // Show modal and loading state
                 const modal = document.getElementById('btcLightningQrModal');
                 modal.style.display = 'flex';
-                document.getElementById('btcLightningQrAccount').textContent = 'Receiving: @' + (bl.hive_accname || '');
-                document.getElementById('btcLightningInvoice').textContent = 'Requesting invoice...';
+                document.getElementById('btcLightningQrAccount').textContent = t('pos.lightningReceiving', { account: bl.hive_accname || '' });
+                document.getElementById('btcLightningInvoice').textContent = t('pos.requestingInvoice');
                 const qrDiv = document.getElementById('btcLightningQrCode');
                 qrDiv.innerHTML = '';
                 // Build API call WITH message (memo) set
@@ -422,7 +633,7 @@
                         // Start Lightning payment listener using the short memo
                         startLightningPaymentListener(shortMemo);
                     } else {
-                        document.getElementById('btcLightningInvoice').textContent = 'No invoice received.';
+                        document.getElementById('btcLightningInvoice').textContent = t('pos.noInvoice');
                         qrDiv.innerHTML = '';
                     }
                 } catch (err) {
@@ -436,7 +647,7 @@
                     var total = getTotal();
                     if (isNaN(given)) { changeDue.textContent = ''; return; }
                     var change = given - total;
-                    changeDue.textContent = (change >= 0) ? ('Change Due: $' + change.toFixed(2)) : 'Not enough cash given.';
+                    changeDue.textContent = (change >= 0) ? t('pos.changeDue', { amount: change.toFixed(2) }) : t('pos.notEnoughCash');
                 };
             }
             if (finishBtn) {
@@ -482,7 +693,7 @@
         };
         // --- Config Source Bar Logic ---
         function setConfigSourceText(text) {
-            document.getElementById('configSourceText').textContent = 'Source: ' + text;
+            document.getElementById('configSourceText').textContent = t('pos.source', { src: text });
         }
         function getConfigSource() {
             return localStorage.getItem('pos_config_source') || 'Local Storage';
@@ -519,7 +730,7 @@
                     renderCart();
                     renderMenu();
                     renderHiveAccount();
-                    alert('Store configuration loaded!');
+                    alert(t('pos.storeLoaded'));
                 } catch (err) {
                     alert('Failed to load config: ' + err.message);
                 }
@@ -547,11 +758,11 @@
         if (clearCartBtn) {
             clearCartBtn.onclick = function() {
                 if (cart.length === 0) return;
-                if (confirm('Clear all items from the cart?')) {
+                if (confirm(t('pos.clearCartConfirm'))) {
                     cart = [];
                     renderCart();
                     // Also hide QR/cash sections if visible
-                    document.getElementById('qrInlineContainer').style.display = 'none';
+                    document.getElementById('qrInlineContainer').classList.remove('open');
                     var cashSection = document.getElementById('cashPaymentSection');
                     if (cashSection) cashSection.style.display = 'none';
                 }
@@ -559,25 +770,15 @@
         }
         // --- Post-Sale Actions ---
         function showPostSaleActions(paymentType, saleCart, saleTotal) {
-            // Hide payment/cash/QR sections
-            document.getElementById('qrInlineContainer').style.display = 'none';
-            var cashSection = document.getElementById('cashPaymentSection');
-            if (cashSection) cashSection.style.display = 'none';
-            // Hide payment buttons
-            var paymentButtonsRow = document.getElementById('paymentButtonsRow');
-            if (paymentButtonsRow) paymentButtonsRow.style.display = 'none';
-            // Remove previous post-sale actions if any
-            let prev = document.getElementById('postSaleActionsRow');
-            if (prev) prev.remove();
-            // Create buttons
-            const row = document.createElement('div');
-            row.id = 'postSaleActionsRow';
-            row.style = 'display:flex;gap:1em;margin-top:2em;justify-content:center;';
-            // Save Receipt button
-            const saveBtn = document.createElement('button');
-            saveBtn.textContent = 'Save Receipt';
-            saveBtn.style = 'flex:1 1 0%;background:#2980b9;color:#fff;font-size:1.1em;padding:1em 0.5em;border:none;border-radius:6px;min-width:0;';
-            saveBtn.onclick = function() {
+            document.getElementById('qrInlineContainer').classList.remove('open');
+            const cartFoot = document.getElementById('cartFoot');
+            cartFoot.innerHTML = `
+                <div style="text-align:center;padding:0.25rem 0 0.75rem;color:var(--green);font-weight:600;font-size:0.9rem;">✓ Sale complete</div>
+                <div id="postSaleActionsRow" style="display:flex;flex-direction:column;gap:0.5rem;">
+                    <button id="postSaleSaveBtn" class="btn btn-secondary btn-block">${t('pos.saveReceipt')}</button>
+                    <button id="postSaleNewBtn" class="btn btn-success btn-block">${t('common.newSale')}</button>
+                </div>`;
+            document.getElementById('postSaleSaveBtn').onclick = function() {
                 const now = new Date();
                 const pad = n => n.toString().padStart(2, '0');
                 const filename = `receipt-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.json`;
@@ -587,38 +788,18 @@
                     items: saleCart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
                     total: saleTotal
                 };
-                const blob = new Blob([JSON.stringify(receipt, null, 2)], {type: 'application/json'});
+                const blob = new Blob([JSON.stringify(receipt, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click();
                 setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
             };
-            // New Sale button
-            const newBtn = document.createElement('button');
-            newBtn.textContent = 'New Sale';
-            newBtn.style = 'flex:1 1 0%;background:#27ae60;color:#fff;font-size:1.1em;padding:1em 0.5em;border:none;border-radius:6px;min-width:0;';
-            newBtn.onclick = function() {
+            document.getElementById('postSaleNewBtn').onclick = function() {
                 cart = [];
                 renderCart();
                 renderMenu();
-                row.remove();
-                // Show payment buttons again and reset their style
-                var paymentButtonsRow = document.getElementById('paymentButtonsRow');
-                if (paymentButtonsRow) {
-                    paymentButtonsRow.style.display = 'flex';
-                    paymentButtonsRow.style.gap = '1em';
-                    paymentButtonsRow.style.marginTop = '1.5em';
-                    paymentButtonsRow.style.justifyContent = 'center';
-                }
             };
-            row.appendChild(saveBtn);
-            row.appendChild(newBtn);
-            // Insert after cart
-            const cartDiv = document.getElementById('cart');
-            cartDiv.parentNode.insertBefore(row, cartDiv.nextSibling);
         }
 
         // Add ability to X out of the Lightning QR modal
@@ -723,19 +904,19 @@
                         (op[1].from || '').toLowerCase() === 'v4vapp' &&
                         op[1].memo && op[1].memo.toLowerCase().includes(shortMemo.toLowerCase())
                     ) {
-                        statusDiv.innerHTML = '<span style="color:#27ae60;font-weight:bold;">✅ Bitcoin Lightning payment received!</span>';
+                        statusDiv.innerHTML = `<span style="color:#27ae60;font-weight:bold;">${t('pos.lightningReceived')}</span>`;
                         clearInterval(lightningPaymentListenerInterval);
                         lightningPaymentListenerInterval = null;
                         showLightningPaidNotification();
                         return;
                     }
                 }
-                statusDiv.innerHTML = '<span style="color:#f7931a;">⏳ Waiting for Bitcoin Lightning payment confirmation...</span>';
+                statusDiv.innerHTML = `<span style="color:#f7931a;">${t('pos.lightningWaiting')}</span>`;
             } catch (e) {
-                statusDiv.innerHTML = '<span style="color:#e74c3c;">Error checking payment.</span>';
+                statusDiv.innerHTML = `<span style="color:#e74c3c;">${t('pos.paymentError')}</span>`;
             }
             if (attempts > 100) {
-                statusDiv.innerHTML = '<span style="color:#e74c3c;">Payment not detected. Please check manually.</span>';
+                statusDiv.innerHTML = `<span style="color:#e74c3c;">${t('pos.paymentTimeout')}</span>`;
                 clearInterval(lightningPaymentListenerInterval);
                 lightningPaymentListenerInterval = null;
             }

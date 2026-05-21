@@ -4,61 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale Admin</title>
+    <script src="i18n.js"></script>
+    <link rel="stylesheet" href="theme.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 2rem; background: #f8f8f8; }
+        body { margin: 2rem; background: var(--bg); color: var(--text); }
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        h1 { color: #b5651d; margin: 0; }
-        .logout-btn { 
-            background: #e74c3c; 
-            color: #fff; 
-            border: none; 
-            padding: 0.75rem 1.5rem; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: background 0.3s ease;
-        }
-        .logout-btn:hover { 
-            background: #c0392b; 
-            transform: translateY(-1px);
-        }
-        .save-draft-btn {
-            background: #f39c12;
+        h1 { color: var(--ink); margin: 0; }
+        .logout-btn {
+            background: var(--red);
             color: #fff;
             border: none;
             padding: 0.75rem 1.5rem;
-            border-radius: 4px;
+            border-radius: var(--r);
             cursor: pointer;
             font-size: 0.9rem;
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: var(--ease);
+        }
+        .logout-btn:hover { background: #b91c1c; transform: translateY(-1px); }
+        .save-draft-btn {
+            background: var(--amber);
+            color: #fff;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--r);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--ease);
             margin-right: 0.5rem;
         }
-        .save-draft-btn:hover:not(:disabled) {
-            background: #e67e22;
-            transform: translateY(-1px);
-        }
-        .save-draft-btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .header-buttons {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        form { margin-bottom: 2rem; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px #eee; }
+        .save-draft-btn:hover:not(:disabled) { background: #b45309; transform: translateY(-1px); }
+        .save-draft-btn:disabled { background: var(--border-strong); cursor: not-allowed; transform: none; }
+        .header-buttons { display: flex; gap: 0.5rem; align-items: center; }
+        form { margin-bottom: 2rem; background: var(--surface); padding: 1rem; border-radius: var(--r-lg); border: 1px solid var(--border); box-shadow: var(--sh-sm); }
         label { display: block; margin-top: 1rem; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 0.5rem; margin-top: 0.25rem; }
-        button { margin-top: 1rem; background: #b5651d; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+        button { margin-top: 1rem; background: var(--ink); color: var(--ink-text); border: none; padding: 0.5rem 1rem; border-radius: var(--r); cursor: pointer; transition: var(--ease); }
+        button:hover { background: var(--ink-hover); }
         .items-list { display: flex; flex-wrap: wrap; gap: 1rem; }
-        .item-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 1rem; width: 220px; position: relative; }
-        .item-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; }
+        .item-card { background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--border); box-shadow: var(--sh-sm); padding: 1rem; width: 220px; position: relative; }
+        .item-card img { width: 100%; height: 120px; object-fit: cover; border-radius: var(--r); }
         .item-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; }
-        .item-actions button { flex: 1; font-size: 0.9em; }
-        
+        .item-actions button { flex: 1; font-size: 0.9em; margin-top: 0; }
+
         /* Debug Window Styles */
         .debug-window {
             position: fixed;
@@ -180,56 +168,57 @@
 <body>
     <div class="header-container">
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <button class="btn" style="background: #6c757d; color: #fff; padding: 0.5rem 1rem;" onclick="goToDashboard()">
+            <button class="btn" style="background: var(--surface-2); color: var(--text); border: 1px solid var(--border); padding: 0.5rem 1rem;" onclick="goToDashboard()" data-i18n="admin.backToDashboard">
                 ← Back to Dashboard
             </button>
-            <h1 id="pageTitle">Point of Sale Admin</h1>
+            <h1 id="pageTitle" data-i18n="admin.title">Point of Sale Admin</h1>
         </div>
         <div class="header-buttons">
-            <button class="save-draft-btn" id="saveDraftBtn" disabled>💾 Save Draft</button>
-            <button class="logout-btn" id="logoutBtn">🚪 Logout</button>
+            <button class="save-draft-btn" id="saveDraftBtn" disabled data-i18n="admin.saveDraft">💾 Save Draft</button>
+            <span id="langToggleContainer"></span>
+            <button class="logout-btn" id="logoutBtn" data-i18n="common.logout">🚪 Logout</button>
         </div>
     </div>
     <form id="itemForm" enctype="multipart/form-data">
         <input type="hidden" id="itemId">
-        <label>Item Name:
+        <label><span data-i18n="admin.itemName">Item Name:</span>
             <input type="text" id="itemName" required>
         </label>
-        <label>Category:
+        <label><span data-i18n="admin.category">Category:</span>
             <select id="itemCategory" required>
-                <option value="">Select category</option>
-                <option value="drink">Drink</option>
-                <option value="pastry">Pastry</option>
-                <option value="bread">Bread</option>
-                <option value="other">Other</option>
+                <option value="" data-i18n="admin.selectCategory">Select category</option>
+                <option value="drink" data-i18n="admin.drink">Drink</option>
+                <option value="pastry" data-i18n="admin.pastry">Pastry</option>
+                <option value="bread" data-i18n="admin.bread">Bread</option>
+                <option value="other" data-i18n="admin.other">Other</option>
             </select>
         </label>
-        <label>Image File:
+        <label><span data-i18n="admin.imageFile">Image File:</span>
             <div style="display:flex;align-items:center;gap:0.5rem;">
-                <input type="text" id="itemImage" placeholder="Select an image..." readonly required style="flex:1;">
+                <input type="text" id="itemImage" data-i18n-placeholder="admin.selectImagePlaceholder" placeholder="Select an image..." readonly required style="flex:1;">
                 <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
-                <button type="button" id="selectImageBtn" style="background:#888;">Select Image</button>
+                <button type="button" id="selectImageBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0" data-i18n="admin.selectImage">Select Image</button>
             </div>
         </label>
-        <label>Price ($):
+        <label><span data-i18n="admin.price">Price ($):</span>
             <input type="number" id="itemPrice" min="0" step="0.01" required>
         </label>
-        <button type="submit" id="saveBtn">Add Item</button>
-        <button type="button" id="cancelEditBtn" style="display:none; background:#888;">Cancel</button>
+        <button type="submit" id="saveBtn" data-i18n="admin.addItem">Add Item</button>
+        <button type="button" id="cancelEditBtn" style="display:none; background:#888;" data-i18n="common.cancel">Cancel</button>
     </form>
     <div class="items-list" id="itemsList"></div>
 
     <!-- Store Customization Section -->
-    <div id="storeSettings" style="background:#fff;padding:1rem 1.5rem 1.5rem 1.5rem;margin-bottom:2rem;border-radius:8px;box-shadow:0 2px 8px #eee;max-width:600px;">
-        <h2 style="margin-top:0;">Store Settings</h2>
-        <label>Business Name:
+    <div id="storeSettings" style="background:var(--surface);padding:1rem 1.5rem 1.5rem 1.5rem;margin-bottom:2rem;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);max-width:600px;">
+        <h2 style="margin-top:0;" data-i18n="admin.storeSettings">Store Settings</h2>
+        <label><span data-i18n="admin.businessName">Business Name:</span>
             <input type="text" id="businessName" placeholder="e.g. Sweet Treats Bakery" style="width:100%;margin-bottom:0.5rem;">
         </label>
-        <label>Banner Image:
+        <label><span data-i18n="admin.bannerImage">Banner Image:</span>
             <div style="display:flex;align-items:center;gap:0.5rem;">
                 <input type="text" id="bannerUrl" placeholder="e.g. images/banner.png" style="width:100%;margin-bottom:0.5rem;" readonly>
                 <input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
-                <button type="button" id="selectBannerBtn" style="background:#888;">Select Image</button>
+                <button type="button" id="selectBannerBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0" data-i18n="admin.selectImage">Select Image</button>
             </div>
         </label>
         <label>Categories:
@@ -239,33 +228,83 @@
                 <button type="button" id="addCategoryBtn" style="padding:0.5em 1em;">Add</button>
             </div>
         </label>
-        <label>Hive Account to Receive Payments:
+        <label><span data-i18n="admin.hivePayments">Hive Account to Receive Payments:</span>
             <div style="display:flex;gap:0.5em;align-items:center;">
                 <input type="text" id="hiveAccount" placeholder="e.g. myhiveaccount" style="width:100%;margin-bottom:0.5rem;">
-                <button type="button" id="updateHiveAccountBtn" style="padding:0.5em 1em;">Update</button>
+                <button type="button" id="updateHiveAccountBtn" style="padding:0.5em 1em;" data-i18n="common.update">Update</button>
             </div>
-            <div id="currentHiveAccountDisplay" style="margin-top:0.5em;color:#555;font-size:1.05em;"></div>
+            <div id="currentHiveAccountDisplay" style="margin-top:0.5em;color:var(--text-2);font-size:1.05em;"></div>
         </label>
         
+        <!-- API Server Config -->
+        <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+            <label style="font-size:.9em;font-weight:600"><span data-i18n="admin.apiServer">API Server URL:</span>
+                <div style="display:flex;gap:.5em;margin-top:.3em">
+                    <input type="text" id="apiBaseInput" placeholder="http://localhost:3001" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:var(--r);font-size:.9em">
+                    <button type="button" id="saveApiBaseBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.5rem 1rem;cursor:pointer;font-size:.85em;white-space:nowrap;margin-top:0" data-i18n="common.save">Save</button>
+                </div>
+            </label>
+            <p style="font-size:.78em;color:var(--text-3);margin-top:.3em">Set this to your self-hosted backend URL (e.g. https://api.yourdomain.com)</p>
+        </div>
+
         <!-- Publish Store Section -->
-        <div id="publishSection" style="margin-top:2rem;padding-top:1.5rem;border-top:2px solid #f0f0f0;">
-            <div id="draftStatus" style="background:#fff3cd;color:#856404;padding:1rem;border-radius:6px;margin-bottom:1rem;border:1px solid #ffeaa7;">
+        <div id="publishSection" style="margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--border);">
+            <div id="draftStatus" style="background:var(--amber-light);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--amber-border);">
                 <strong>📝 Draft Mode:</strong> Your changes are kept in memory. Use "Save Draft" to save your progress, then "Publish Store" to make it live!
             </div>
-            <div id="publishedStatus" style="background:#d4edda;color:#155724;padding:1rem;border-radius:6px;margin-bottom:1rem;border:1px solid #c3e6cb;display:none;">
+            <div id="publishedStatus" style="background:var(--green-light);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--green-border);display:none;">
                 <strong>✅ Store Published:</strong> Your store is live! Changes are kept in memory until you save or publish.
             </div>
-            <button type="button" id="publishStoreBtn" style="background:#28a745;color:#fff;padding:1rem 2rem;font-size:1.1rem;font-weight:600;border:none;border-radius:6px;cursor:pointer;transition:background 0.3s ease;">
+            <button type="button" id="publishStoreBtn" style="background:var(--green);color:#fff;padding:1rem 2rem;font-size:1.1rem;font-weight:600;border:none;border-radius:var(--r);cursor:pointer;transition:var(--ease);margin-top:0">
                 🚀 Publish Store
             </button>
         </div>
     </div>
 
+    <!-- Membership Settings Section -->
+    <div id="membershipSettingsSection" style="background:var(--green-light);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--green-border);max-width:600px;">
+        <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
+            <input type="checkbox" id="enableMemberships">
+            <span data-i18n="admin.enableMemberships">Enable Membership / Subscription Management</span>
+        </label>
+        <p style="font-size:.85em;color:var(--text-2);margin:.5em 0 1em" data-i18n="admin.membershipsHelp">Adds a Members page for gyms, clubs, or any business with recurring fees.</p>
+
+        <div id="membershipTypesPanel" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+                <strong style="font-size:.95em" data-i18n="admin.membershipPlans">Membership Plans</strong>
+                <button type="button" id="addMembershipTypeBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="admin.addPlan">+ Add Plan</button>
+            </div>
+            <div id="membershipTypesList" style="display:flex;flex-direction:column;gap:.5rem"></div>
+
+            <!-- Inline add/edit form -->
+            <div id="mtForm" style="display:none;background:var(--surface);border:1px solid var(--green-border);border-radius:var(--r);padding:1rem;margin-top:.75rem">
+                <input type="hidden" id="mtId">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
+                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planName">Plan Name *</label><br>
+                        <input type="text" id="mtName" data-i18n-placeholder="admin.planNamePlaceholder" placeholder="Monthly" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planDays">Duration (days) *</label><br>
+                        <input type="number" id="mtDays" value="30" min="1" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planPrice">Price *</label><br>
+                        <input type="number" id="mtPrice" step="0.01" min="0" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planCurrency">Currency</label><br>
+                        <input type="text" id="mtCurrency" value="HBD" maxlength="6" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                </div>
+                <label style="font-size:.82em;font-weight:600" data-i18n="admin.planDescription">Description</label><br>
+                <input type="text" id="mtDesc" data-i18n-placeholder="admin.planDescPlaceholder" placeholder="Optional description" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;margin-bottom:.75rem">
+                <div style="display:flex;gap:.5rem">
+                    <button type="button" id="saveMtBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.45rem 1rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="admin.savePlan">Save Plan</button>
+                    <button type="button" onclick="closeMtForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.45rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="common.cancel">Cancel</button>
+                </div>
+                <div id="mtError" style="color:var(--red);font-size:.82em;margin-top:.5rem"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bitcoin Lightning Settings Section -->
-    <div id="bitcoinLightningSettings" style="background:#fffbe6;padding:1rem 1.5rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:8px;box-shadow:0 2px 8px #ffe082;max-width:600px;">
+    <div id="bitcoinLightningSettings" style="background:var(--amber-light);padding:1rem 1.5rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--amber-border);max-width:600px;">
         <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
             <input type="checkbox" id="enableBitcoinLightning">
-            Accept Bitcoin Lightning as payment
+            <span data-i18n="admin.enableLightning">Accept Bitcoin Lightning as payment</span>
         </label>
         <form id="bitcoinLightningForm" style="display:none;margin-top:1em;">
             <label>Hive Account Name:
@@ -290,8 +329,8 @@
             <label>QR Code:
                 <input type="text" id="bl_qrCode" value="none" readonly>
             </label>
-            <button type="button" id="saveBitcoinLightningBtn" style="margin-top:1.2em;background:#f7931a;">Save Bitcoin Lightning Payment Settings</button>
-            <div id="bl_errorMsg" style="color:#e74c3c;margin-top:0.7em;font-size:1em;"></div>
+            <button type="button" id="saveBitcoinLightningBtn" style="margin-top:1.2em;background:var(--amber);color:#fff;" data-i18n="admin.saveLightning">Save Bitcoin Lightning Payment Settings</button>
+            <div id="bl_errorMsg" style="color:var(--red);margin-top:0.7em;font-size:1em;"></div>
         </form>
     </div>
 
@@ -317,6 +356,11 @@
 
     <!-- Backup and Restore Configuration Buttons -->
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            i18n.init();
+            i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+        });
+
         // Debug Console Functionality
         let debugEntries = [];
         const debugWindow = document.getElementById('debugWindow');
@@ -427,7 +471,7 @@
         };
 
         // API Configuration
-        const API_BASE_URL = 'https://hive-pos-backend.onrender.com/api';
+        const API_BASE_URL = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
 
         // Authentication helper
         function getAuthToken() {
@@ -482,7 +526,7 @@
             try {
                 console.log('Loading config from API...');
                 // Always use /api/config endpoint since we have single-store model
-                const url = `${API_BASE_URL}/config`;
+                const url = `${API_BASE_URL}/store/config`;
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: getAuthHeaders()
@@ -540,12 +584,11 @@
                     if (!storeId) {
                         throw new Error('Store ID not found for existing store update');
                     }
-                    url = `${API_BASE_URL}/stores/${storeId}`;
+                    url = `${API_BASE_URL}/store/${storeId}`;
                     method = 'PUT';
                     console.log('Updating existing store with ID:', storeId);
                 } else {
-                    // Create new store - use POST /api/stores
-                    url = `${API_BASE_URL}/stores`;
+                    url = `${API_BASE_URL}/store`;
                     method = 'POST';
                     console.log('Creating new store using POST /api/stores');
                 }
@@ -607,10 +650,10 @@
             const saveDraftBtn = document.getElementById('saveDraftBtn');
             if (isDirty) {
                 saveDraftBtn.disabled = false;
-                saveDraftBtn.textContent = '💾 Save Draft';
+                saveDraftBtn.textContent = t('admin.saveDraft');
             } else {
                 saveDraftBtn.disabled = true;
-                saveDraftBtn.textContent = '✅ Saved';
+                saveDraftBtn.textContent = t('admin.saved');
             }
         }
 
@@ -652,7 +695,7 @@
                     <p><b>Price:</b> $${item.price.toFixed(2)}</p>
                     <div class="item-actions">
                         <button onclick="editItem('${item.id}')">Edit</button>
-                        <button onclick="deleteItem('${item.id}')" style="background:#e74c3c;">Delete</button>
+                        <button onclick="deleteItem('${item.id}')" style="background:var(--red);color:#fff;">Delete</button>
                     </div>
                 `;
                 list.appendChild(card);
@@ -678,7 +721,7 @@
             await saveItems(items);
             this.reset();
             document.getElementById('itemId').value = '';
-            document.getElementById('saveBtn').textContent = 'Add Item';
+            document.getElementById('saveBtn').textContent = t('admin.addItem');
             document.getElementById('cancelEditBtn').style.display = 'none';
             renderItems();
         };
@@ -694,14 +737,14 @@
             document.getElementById('itemCategory').value = item.category || '';
             document.getElementById('itemImage').value = item.image;
             document.getElementById('itemPrice').value = item.price;
-            document.getElementById('saveBtn').textContent = 'Update Item';
+            document.getElementById('saveBtn').textContent = t('admin.updateItem');
             document.getElementById('cancelEditBtn').style.display = '';
         };
         // Cancel edit
         document.getElementById('cancelEditBtn').onclick = function() {
             document.getElementById('itemForm').reset();
             document.getElementById('itemId').value = '';
-            document.getElementById('saveBtn').textContent = 'Add Item';
+            document.getElementById('saveBtn').textContent = t('admin.addItem');
             this.style.display = 'none';
         };
 
@@ -716,8 +759,8 @@
             
             try {
                 saveDraftBtn.disabled = true;
-                saveDraftBtn.textContent = '💾 Saving...';
-                
+                saveDraftBtn.textContent = t('admin.saving');
+
                 const config = {
                     items: currentData.items,
                     settings: currentData.settings
@@ -738,7 +781,7 @@
                     console.log('Draft saved successfully');
                     
                     // Show brief success feedback
-                    saveDraftBtn.textContent = '✅ Saved!';
+                    saveDraftBtn.textContent = t('admin.savedExclaim');
                     setTimeout(() => {
                         updateSaveDraftButton();
                     }, 2000);
@@ -747,9 +790,9 @@
                 }
             } catch (error) {
                 console.error('Failed to save draft:', error);
-                alert('Failed to save draft. Please check your connection and try again.');
+                alert(t('admin.saveDraftFail'));
                 saveDraftBtn.disabled = false;
-                saveDraftBtn.textContent = '💾 Save Draft';
+                saveDraftBtn.textContent = t('admin.saveDraft');
             }
         }
 
@@ -759,7 +802,7 @@
         };
         // Delete item
         window.deleteItem = async function(id) {
-            if (!confirm('Delete this item?')) return;
+            if (!confirm(t('admin.deleteItemConfirm'))) return;
             let items = await getItems();
             items = items.filter(item => item.id !== id);
             await saveItems(items);
@@ -795,12 +838,12 @@
                         itemImage.value = data.data.link;
                     } else {
                         itemImage.value = '';
-                        alert('Image upload failed.');
+                        alert(t('admin.imageUploadFail'));
                     }
                 })
                 .catch(() => {
                     itemImage.value = '';
-                    alert('Image upload failed.');
+                    alert(t('admin.imageUploadFail'));
                 });
             }
         };
@@ -819,10 +862,10 @@
             categories.forEach((cat, idx) => {
                 const tag = document.createElement('span');
                 tag.textContent = cat;
-                tag.style = 'background:#eee;padding:0.3em 0.8em;border-radius:16px;display:inline-flex;align-items:center;gap:0.5em;';
+                tag.style = 'background:var(--surface-2);border:1px solid var(--border);padding:0.3em 0.8em;border-radius:16px;display:inline-flex;align-items:center;gap:0.5em;';
                 const x = document.createElement('button');
                 x.textContent = '×';
-                x.style = 'background:none;border:none;color:#e74c3c;font-size:1.1em;cursor:pointer;margin-left:0.3em;';
+                x.style = 'background:none;border:none;color:var(--red);font-size:1.1em;cursor:pointer;margin-left:0.3em;';
                 x.onclick = async () => {
                     const settings = await getStoreSettings();
                     settings.categories.splice(idx, 1);
@@ -912,12 +955,12 @@
                         await saveStoreSettings(settings);
                     } else {
                         bannerUrlInput.value = '';
-                        alert('Banner upload failed.');
+                        alert(t('admin.bannerUploadFail'));
                     }
                 })
                 .catch(() => {
                     bannerUrlInput.value = '';
-                    alert('Banner upload failed.');
+                    alert(t('admin.bannerUploadFail'));
                 });
             }
         };
@@ -995,38 +1038,39 @@
             
             const modal = document.createElement('div');
             modal.style.cssText = `
-                background: white;
+                background: var(--surface);
                 padding: 2rem;
-                border-radius: 12px;
+                border-radius: var(--r-xl);
                 max-width: 500px;
                 margin: 1rem;
                 text-align: center;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                box-shadow: var(--sh-lg);
+                border: 1px solid var(--border);
             `;
-            
+
             modal.innerHTML = `
-                <h2 style="color: #b5651d; margin-bottom: 1rem;">Welcome to HIVE POS! 🎉</h2>
-                <p style="margin-bottom: 1.5rem; line-height: 1.6; color: #666;">
-                    You're about to set up your new point-of-sale system. Your changes will be kept in memory as you work, 
+                <h2 style="color: var(--ink); margin-bottom: 1rem;">Welcome to HIVE POS! 🎉</h2>
+                <p style="margin-bottom: 1.5rem; line-height: 1.6; color: var(--text-2);">
+                    You're about to set up your new point-of-sale system. Your changes will be kept in memory as you work,
                     and you can save your progress using the "Save Draft" button.
                 </p>
-                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                    <p style="margin: 0; font-size: 0.9rem; color: #666;">
-                        💡 <strong>Tip:</strong> Start by setting your business name and adding your first items. 
+                <div style="background: var(--surface-2); padding: 1rem; border-radius: var(--r); margin-bottom: 1.5rem; border: 1px solid var(--border);">
+                    <p style="margin: 0; font-size: 0.9rem; color: var(--text-2);">
+                        💡 <strong>Tip:</strong> Start by setting your business name and adding your first items.
                         Use "Save Draft" to save your progress, then "Publish Store" when ready to go live!
                     </p>
                 </div>
                 <button id="startSetupBtn" style="
-                    background: #b5651d;
-                    color: white;
+                    background: var(--ink);
+                    color: var(--ink-text);
                     border: none;
                     padding: 12px 24px;
-                    border-radius: 6px;
+                    border-radius: var(--r);
                     font-size: 1rem;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: background 0.3s ease;
-                " onmouseover="this.style.background='#9d5419'" onmouseout="this.style.background='#b5651d'">
+                    transition: var(--ease);
+                " onmouseover="this.style.background='var(--ink-hover)'" onmouseout="this.style.background='var(--ink)'">
                     Let's Set Up Your Store!
                 </button>
             `;
@@ -1082,14 +1126,14 @@
                     if (currentData.settings.businessName) {
                         pageTitle.textContent = `Edit Store: ${currentData.settings.businessName}`;
                     } else {
-                        pageTitle.textContent = 'Edit Store';
+                        pageTitle.textContent = t('admin.editStore');
                     }
                 } else {
                     // No published store exists, creating new store
                     console.log('No published store found, creating new store');
-                    
+
                     const pageTitle = document.getElementById('pageTitle');
-                    pageTitle.textContent = 'Create New Store';
+                    pageTitle.textContent = t('admin.createStore');
                     
                     // Check if this is a new user
                     if (isNewUser()) {
@@ -1127,8 +1171,8 @@
                 console.log('Initializing fresh store due to initialization error');
                 
                 const pageTitle = document.getElementById('pageTitle');
-                pageTitle.textContent = 'Create New Store';
-                
+                pageTitle.textContent = t('admin.createStore');
+
                 initializeFreshStore();
                 
                 // Render the UI with default data
@@ -1145,7 +1189,7 @@
                     console.log('App initialized with fresh store after error');
                 } catch (renderError) {
                     console.error('Failed to render UI:', renderError);
-                    alert('Failed to load the admin interface. Please refresh the page and try again.');
+                    alert(t('admin.loadFail'));
                 }
             }
         }
@@ -1155,7 +1199,7 @@
 
         // --- Backup Configuration Logic ---
         const backupBtn = document.createElement('button');
-        backupBtn.textContent = 'Backup Configuration';
+        backupBtn.textContent = t('admin.backupConfig');
         backupBtn.style = 'margin:0.5em 0.5em 0.5em 0;font-size:1em;';
         backupBtn.onclick = function() {
             // Get items and settings from localStorage
@@ -1194,7 +1238,7 @@
 
         // --- Restore Configuration Logic ---
         const restoreBtn = document.createElement('button');
-        restoreBtn.textContent = 'Restore Configuration';
+        restoreBtn.textContent = t('admin.restoreConfig');
         restoreBtn.style = 'margin:0.5em 0;font-size:1em;';
         restoreBtn.onclick = function() {
             restoreFileInput.click();
@@ -1227,10 +1271,10 @@
                         }
                         localStorage.setItem('pos_settings', JSON.stringify(s));
                     }
-                    alert('Configuration restored! Reloading...');
+                    alert(t('admin.configRestored'));
                     location.reload();
                 } catch (err) {
-                    alert('Failed to restore configuration: ' + err);
+                    alert(t('admin.configRestoreFail', { error: err }));
                 }
             };
             reader.readAsText(file);
@@ -1250,7 +1294,7 @@
             if (settings.hiveAccount) {
                 currentHiveAccountDisplay.textContent = `Current: @${settings.hiveAccount}`;
             } else {
-                currentHiveAccountDisplay.textContent = 'No account set.';
+                currentHiveAccountDisplay.textContent = t('admin.noAccount');
             }
         }
         updateHiveAccountBtn.onclick = async function() {
@@ -1276,20 +1320,20 @@
                 // Store exists and is published - show republish option
                 draftStatus.style.display = 'none';
                 publishedStatus.style.display = 'block';
-                publishStoreBtn.textContent = '🔄 Republish Changes';
-                publishStoreBtn.style.background = '#007bff';
+                publishStoreBtn.textContent = t('admin.republish');
+                publishStoreBtn.style.background = 'var(--blue)';
             } else if (existingStore) {
                 // Store exists but not published - show publish option
                 draftStatus.style.display = 'block';
                 publishedStatus.style.display = 'none';
-                publishStoreBtn.textContent = '🚀 Publish Store';
-                publishStoreBtn.style.background = '#28a745';
+                publishStoreBtn.textContent = t('admin.publishStore');
+                publishStoreBtn.style.background = 'var(--green)';
             } else {
                 // No store exists - show create new store option
                 draftStatus.style.display = 'block';
                 publishedStatus.style.display = 'none';
-                publishStoreBtn.textContent = '🚀 Publish New Store';
-                publishStoreBtn.style.background = '#28a745';
+                publishStoreBtn.textContent = t('admin.publishNew');
+                publishStoreBtn.style.background = 'var(--green)';
             }
         }
 
@@ -1309,23 +1353,23 @@
             // Validation - ensure user has at least business name
             const settings = await getStoreSettings();
             if (!settings.businessName || settings.businessName.trim() === '') {
-                alert('Please set your business name before publishing your store.');
+                alert(t('admin.nameRequired'));
                 document.getElementById('businessName').focus();
                 return;
             }
 
-            if (!confirm(`Are you ready to ${action} your store? This will make it accessible to customers.`)) {
+            if (!confirm(t('admin.publishConfirm', { action }))) {
                 return;
             }
 
             publishStoreBtn.disabled = true;
             
             if (action === 'republish') {
-                publishStoreBtn.textContent = '🔄 Republishing...';
+                publishStoreBtn.textContent = t('admin.republishing');
             } else if (action === 'publish new') {
-                publishStoreBtn.textContent = '� Publishing New Store...';
+                publishStoreBtn.textContent = t('admin.publishingNew');
             } else {
-                publishStoreBtn.textContent = '🚀 Publishing...';
+                publishStoreBtn.textContent = t('admin.publishing');
             }
 
             try {
@@ -1353,14 +1397,14 @@
                     // Mark as clean since we just saved
                     markClean();
 
-                    alert(`Store ${action}ed successfully! 🎉`);
+                    alert(t('admin.publishSuccess', { action }));
                     updatePublishStatus();
                 } else {
-                    alert('Failed to publish store. Please check your connection and try again.');
+                    alert(t('admin.publishFail'));
                 }
             } catch (error) {
                 console.error('Publish error:', error);
-                alert('Error publishing store. Please try again.');
+                alert(t('admin.publishError'));
             } finally {
                 publishStoreBtn.disabled = false;
                 updatePublishStatus();
@@ -1369,6 +1413,117 @@
 
         // Initialize publish status
         updatePublishStatus();
+
+        // --- Membership Settings Logic ---
+        const enableMemberships = document.getElementById('enableMemberships');
+        const membershipTypesPanel = document.getElementById('membershipTypesPanel');
+
+        async function loadMembershipFeature() {
+            const settings = await getStoreSettings();
+            const enabled = settings.features?.memberships || false;
+            enableMemberships.checked = enabled;
+            membershipTypesPanel.style.display = enabled ? '' : 'none';
+            if (enabled) loadMembershipTypes();
+        }
+
+        enableMemberships.onchange = async function() {
+            const settings = await getStoreSettings();
+            if (!settings.features) settings.features = {};
+            settings.features.memberships = this.checked;
+            await saveStoreSettings(settings);
+            membershipTypesPanel.style.display = this.checked ? '' : 'none';
+            if (this.checked) loadMembershipTypes();
+        };
+
+        async function loadMembershipTypes() {
+            const token = localStorage.getItem('pos_admin_token');
+            const res = await fetch(`${API_BASE_URL}/membership-types`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) return;
+            const types = await res.json();
+            const list = document.getElementById('membershipTypesList');
+            if (!types.length) {
+                list.innerHTML = '<p style="color:var(--text-3);font-size:.85em">No plans yet. Add one above.</p>';
+                return;
+            }
+            list.innerHTML = types.map(t => `
+                <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--green-border);border-radius:var(--r);padding:.5rem .85rem;font-size:.88em">
+                    <span><strong>${t.name}</strong> — ${t.price} ${t.currency} / ${t.durationDays}d${t.description ? ' · ' + t.description : ''}</span>
+                    <div style="display:flex;gap:.4rem">
+                        <button onclick="editMt('${t._id}','${t.name.replace(/'/g,"\\'")}',${t.price},'${t.currency}',${t.durationDays},'${(t.description||'').replace(/'/g,"\\'")}')}" style="background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.78em">Edit</button>
+                        <button onclick="deleteMt('${t._id}')" style="background:var(--red);color:#fff;border:none;border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.78em">Del</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        document.getElementById('addMembershipTypeBtn').onclick = () => {
+            document.getElementById('mtId').value = '';
+            document.getElementById('mtName').value = '';
+            document.getElementById('mtDays').value = '30';
+            document.getElementById('mtPrice').value = '';
+            document.getElementById('mtCurrency').value = 'HBD';
+            document.getElementById('mtDesc').value = '';
+            document.getElementById('mtError').textContent = '';
+            document.getElementById('mtForm').style.display = '';
+        };
+
+        function editMt(id, name, price, currency, days, desc) {
+            document.getElementById('mtId').value = id;
+            document.getElementById('mtName').value = name;
+            document.getElementById('mtDays').value = days;
+            document.getElementById('mtPrice').value = price;
+            document.getElementById('mtCurrency').value = currency;
+            document.getElementById('mtDesc').value = desc;
+            document.getElementById('mtError').textContent = '';
+            document.getElementById('mtForm').style.display = '';
+        }
+
+        function closeMtForm() {
+            document.getElementById('mtForm').style.display = 'none';
+        }
+
+        document.getElementById('saveMtBtn').onclick = async function() {
+            const id = document.getElementById('mtId').value;
+            const name = document.getElementById('mtName').value.trim();
+            const price = parseFloat(document.getElementById('mtPrice').value);
+            const currency = document.getElementById('mtCurrency').value.trim() || 'HBD';
+            const durationDays = parseInt(document.getElementById('mtDays').value);
+            const description = document.getElementById('mtDesc').value.trim();
+            const errEl = document.getElementById('mtError');
+            if (!name || !price || !durationDays) { errEl.textContent = t('admin.planRequired'); return; }
+            const token = localStorage.getItem('pos_admin_token');
+            const url = id ? `${API_BASE_URL}/membership-types/${id}` : `${API_BASE_URL}/membership-types`;
+            const res = await fetch(url, {
+                method: id ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ name, price, currency, durationDays, description })
+            });
+            if (res.ok) { closeMtForm(); loadMembershipTypes(); }
+            else { const e = await res.json(); errEl.textContent = e.error || 'Save failed'; }
+        };
+
+        async function deleteMt(id) {
+            if (!confirm(t('admin.deletePlanConfirm'))) return;
+            const token = localStorage.getItem('pos_admin_token');
+            await fetch(`${API_BASE_URL}/membership-types/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            loadMembershipTypes();
+        }
+
+        loadMembershipFeature();
+
+        // --- API Server URL Config ---
+        const apiBaseInput = document.getElementById('apiBaseInput');
+        apiBaseInput.value = localStorage.getItem('pos_api_base') || '';
+        document.getElementById('saveApiBaseBtn').onclick = function() {
+            const val = apiBaseInput.value.trim().replace(/\/$/, '');
+            if (val) localStorage.setItem('pos_api_base', val);
+            else localStorage.removeItem('pos_api_base');
+            alert(t('admin.apiSaved'));
+        };
 
         // --- Bitcoin Lightning Settings Logic ---
         const enableBL = document.getElementById('enableBitcoinLightning');
@@ -1401,7 +1556,7 @@
                 settings.bitcoinLightningEnabled = false;
                 settings.bitcoinLightningConfig = undefined;
                 await saveStoreSettings(settings);
-                alert('Bitcoin Lightning payment disabled.');
+                alert(t('admin.lightningDisabled'));
                 return;
             }
             // Validate fields
@@ -1412,7 +1567,7 @@
             const expiry = document.getElementById('bl_expiry').value;
             const qr_code = document.getElementById('bl_qrCode').value;
             if (!hive_accname || !currency || !receive_currency || !app_name || !expiry || !qr_code) {
-                blError.textContent = 'All fields are required.';
+                blError.textContent = t('admin.blFieldsRequired');
                 return;
             }
             // Save to store settings
@@ -1427,7 +1582,7 @@
                 qr_code
             };
             await saveStoreSettings(settings);
-            alert('Bitcoin Lightning payment settings saved!');
+            alert(t('admin.lightningSettingsSaved'));
         };
     </script>
 </body>

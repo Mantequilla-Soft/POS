@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Members — POSHIVE</title>
+  <script src="i18n.js"></script>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: var(--sh-xs); }
+    .header-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .header h1 { color: var(--text); font-size: 1.4rem; }
+    .nav-links { display: flex; gap: .75rem; align-items: center; }
+    .nav-links a { color: var(--text-2); text-decoration: none; font-size: .9rem; }
+    .nav-links a:hover { color: var(--text); }
+    .main { max-width: 1100px; margin: 1.5rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .toolbar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+    .search-input { flex: 1; min-width: 200px; }
+    .filter-select { padding: .6rem .9rem; border: 1.5px solid var(--border); border-radius: var(--r); font-size: .9rem; background: var(--surface); font-family: var(--font); color: var(--text); }
+    .btn-outline { background: var(--surface); color: var(--ink); border: 1.5px solid var(--ink); }
+    .actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .empty { text-align: center; color: var(--text-2); padding: 2.5rem; }
+
+    /* Membership status badges */
+    .badge-active   { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+    .badge-overdue  { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+    .badge-suspended { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+    .badge-expired  { background: var(--red-light); color: var(--red); border: 1px solid var(--red-border); }
+
+    /* Modal tweaks */
+    .modal h3 { color: var(--text); margin-bottom: 1.25rem; font-size: 1.1rem; }
+    .form-row { display: flex; gap: 1rem; }
+    .form-row .form-group { flex: 1; }
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; }
+    .section-title { font-size: .8rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .75rem; }
+
+    /* QR payment modal */
+    #qrContainer { display: none; text-align: center; margin: 1rem 0; }
+    #qrContainer canvas, #qrContainer img { border: 8px solid var(--surface); border-radius: 4px; box-shadow: var(--sh); }
+    .payment-tabs { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 1.25rem; }
+    .tab-btn { flex: 1; padding: .6rem; font-size: .88rem; border: none; background: var(--surface); cursor: pointer; font-weight: 500; font-family: var(--font); transition: var(--ease); color: var(--text-2); }
+    .tab-btn.active { background: var(--ink); color: var(--ink-text); }
+    #payStatus { text-align: center; font-size: .9rem; min-height: 1.4em; margin-top: .5rem; }
+
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--ink); color: var(--ink-text); padding: .75rem 1.25rem; border-radius: var(--r-lg); font-size: .9rem; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+    #toast.show { opacity: 1; }
+
+    @media (max-width: 640px) {
+      .main { padding: 0 .75rem; }
+      th:nth-child(3), td:nth-child(3),
+      th:nth-child(4), td:nth-child(4) { display: none; }
+      .form-row { flex-direction: column; gap: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1 data-i18n="members.title">Members</h1>
+    <div class="nav-links">
+      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
+      <a href="pos.html" data-i18n="common.pos">POS</a>
+      <a href="admin.html" data-i18n="common.settings">Settings</a>
+      <span id="langToggleContainer"></span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="toolbar">
+    <input class="search-input" type="text" id="searchInput" data-i18n-placeholder="members.searchPlaceholder" placeholder="Search name, phone, Hive account…" oninput="debounceLoad()">
+    <select class="filter-select" id="statusFilter" onchange="loadMembers()">
+      <option value="" data-i18n="members.allStatuses">All statuses</option>
+      <option value="active" data-i18n="common.active">Active</option>
+      <option value="overdue" data-i18n="common.overdue">Overdue</option>
+      <option value="suspended" data-i18n="common.suspended">Suspended</option>
+      <option value="expired" data-i18n="common.expired">Expired</option>
+    </select>
+    <button class="btn btn-primary" onclick="openAddModal()" data-i18n="members.addBtn">+ Add Member</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 id="memberCountLabel">Members</h2>
+    </div>
+    <table>
+      <thead><tr>
+        <th data-i18n="common.name">Name</th><th data-i18n="members.colMembership">Membership</th><th data-i18n="members.colNextDue">Next Due</th><th data-i18n="common.status">Status</th><th data-i18n="common.actions">Actions</th>
+      </tr></thead>
+      <tbody id="membersBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add / Edit Member Modal -->
+<div class="modal-overlay" id="memberModal">
+  <div class="modal">
+    <h3 id="modalTitle" data-i18n="members.addTitle">Add Member</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label data-i18n="members.fullName">Full Name *</label>
+        <input type="text" id="fName" data-i18n-placeholder="members.fullNamePlaceholder" placeholder="e.g. John Smith">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label data-i18n="common.phone">Phone</label>
+        <input type="tel" id="fPhone" data-i18n-placeholder="members.phonePlaceholder" placeholder="+1 555 0000">
+      </div>
+      <div class="form-group">
+        <label data-i18n="common.email">Email</label>
+        <input type="email" id="fEmail" data-i18n-placeholder="members.emailPlaceholder" placeholder="john@example.com">
+      </div>
+    </div>
+    <div class="form-group">
+      <label data-i18n="common.hiveAccount">Hive Account</label>
+      <input type="text" id="fHive" data-i18n-placeholder="members.hivePlaceholder" placeholder="hivename (no @)">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label data-i18n="members.plan">Membership Plan *</label>
+        <select id="fMembershipType"></select>
+      </div>
+      <div class="form-group">
+        <label data-i18n="members.startDate">Start Date *</label>
+        <input type="date" id="fStartDate">
+      </div>
+    </div>
+    <div class="form-group">
+      <label data-i18n="common.notes">Notes</label>
+      <textarea id="fNotes" data-i18n-placeholder="members.notesPlaceholder" placeholder="Optional notes…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('memberModal')" data-i18n="common.cancel">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMember()" data-i18n="members.saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Record Payment Modal -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal">
+    <h3>Record Payment — <span id="payMemberName"></span></h3>
+    <div class="payment-tabs">
+      <button class="tab-btn active" id="tabCash" onclick="switchTab('cash')" data-i18n="members.tabCash">Cash</button>
+      <button class="tab-btn" id="tabHbd" onclick="switchTab('hbd')" data-i18n="members.tabHbd">HBD (Hive)</button>
+    </div>
+
+    <!-- Cash panel -->
+    <div id="panelCash">
+      <div class="form-row">
+        <div class="form-group">
+          <label data-i18n="common.amount">Amount</label>
+          <input type="number" id="pAmount" step="0.001" min="0">
+        </div>
+        <div class="form-group">
+          <label data-i18n="common.currency">Currency</label>
+          <input type="text" id="pCurrency" value="HBD" maxlength="6">
+        </div>
+      </div>
+      <div class="form-group">
+        <label data-i18n="members.paymentDate">Payment Date</label>
+        <input type="date" id="pDate">
+      </div>
+      <div class="form-group">
+        <label data-i18n="common.notes">Notes</label>
+        <input type="text" id="pNotes" data-i18n-placeholder="members.notesOptional" placeholder="Optional">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('paymentModal')" data-i18n="common.cancel">Cancel</button>
+        <button class="btn btn-success" onclick="recordCashPayment()" data-i18n="members.recordCash">Record Cash Payment</button>
+      </div>
+    </div>
+
+    <!-- HBD QR panel -->
+    <div id="panelHbd" style="display:none">
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem" data-i18n="members.hbdExplain">A QR code will be generated for the customer to scan with their Hive wallet. Payment is confirmed automatically.</p>
+      <div class="form-group">
+        <label data-i18n="members.amountHbd">Amount (HBD)</label>
+        <input type="number" id="hbdAmount" step="0.001" min="0.01">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="generateHbdQr()" data-i18n="members.generateQr">Generate QR Code</button>
+      <div id="qrContainer">
+        <div id="qrCode" style="display:inline-block;margin:1rem 0"></div>
+        <p style="font-size:.8rem;color:var(--muted)" id="qrMemoDisplay"></p>
+      </div>
+      <div id="payStatus"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="cancelHbdPolling()" data-i18n="common.cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment History Modal -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal" style="max-width:560px">
+    <h3 id="historyModalTitle">Payment History — <span id="histMemberName"></span></h3>
+    <div id="historyBody" style="margin-top:.5rem"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('historyModal')" data-i18n="common.close">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const API_BASE = localStorage.getItem('pos_api_base') || 'http://localhost:3001';
+const token = localStorage.getItem('pos_admin_token');
+if (!token) { window.location.href = 'login.html'; }
+
+document.addEventListener('DOMContentLoaded', () => {
+  i18n.init();
+  i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+});
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+}
+
+function toast(msg, ok = true) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = ok ? '#28a745' : '#e74c3c';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+// ─── Members list ────────────────────────────────────────────────────
+let allMembers = [];
+let membershipTypes = [];
+let debounceTimer;
+
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(loadMembers, 300);
+}
+
+async function loadMembers() {
+  const search = document.getElementById('searchInput').value.trim();
+  const status = document.getElementById('statusFilter').value;
+  let url = `${API_BASE}/api/members?`;
+  if (search) url += `search=${encodeURIComponent(search)}&`;
+  if (status) url += `status=${status}`;
+
+  const res = await fetch(url, { headers: authHeaders() });
+  if (res.status === 401) { window.location.href = 'login.html'; return; }
+  allMembers = await res.json();
+
+  document.getElementById('memberCountLabel').textContent = t('members.countLabel', { n: allMembers.length });
+  const tbody = document.getElementById('membersBody');
+  if (!allMembers.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">${t('members.noMembers')}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allMembers.map(m => `
+    <tr>
+      <td>
+        <strong>${esc(m.name)}</strong>
+        ${m.hiveAccount ? `<br><small style="color:var(--muted)">@${esc(m.hiveAccount)}</small>` : ''}
+      </td>
+      <td>${esc(m.membershipTypeId?.name || '—')}<br>
+        <small style="color:var(--muted)">${m.membershipTypeId ? m.membershipTypeId.price + ' ' + m.membershipTypeId.currency : ''}</small>
+      </td>
+      <td>${fmtDate(m.nextDueDate)}</td>
+      <td><span class="badge badge-${m.status}">${m.status}</span></td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-success btn-sm" onclick="openPayment('${m._id}', '${esc(m.name)}', ${m.membershipTypeId?.price || 0}, '${m.membershipTypeId?.currency || 'HBD'}')">${t('members.payBtn')}</button>
+          <button class="btn btn-outline btn-sm" onclick="openHistory('${m._id}', '${esc(m.name)}')">${t('members.historyBtn')}</button>
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${m._id}')">${t('common.edit')}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteMember('${m._id}', '${esc(m.name)}')">${t('members.delBtn')}</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function loadMembershipTypes() {
+  const res = await fetch(`${API_BASE}/api/membership-types`, { headers: authHeaders() });
+  membershipTypes = await res.json();
+  const sel = document.getElementById('fMembershipType');
+  sel.innerHTML = membershipTypes.filter(mt => mt.active).map(mt =>
+    `<option value="${mt._id}">${esc(mt.name)} — ${mt.price} ${mt.currency} / ${mt.durationDays}d</option>`
+  ).join('') || `<option value="">${t('members.noPlanConfig')}</option>`;
+}
+
+// ─── Add / Edit Member ───────────────────────────────────────────────
+let editingMemberId = null;
+
+function openAddModal() {
+  editingMemberId = null;
+  document.getElementById('modalTitle').textContent = t('members.addTitle');
+  ['fName','fPhone','fEmail','fHive','fNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fStartDate').value = today();
+  loadMembershipTypes();
+  openModal('memberModal');
+}
+
+async function openEditModal(id) {
+  editingMemberId = id;
+  document.getElementById('modalTitle').textContent = t('members.editTitle');
+  await loadMembershipTypes();
+  const m = allMembers.find(x => x._id === id);
+  if (!m) return;
+  document.getElementById('fName').value = m.name;
+  document.getElementById('fPhone').value = m.phone || '';
+  document.getElementById('fEmail').value = m.email || '';
+  document.getElementById('fHive').value = m.hiveAccount || '';
+  document.getElementById('fStartDate').value = m.startDate ? m.startDate.slice(0,10) : today();
+  document.getElementById('fNotes').value = m.notes || '';
+  const sel = document.getElementById('fMembershipType');
+  if (m.membershipTypeId) sel.value = m.membershipTypeId._id;
+  openModal('memberModal');
+}
+
+async function saveMember() {
+  const name = document.getElementById('fName').value.trim();
+  const membershipTypeId = document.getElementById('fMembershipType').value;
+  const startDate = document.getElementById('fStartDate').value;
+  if (!name || !membershipTypeId || !startDate) { toast(t('members.requiredFields'), false); return; }
+
+  const mtype = membershipTypes.find(t => t._id === membershipTypeId);
+  const start = new Date(startDate);
+  const nextDue = new Date(start);
+  nextDue.setDate(nextDue.getDate() + (mtype?.durationDays || 30));
+
+  const body = {
+    name,
+    phone: document.getElementById('fPhone').value.trim(),
+    email: document.getElementById('fEmail').value.trim(),
+    hiveAccount: document.getElementById('fHive').value.trim().replace('@',''),
+    membershipTypeId,
+    startDate: start.toISOString(),
+    nextDueDate: nextDue.toISOString(),
+    notes: document.getElementById('fNotes').value.trim(),
+  };
+
+  const url = editingMemberId
+    ? `${API_BASE}/api/members/${editingMemberId}`
+    : `${API_BASE}/api/members`;
+  const method = editingMemberId ? 'PUT' : 'POST';
+
+  const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(body) });
+  if (res.ok) {
+    toast(editingMemberId ? t('members.memberUpdated') : t('members.memberAdded'));
+    closeModal('memberModal');
+    loadMembers();
+  } else {
+    const err = await res.json();
+    toast(err.error || t('members.saveMemberFail'), false);
+  }
+}
+
+async function deleteMember(id, name) {
+  if (!confirm(t('members.deleteConfirm', { name }))) return;
+  const res = await fetch(`${API_BASE}/api/members/${id}`, { method: 'DELETE', headers: authHeaders() });
+  if (res.ok) { toast(t('members.memberDeleted')); loadMembers(); }
+  else toast(t('members.deleteFailed'), false);
+}
+
+// ─── Record Payment ──────────────────────────────────────────────────
+let currentPayMemberId = null;
+let hbdPollInterval = null;
+
+function openPayment(memberId, name, amount, currency) {
+  currentPayMemberId = memberId;
+  document.getElementById('payMemberName').textContent = name;
+  document.getElementById('pAmount').value = amount;
+  document.getElementById('pCurrency').value = currency;
+  document.getElementById('hbdAmount').value = amount;
+  document.getElementById('pDate').value = today();
+  document.getElementById('pNotes').value = '';
+  document.getElementById('qrContainer').style.display = 'none';
+  document.getElementById('payStatus').textContent = '';
+  document.getElementById('qrCode').innerHTML = '';
+  switchTab('cash');
+  openModal('paymentModal');
+}
+
+function switchTab(tab) {
+  document.getElementById('tabCash').classList.toggle('active', tab === 'cash');
+  document.getElementById('tabHbd').classList.toggle('active', tab === 'hbd');
+  document.getElementById('panelCash').style.display = tab === 'cash' ? '' : 'none';
+  document.getElementById('panelHbd').style.display = tab === 'hbd' ? '' : 'none';
+  if (tab === 'cash') cancelHbdPolling();
+}
+
+async function recordCashPayment() {
+  const amount = parseFloat(document.getElementById('pAmount').value);
+  if (!amount || amount <= 0) { toast(t('members.enterAmount'), false); return; }
+  const body = {
+    amount,
+    currency: document.getElementById('pCurrency').value || 'HBD',
+    method: 'cash',
+    paidDate: document.getElementById('pDate').value,
+    notes: document.getElementById('pNotes').value,
+    recordedBy: JSON.parse(localStorage.getItem('pos_admin_user') || '{}').username || '',
+  };
+  const res = await fetch(`${API_BASE}/api/members/${currentPayMemberId}/payments`, {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    toast(t('members.paymentRecorded'));
+    closeModal('paymentModal');
+    loadMembers();
+  } else {
+    const err = await res.json();
+    toast(err.error || t('members.paymentError'), false);
+  }
+}
+
+function generateKcsMemo() {
+  const rand = () => Math.random().toString(36).substring(2, 6);
+  return `kcs-hpos-${rand()}-${rand()}`;
+}
+
+async function generateHbdQr() {
+  const amount = parseFloat(document.getElementById('hbdAmount').value);
+  if (!amount || amount < 0.01) { toast(t('members.enterHbdAmount'), false); return; }
+
+  // Get store hiveAccount from localStorage settings
+  const settings = JSON.parse(localStorage.getItem('pos_settings') || '{}');
+  const hiveAccount = settings.hiveAccount;
+  if (!hiveAccount) { toast(t('members.noHiveConfig'), false); return; }
+
+  const memo = generateKcsMemo();
+  const amountStr = amount.toFixed(3) + ' HBD';
+
+  const op = btoa(JSON.stringify(['transfer', { to: hiveAccount, amount: amountStr, memo }]));
+  const uri = `hive://sign/op/${op}`;
+
+  document.getElementById('qrCode').innerHTML = '';
+  new QRCode(document.getElementById('qrCode'), { text: uri, width: 200, height: 200 });
+  document.getElementById('qrMemoDisplay').textContent = `Memo: ${memo}`;
+  document.getElementById('qrContainer').style.display = 'block';
+
+  document.getElementById('payStatus').textContent = t('members.waitingPayment');
+  pollHivePayment(hiveAccount, amountStr, memo, amount);
+}
+
+function pollHivePayment(hiveAccount, amountStr, memo, amount) {
+  cancelHbdPolling();
+  let attempts = 0;
+  hbdPollInterval = setInterval(async () => {
+    attempts++;
+    if (attempts > 100) {
+      cancelHbdPolling();
+      document.getElementById('payStatus').textContent = t('members.paymentTimeout');
+      return;
+    }
+    try {
+      const r = await fetch('https://api.hive.blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'condenser_api.get_account_history', params: [hiveAccount, -1, 20], id: 1 })
+      });
+      const data = await r.json();
+      const ops = data.result || [];
+      for (const [, op] of ops) {
+        if (op.op[0] === 'transfer' && op.op[1].to === hiveAccount && op.op[1].amount === amountStr && op.op[1].memo === memo) {
+          cancelHbdPolling();
+          document.getElementById('payStatus').textContent = t('members.paymentRecorded');
+          await recordHbdPayment(amount, memo, op.op[1].from);
+          return;
+        }
+      }
+    } catch {}
+  }, 3000);
+}
+
+async function recordHbdPayment(amount, memo, hiveFrom) {
+  const body = {
+    amount,
+    currency: 'HBD',
+    method: 'hbd',
+    hiveTransactionMemo: memo,
+    hiveFrom,
+    paidDate: new Date().toISOString(),
+    recordedBy: JSON.parse(localStorage.getItem('pos_admin_user') || '{}').username || '',
+  };
+  const res = await fetch(`${API_BASE}/api/members/${currentPayMemberId}/payments`, {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    toast(t('members.hbdRecorded'));
+    setTimeout(() => { closeModal('paymentModal'); loadMembers(); }, 1500);
+  } else {
+    toast(t('members.hbdChainSaveFail'), false);
+  }
+}
+
+function cancelHbdPolling() {
+  if (hbdPollInterval) { clearInterval(hbdPollInterval); hbdPollInterval = null; }
+}
+
+// ─── Payment History ─────────────────────────────────────────────────
+async function openHistory(memberId, name) {
+  document.getElementById('histMemberName').textContent = name;
+  document.getElementById('historyBody').innerHTML = `<p style="color:var(--muted)">${t('common.loading')}</p>`;
+  openModal('historyModal');
+  const res = await fetch(`${API_BASE}/api/members/${memberId}/payments`, { headers: authHeaders() });
+  const payments = await res.json();
+  if (!payments.length) {
+    document.getElementById('historyBody').innerHTML = `<p style="color:var(--muted);text-align:center;padding:1rem">${t('members.noPayments')}</p>`;
+    return;
+  }
+  document.getElementById('historyBody').innerHTML = `
+    <table>
+      <thead><tr><th>${t('members.colDate')}</th><th>${t('common.amount')}</th><th>${t('members.colMethod')}</th><th>${t('members.colPeriod')}</th><th>${t('members.colBy')}</th></tr></thead>
+      <tbody>
+        ${payments.map(p => `
+          <tr>
+            <td>${fmtDate(p.paidDate)}</td>
+            <td>${p.amount} ${p.currency}</td>
+            <td><span class="badge" style="background:${p.method==='hbd'?'#cfe2ff':'#d4edda'};color:#333">${p.method.toUpperCase()}</span></td>
+            <td style="font-size:.8rem">${fmtDate(p.periodStart)} → ${fmtDate(p.periodEnd)}</td>
+            <td style="font-size:.8rem;color:var(--muted)">${esc(p.recordedBy || '—')}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ─── Utils ───────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function esc(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) { cancelHbdPolling(); overlay.classList.remove('open'); } });
+});
+
+loadMembers();
+</script>
+</body>
+</html>

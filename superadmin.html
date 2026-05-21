@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POSHIVE — Super Admin</title>
+  <script src="i18n.js"></script>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--sh-xs); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; }
+    .header-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { color: var(--text); font-size: 1.4rem; }
+    .badge-admin { background: var(--ink); color: var(--ink-text); font-size: .75rem; padding: .2em .6em; border-radius: var(--r-full); margin-left: .5rem; }
+    .main { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 2rem; }
+    .empty { text-align: center; color: var(--text-2); padding: 2rem; }
+    .logout-btn { background: none; border: 1.5px solid var(--border); color: var(--text-2); border-radius: var(--r-full); padding: .4rem .9rem; cursor: pointer; font-size: .85rem; font-family: var(--font); transition: var(--ease); }
+    .logout-btn:hover { background: var(--bg); color: var(--text); }
+    .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 140px; }
+    .stat-card .label { font-size: .8rem; color: var(--text-3); margin-bottom: .25rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--text); }
+    .badge-active  { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+    .badge-pending { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+    .badge-warning { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--ink); color: var(--ink-text); padding: .75rem 1.25rem; border-radius: var(--r-lg); font-size: .9rem; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+    #toast.show { opacity: 1; }
+    @media (max-width: 600px) {
+      .main { padding: 0 .75rem; }
+      .stat-row { flex-direction: column; }
+      table { font-size: .8rem; }
+      th, td { padding: .5rem .6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>POSHIVE <span class="badge-admin" data-i18n="superadmin.badge">Super Admin</span></h1>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span id="langToggleContainer"></span>
+      <button class="logout-btn" onclick="logout()" data-i18n="common.logout">Logout</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="stat-row" id="statsRow">
+    <div class="stat-card"><div class="label" data-i18n="superadmin.totalStores">Total Stores</div><div class="value" id="statStores">—</div></div>
+    <div class="stat-card"><div class="label" data-i18n="superadmin.pending">Pending Approval</div><div class="value" id="statPending" style="color:var(--amber)">—</div></div>
+    <div class="stat-card"><div class="label" data-i18n="superadmin.published">Published Stores</div><div class="value" id="statPublished" style="color:var(--green)">—</div></div>
+  </div>
+
+  <!-- Pending approvals -->
+  <div class="card">
+    <div class="card-header">
+      <h2 data-i18n="superadmin.approvals">Pending Approvals</h2>
+      <span id="pendingCount" class="badge badge-pending"></span>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead><tr>
+          <th data-i18n="common.username">Username</th><th data-i18n="common.hiveAccount">Hive Account</th><th data-i18n="superadmin.registered">Registered</th><th data-i18n="common.actions">Actions</th>
+        </tr></thead>
+        <tbody id="pendingBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- All stores -->
+  <div class="card">
+    <div class="card-header"><h2 data-i18n="superadmin.allStores">All Stores</h2></div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead><tr>
+          <th data-i18n="superadmin.business">Business</th><th data-i18n="superadmin.owner">Owner</th><th data-i18n="common.hiveAccount">Hive Account</th><th data-i18n="superadmin.memberships">Memberships</th><th data-i18n="superadmin.lightning">Lightning</th><th data-i18n="common.status">Status</th>
+        </tr></thead>
+        <tbody id="storesBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API_BASE = localStorage.getItem('pos_api_base') || 'http://localhost:3001';
+  const token = localStorage.getItem('pos_admin_token');
+
+  if (!token) { window.location.href = 'login.html'; }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    i18n.init();
+    i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+  });
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+  }
+
+  function toast(msg, ok = true) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = ok ? '#28a745' : '#e74c3c';
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  function logout() {
+    localStorage.removeItem('pos_admin_token');
+    localStorage.removeItem('pos_admin_user');
+    window.location.href = 'login.html';
+  }
+
+  function fmtDate(d) {
+    return d ? new Date(d).toLocaleDateString() : '—';
+  }
+
+  async function loadPending() {
+    const res = await fetch(`${API_BASE}/api/admin/pending`, { headers: authHeaders() });
+    if (res.status === 403) { window.location.href = 'dashboard.html'; return; }
+    const users = await res.json();
+    document.getElementById('statPending').textContent = users.length;
+    document.getElementById('pendingCount').textContent = t('superadmin.pendingBadge', { n: users.length });
+    const tbody = document.getElementById('pendingBody');
+    if (!users.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty">${t('superadmin.noApprovals')}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = users.map(u => `
+      <tr id="row-${u._id}">
+        <td><strong>${u.username}</strong></td>
+        <td>${u.hiveAccount || '—'}</td>
+        <td>${fmtDate(u.createdAt)}</td>
+        <td style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn btn-success" onclick="approve('${u._id}')">${t('superadmin.approve')}</button>
+          <button class="btn btn-danger" onclick="reject('${u._id}', '${u.username}')">${t('superadmin.reject')}</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function loadStores() {
+    const res = await fetch(`${API_BASE}/api/admin/stores`, { headers: authHeaders() });
+    const stores = await res.json();
+    document.getElementById('statStores').textContent = stores.length;
+    document.getElementById('statPublished').textContent = stores.filter(s => s.published).length;
+    const tbody = document.getElementById('storesBody');
+    if (!stores.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">${t('superadmin.noStores')}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = stores.map(s => `
+      <tr>
+        <td><strong>${s.businessName || '(unnamed)'}</strong></td>
+        <td>${s.ownerId?.username || '—'}</td>
+        <td>${s.hiveAccount || '—'}</td>
+        <td>${s.features?.memberships ? `<span class="badge badge-active">${t('common.on')}</span>` : `<span class="badge" style="background:#eee;color:#666">${t('common.off')}</span>`}</td>
+        <td>${s.features?.bitcoinLightning ? `<span class="badge badge-active">${t('common.on')}</span>` : `<span class="badge" style="background:#eee;color:#666">${t('common.off')}</span>`}</td>
+        <td>${s.published ? `<span class="badge badge-active">${t('common.published')}</span>` : `<span class="badge badge-pending">${t('common.draft')}</span>`}</td>
+      </tr>`).join('');
+  }
+
+  async function approve(userId) {
+    const res = await fetch(`${API_BASE}/api/admin/approve/${userId}`, { method: 'POST', headers: authHeaders() });
+    if (res.ok) {
+      toast(t('superadmin.userApproved'));
+      document.getElementById('row-' + userId)?.remove();
+      loadStores();
+      const pending = document.querySelectorAll('#pendingBody tr[id]');
+      document.getElementById('statPending').textContent = pending.length;
+    } else {
+      toast(t('superadmin.approveFail'), false);
+    }
+  }
+
+  async function reject(userId, username) {
+    if (!confirm(t('superadmin.rejectConfirm', { name: username }))) return;
+    const res = await fetch(`${API_BASE}/api/admin/reject/${userId}`, { method: 'DELETE', headers: authHeaders() });
+    if (res.ok) {
+      toast(t('superadmin.userRejected'));
+      document.getElementById('row-' + userId)?.remove();
+      const pending = document.querySelectorAll('#pendingBody tr[id]');
+      document.getElementById('statPending').textContent = pending.length;
+    } else {
+      toast(t('superadmin.rejectFail'), false);
+    }
+  }
+
+  loadPending();
+  loadStores();
+</script>
+</body>
+</html>
