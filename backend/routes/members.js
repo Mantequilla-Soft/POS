@@ -54,10 +54,10 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, phone, email, hiveAccount, membershipTypeId, notes } = req.body;
+    const { name, phone, email, hiveAccount, membershipTypeId, gender, ageGroup, notes } = req.body;
     const member = await Member.create({
       storeId: req.user.storeId,
-      name, phone, email, hiveAccount, membershipTypeId, notes,
+      name, phone, email, hiveAccount, membershipTypeId, gender, ageGroup, notes,
       status: 'pending',
       startDate: null,
       nextDueDate: null,

@@ -130,6 +130,29 @@
           <select id="fMembershipType"></select>
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label data-i18n="members.gender">Gender</label>
+          <select id="fGender">
+            <option value="unspecified" data-i18n="members.genderUnspecified">Prefer not to say</option>
+            <option value="male"        data-i18n="members.genderMale">Male</option>
+            <option value="female"      data-i18n="members.genderFemale">Female</option>
+            <option value="other"       data-i18n="members.genderOther">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="members.ageGroup">Age Group</label>
+          <select id="fAgeGroup">
+            <option value="unspecified" data-i18n="members.ageUnspecified">Prefer not to say</option>
+            <option value="under_18"    data-i18n="members.ageUnder18">Under 18</option>
+            <option value="18_25"       data-i18n="members.age18_25">18 – 25</option>
+            <option value="26_35"       data-i18n="members.age26_35">26 – 35</option>
+            <option value="36_45"       data-i18n="members.age36_45">36 – 45</option>
+            <option value="46_55"       data-i18n="members.age46_55">46 – 55</option>
+            <option value="56_plus"     data-i18n="members.age56plus">56 +</option>
+          </select>
+        </div>
+      </div>
       <div class="form-group">
         <label data-i18n="common.notes">Notes</label>
         <textarea id="fNotes" data-i18n-placeholder="members.notesPlaceholder" placeholder="Optional notes…"></textarea>
@@ -348,6 +371,8 @@ function openAddModal() {
   editingMemberId = null;
   document.getElementById('modalTitle').textContent = t('members.addTitle');
   ['fName','fPhone','fEmail','fHive','fNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fGender').value = 'unspecified';
+  document.getElementById('fAgeGroup').value = 'unspecified';
   loadMembershipTypes();
   openModal('memberModal');
 }
@@ -362,6 +387,8 @@ async function openEditModal(id) {
   document.getElementById('fPhone').value = m.phone || '';
   document.getElementById('fEmail').value = m.email || '';
   document.getElementById('fHive').value = m.hiveAccount || '';
+  document.getElementById('fGender').value = m.gender || 'unspecified';
+  document.getElementById('fAgeGroup').value = m.ageGroup || 'unspecified';
   document.getElementById('fNotes').value = m.notes || '';
   const sel = document.getElementById('fMembershipType');
   if (m.membershipTypeId) sel.value = m.membershipTypeId._id;
@@ -379,6 +406,8 @@ async function saveMember() {
     email: document.getElementById('fEmail').value.trim(),
     hiveAccount: document.getElementById('fHive').value.trim().replace('@',''),
     membershipTypeId,
+    gender:   document.getElementById('fGender').value,
+    ageGroup: document.getElementById('fAgeGroup').value,
     notes: document.getElementById('fNotes').value.trim(),
   };
 
