@@ -203,6 +203,12 @@ chmod 600 "$ENV_FILE"
 chown "$RUN_AS" "$ENV_FILE"
 say ".env written to $ENV_FILE"
 
+# ── Fix ownership so $RUN_AS can write to the install dir ────
+echo ""
+echo -e "${B}── Setting permissions ──────────────────────────────────${N}"
+chown -R "$RUN_AS":"$RUN_AS" "$SCRIPT_DIR"
+say "Ownership of $SCRIPT_DIR set to $RUN_AS"
+
 # ── npm install ───────────────────────────────────────────────
 echo ""
 echo -e "${B}── Installing dependencies ─────────────────────────────${N}"
