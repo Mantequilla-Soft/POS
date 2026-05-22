@@ -86,7 +86,7 @@
 <div id="toast"></div>
 
 <script>
-  const API_BASE = localStorage.getItem('pos_api_base') || 'http://localhost:3001';
+  const API_BASE = localStorage.getItem('pos_api_base') || window.location.origin;
   const token = localStorage.getItem('pos_admin_token');
 
   if (!token) { window.location.href = 'login.html'; }

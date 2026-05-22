@@ -671,7 +671,7 @@
             const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
             if (token) {
                 try {
-                    const API_BASE = localStorage.getItem('pos_api_base') || 'http://localhost:3001';
+                    const API_BASE = localStorage.getItem('pos_api_base') || window.location.origin;
                     const res = await fetch(`${API_BASE}/api/store`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
@@ -769,7 +769,7 @@
 
             // Auto-save sale to backend (works for both admin and cashier tokens)
             const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
-            const apiBase = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
+            const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
             let savedToBackend = false;
             if (token) {
                 try {

@@ -193,7 +193,7 @@
         loadData(1);
     });
 
-    const API_BASE = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
+    const API_BASE = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
     const token    = localStorage.getItem('pos_admin_token');
     let currentPage = 1;
 
