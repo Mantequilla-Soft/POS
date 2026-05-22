@@ -232,6 +232,7 @@
     <!-- Top bar -->
     <header class="pos-topbar">
         <span id="businessNameHeader" class="pos-biz-name">Point of Sale</span>
+        <span id="langToggleContainer"></span>
         <button id="logoutBtn" class="btn btn-secondary btn-sm" data-i18n="common.logout" style="margin-left:auto;min-width:72px;">Logout</button>
         <div class="pos-topbar-secondary">
             <div id="bannerContainer"></div>
@@ -276,7 +277,10 @@
     }
     </script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => i18n.init());
+        document.addEventListener('DOMContentLoaded', () => {
+            i18n.init();
+            i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+        });
         // --- Bitcoin Lightning minimum amount check ---
         function isLightningAmountValid(amount, currency) {
             // Accept both 'USD' and 'usd' for safety
