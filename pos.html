@@ -30,10 +30,28 @@
             padding: 0.75rem 1.5rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
+            flex-wrap: wrap;
             position: sticky;
             top: 0;
             z-index: 40;
+        }
+        /* On mobile: secondary items drop to a second row */
+        .pos-topbar-secondary {
+            display: contents; /* transparent on desktop — items stay in the main row */
+        }
+        @media (max-width: 640px) {
+            .pos-topbar { padding: 0.6rem 1rem; gap: 0.5rem; }
+            .pos-topbar-secondary {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                width: 100%;
+                order: 10;
+            }
+            #bannerContainer { display: none !important; }
+            #logoutBtn { margin-left: auto !important; }
         }
         .pos-biz-name {
             font-size: 1.1rem;
@@ -214,11 +232,13 @@
     <!-- Top bar -->
     <header class="pos-topbar">
         <span id="businessNameHeader" class="pos-biz-name">Point of Sale</span>
-        <div id="bannerContainer"></div>
-        <div id="hiveAccountDisplay" class="pos-hive-badge" style="display:none;"></div>
-        <div id="cashierBadge" style="display:none;font-size:0.8rem;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-full);padding:0.2rem 0.7rem;"></div>
-        <a href="members.html" id="membersLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none">👥 Members</a>
         <button id="logoutBtn" class="btn btn-secondary btn-sm" data-i18n="common.logout" style="margin-left:auto;min-width:72px;">Logout</button>
+        <div class="pos-topbar-secondary">
+            <div id="bannerContainer"></div>
+            <div id="hiveAccountDisplay" class="pos-hive-badge" style="display:none;"></div>
+            <div id="cashierBadge" style="display:none;font-size:0.8rem;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-full);padding:0.2rem 0.7rem;"></div>
+            <a href="members.html" id="membersLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none">👥 Members</a>
+        </div>
     </header>
 
     <!-- Main body -->
