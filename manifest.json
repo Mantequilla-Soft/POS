@@ -1,21 +1,31 @@
 {
-  "name": "Hive POS",
-  "short_name": "HivePOS",
-  "start_url": "pos.html",
+  "name": "POSHIVE",
+  "short_name": "POSHIVE",
+  "description": "Hive blockchain point-of-sale and membership management.",
+  "start_url": "login.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f8f8f8",
-  "theme_color": "#b5651d",
-  "description": "White-label POS system for Hive blockchain payments.",
+  "orientation": "any",
+  "background_color": "#f5f0eb",
+  "theme_color": "#b45309",
   "icons": [
     {
-      "src": "images/sweetplace logo.png",
+      "src": "images/poslogo.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "images/sweetplace logo.png",
+      "src": "images/poslogo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/poslogo.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

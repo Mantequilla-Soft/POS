@@ -53,15 +53,6 @@
             padding: 0.3em 0.8em;
             white-space: nowrap;
         }
-        #configSourceBar {
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
-            font-size: 0.8rem;
-            color: var(--text-3);
-        }
-        #configSourceText { white-space: nowrap; }
-
         /* Banner */
         #bannerContainer img {
             max-height: 90px;
@@ -216,6 +207,7 @@
             .product-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.625rem; }
         }
     </style>
+  <script src="pwa.js"></script>
 </head>
 <body>
 <div class="pos-page">
@@ -224,11 +216,9 @@
         <span id="businessNameHeader" class="pos-biz-name">Point of Sale</span>
         <div id="bannerContainer"></div>
         <div id="hiveAccountDisplay" class="pos-hive-badge" style="display:none;"></div>
-        <div id="configSourceBar">
-            <span id="configSourceText"></span>
-            <button id="updateStoreBtn" class="btn btn-secondary btn-sm" data-i18n="pos.updateStore">Update Store</button>
-            <input type="file" id="storeFileInput" accept="application/json" style="display:none;" />
-        </div>
+        <div id="cashierBadge" style="display:none;font-size:0.8rem;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-full);padding:0.2rem 0.7rem;"></div>
+        <a href="members.html" id="membersLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none">👥 Members</a>
+        <button id="logoutBtn" class="btn btn-ghost btn-sm" title="Logout" style="margin-left:auto;">⏻</button>
     </header>
 
     <!-- Main body -->
@@ -287,6 +277,18 @@
             bannerDiv.innerHTML = settings.bannerUrl ? `<img src="${settings.bannerUrl}" alt="Banner" style="max-width:100%;max-height:120px;border-radius:8px;">` : '';
             // Business Name
             document.getElementById('businessNameHeader').textContent = settings.businessName || t('pos.title');
+            // Cashier badge
+            const cashierUser = JSON.parse(localStorage.getItem('pos_cashier_user') || 'null');
+            const cashierBadge = document.getElementById('cashierBadge');
+            if (cashierUser?.username) {
+                cashierBadge.textContent = '👤 ' + cashierUser.username;
+                cashierBadge.style.display = '';
+            }
+            // Members link (visible when the store has memberships enabled)
+            const features = JSON.parse(localStorage.getItem('pos_features') || '{}');
+            if (features.memberships) {
+                document.getElementById('membersLinkBtn').style.display = '';
+            }
         }
         // --- Category Tabs Logic (updated to use store settings) ---
         function getCategories(items) {
@@ -492,7 +494,7 @@
                             cart = [];
                             renderCart();
                             renderMenu();
-                            showPostSaleActions('HBD', saleCart, saleTotal);
+                            showPostSaleActions('hbd', saleCart, saleTotal, op[1].from, op[1].memo);
                             return;
                         }
                     }
@@ -660,14 +662,53 @@
                     showPostSaleActions('cash', saleCart, saleTotal);
                 };
             }
-            // Default to Keychain tab
-            showKeychain();
+            // QR overlay stays hidden until the user clicks "Pay with HBD"
         }
         // --- Initial Render ---
-        renderMenu();
-        renderCart();
-        renderHiveAccount();
-        setupPaymentButtons(); // Ensure payment buttons are rendered on initial load
+        // Always fetch fresh store data from the backend on load — backend is the single source of truth.
+        // Both owner and cashier tokens work; localStorage is just a fallback when offline.
+        async function initStoreData() {
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            if (token) {
+                try {
+                    const API_BASE = localStorage.getItem('pos_api_base') || 'http://localhost:3001';
+                    const res = await fetch(`${API_BASE}/api/store`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const store = await res.json();
+                        localStorage.setItem('pos_items', JSON.stringify(store.items || []));
+                        localStorage.setItem('pos_settings', JSON.stringify({
+                            businessName: store.businessName || '',
+                            bannerUrl: store.bannerUrl || '',
+                            categories: store.categories || [],
+                            hiveAccount: store.hiveAccount || '',
+                            currency: store.currency || 'HBD',
+                        }));
+                        localStorage.setItem('pos_features', JSON.stringify(store.features || {}));
+                    }
+                } catch (e) {
+                    // Network error — fall back to whatever is in localStorage
+                }
+            }
+            renderMenu();
+            renderCart();
+            renderHiveAccount();
+            setupPaymentButtons();
+        }
+        initStoreData();
+
+        // Logout — clears only the relevant token, keeps the other role's session intact
+        document.getElementById('logoutBtn').onclick = function() {
+            if (localStorage.getItem('pos_cashier_token')) {
+                localStorage.removeItem('pos_cashier_token');
+                localStorage.removeItem('pos_cashier_user');
+            } else {
+                localStorage.removeItem('pos_admin_token');
+            }
+            window.location.href = 'login.html';
+        };
+
         // Attach to pay button
         const payBtn = document.querySelector('.pay-btn');
         if (payBtn) payBtn.onclick = showQrInline;
@@ -690,52 +731,6 @@
         renderCart = function() {
             originalRenderCart();
             setupPaymentButtons();
-        };
-        // --- Config Source Bar Logic ---
-        function setConfigSourceText(text) {
-            document.getElementById('configSourceText').textContent = t('pos.source', { src: text });
-        }
-        function getConfigSource() {
-            return localStorage.getItem('pos_config_source') || 'Local Storage';
-        }
-        setConfigSourceText(getConfigSource());
-        document.getElementById('updateStoreBtn').onclick = function() {
-            document.getElementById('storeFileInput').value = '';
-            document.getElementById('storeFileInput').click();
-        };
-        document.getElementById('storeFileInput').onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    // Accept both admin backup format ({items, settings}) and legacy ({pos_items, pos_settings})
-                    let items = null, settings = null;
-                    if (Array.isArray(data.items) && typeof data.settings === 'object') {
-                        items = data.items;
-                        settings = data.settings;
-                    } else if (Array.isArray(data.pos_items) && typeof data.pos_settings === 'object') {
-                        items = data.pos_items;
-                        settings = data.pos_settings;
-                    } else {
-                        throw new Error('Invalid config format.');
-                    }
-                    localStorage.setItem('pos_items', JSON.stringify(items));
-                    localStorage.setItem('pos_settings', JSON.stringify(settings));
-                    localStorage.setItem('pos_config_source', file.name);
-                    setConfigSourceText(file.name);
-                    // Optionally, clear cart
-                    cart = [];
-                    renderCart();
-                    renderMenu();
-                    renderHiveAccount();
-                    alert(t('pos.storeLoaded'));
-                } catch (err) {
-                    alert('Failed to load config: ' + err.message);
-                }
-            };
-            reader.readAsText(file);
         };
         function changeQty(idx, delta) {
             if (cart[idx]) {
@@ -769,32 +764,68 @@
             };
         }
         // --- Post-Sale Actions ---
-        function showPostSaleActions(paymentType, saleCart, saleTotal) {
+        async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId) {
             document.getElementById('qrInlineContainer').classList.remove('open');
+
+            // Auto-save sale to backend (works for both admin and cashier tokens)
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const apiBase = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
+            let savedToBackend = false;
+            if (token) {
+                try {
+                    const saleRes = await fetch(`${apiBase}/sales`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                            items: saleCart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty })),
+                            total: saleTotal,
+                            currency: (getStoreSettings().currency || 'HBD'),
+                            paymentMethod: paymentType.toLowerCase(),
+                            hiveFrom: hiveFrom || null,
+                            hiveTransactionId: txId || null,
+                            cashier: JSON.parse(localStorage.getItem('pos_cashier_user') || 'null')?.username || null,
+                        }),
+                    });
+                    if (saleRes.ok) {
+                        savedToBackend = true;
+                    } else {
+                        const errBody = await saleRes.json().catch(() => ({}));
+                        console.error('Sale not saved:', saleRes.status, errBody);
+                    }
+                } catch (err) {
+                    console.error('Sale save network error:', err);
+                }
+            }
+
             const cartFoot = document.getElementById('cartFoot');
             cartFoot.innerHTML = `
-                <div style="text-align:center;padding:0.25rem 0 0.75rem;color:var(--green);font-weight:600;font-size:0.9rem;">✓ Sale complete</div>
+                <div style="text-align:center;padding:0.25rem 0 0.75rem;color:var(--green);font-weight:600;font-size:0.9rem;">✓ ${t('pos.saleComplete')}</div>
                 <div id="postSaleActionsRow" style="display:flex;flex-direction:column;gap:0.5rem;">
-                    <button id="postSaleSaveBtn" class="btn btn-secondary btn-block">${t('pos.saveReceipt')}</button>
+                    <button id="postSalePrintBtn" class="btn btn-secondary btn-block">${t('pos.printReceipt')}</button>
                     <button id="postSaleNewBtn" class="btn btn-success btn-block">${t('common.newSale')}</button>
                 </div>`;
-            document.getElementById('postSaleSaveBtn').onclick = function() {
+
+            document.getElementById('postSalePrintBtn').onclick = function() {
                 const now = new Date();
-                const pad = n => n.toString().padStart(2, '0');
-                const filename = `receipt-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.json`;
-                const receipt = {
-                    timestamp: now.toISOString(),
-                    paymentType,
-                    items: saleCart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
-                    total: saleTotal
-                };
-                const blob = new Blob([JSON.stringify(receipt, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = filename;
-                document.body.appendChild(a); a.click();
-                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+                const settings = getStoreSettings();
+                const w = window.open('', '_blank', 'width=400,height=600');
+                w.document.write(`
+                    <html><head><title>Receipt</title>
+                    <style>body{font-family:monospace;font-size:12px;padding:1em;width:58mm}
+                    h2{font-size:13px;margin:0 0 .5em}table{width:100%;border-collapse:collapse}
+                    td,th{font-size:11px;padding:2px 4px}tfoot td{border-top:1px solid #000;font-weight:bold}
+                    @media print{button{display:none}}</style></head><body>
+                    <h2>${settings.businessName || 'HIVE POS'}</h2>
+                    <p style="margin:0;font-size:11px">${now.toLocaleString()}<br>Payment: ${paymentType.toUpperCase()}${hiveFrom ? '<br>From: @' + hiveFrom : ''}</p>
+                    <table><thead><tr><th align="left">Item</th><th>Qty</th><th align="right">Price</th></tr></thead><tbody>
+                    ${saleCart.map(i => `<tr><td>${i.name}</td><td align="center">${i.qty}</td><td align="right">$${(i.price*i.qty).toFixed(2)}</td></tr>`).join('')}
+                    </tbody><tfoot><tr><td colspan="2">Total</td><td align="right">$${saleTotal.toFixed(2)}</td></tr></tfoot></table>
+                    <br><button onclick="window.print()">Print</button>
+                    </body></html>`);
+                w.document.close();
+                w.focus();
             };
+
             document.getElementById('postSaleNewBtn').onclick = function() {
                 cart = [];
                 renderCart();
@@ -826,20 +857,6 @@
             // ...existing code to show QR and invoice string...
         }
 
-        // Optionally, allow closing modal with ESC or clicking outside
-        (function enhanceLightningModalClose() {
-            // ...get lightningQrModal...
-            document.addEventListener('keydown', function(e) {
-                if (lightningQrModal.style.display === 'block' && (e.key === 'Escape' || e.key === 'Esc')) {
-                    lightningQrModal.style.display = 'none';
-                }
-            });
-            lightningQrModal.addEventListener('click', function(e) {
-                if (e.target === lightningQrModal) {
-                    lightningQrModal.style.display = 'none';
-                }
-            });
-        })();
     </script>
     <!-- Bitcoin Lightning QR Modal (required for Lightning payments) -->
     <div id="btcLightningQrModal" style="display:none;position:fixed;z-index:1000;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
@@ -852,23 +869,14 @@
     </div>
     
     <script>
-    // Add Lightning QR modal close logic
-    document.getElementById('closeBtcLightningQr').onclick = function() {
-        document.getElementById('btcLightningQrModal').style.display = 'none';
-    };
-    (function enhanceLightningModalClose() {
-        const modal = document.getElementById('btcLightningQrModal');
-        document.addEventListener('keydown', function(e) {
-            if (modal.style.display === 'flex' && (e.key === 'Escape' || e.key === 'Esc')) {
-                modal.style.display = 'none';
-            }
-        });
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-    })();
+    // Lightning QR modal close logic
+    const _lqModal = document.getElementById('btcLightningQrModal');
+    document.getElementById('btcLightningQrClose').onclick = () => _lqModal.style.display = 'none';
+    document.addEventListener('keydown', e => {
+        if (_lqModal.style.display === 'flex' && (e.key === 'Escape' || e.key === 'Esc'))
+            _lqModal.style.display = 'none';
+    });
+    _lqModal.addEventListener('click', e => { if (e.target === _lqModal) _lqModal.style.display = 'none'; });
     </script>
     <!-- Bitcoin Lightning Payment Listener -->
     <script>

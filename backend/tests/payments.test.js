@@ -118,3 +118,71 @@ describe('GET /api/members/:id/payments', () => {
     expect(new Date(res.body[0].paidDate) > new Date(res.body[1].paidDate)).toBe(true);
   });
 });
+
+describe('Payment chaining — advance payments stack correctly', () => {
+  it('second payment starts from nextDueDate, not paidDate, when member is already paid up', async () => {
+    const { store, mtype, token } = await setup();
+    const member = await createMember(store._id, mtype._id, {
+      status: 'active',
+      nextDueDate: new Date('2026-01-01'), // already expired
+    });
+
+    // First payment on Jan 1 → period Jan 1–31, nextDueDate = Jan 31
+    await request(app)
+      .post(`/api/members/${member._id}/payments`)
+      .set(authHeader(token))
+      .send({ method: 'cash', paidDate: new Date('2026-01-01').toISOString() });
+
+    // Second payment also on Jan 1 — should chain from Jan 31, not duplicate Jan 1–31
+    const res = await request(app)
+      .post(`/api/members/${member._id}/payments`)
+      .set(authHeader(token))
+      .send({ method: 'cash', paidDate: new Date('2026-01-01').toISOString() });
+
+    expect(res.status).toBe(201);
+
+    const start = new Date(res.body.payment.periodStart).toISOString().slice(0, 10);
+    const end   = new Date(res.body.payment.periodEnd).toISOString().slice(0, 10);
+    expect(start).toBe('2026-01-31');
+    expect(end).toBe('2026-03-02');   // Jan 31 + 30 days
+
+    // nextDueDate should be Mar 2 — two full months paid in advance
+    const due = new Date(res.body.member.nextDueDate).toISOString().slice(0, 10);
+    expect(due).toBe('2026-03-02');
+  });
+
+  it('two same-day payments result in non-overlapping periods', async () => {
+    const { store, mtype, token } = await setup();
+    const member = await createMember(store._id, mtype._id, {
+      status: 'overdue',
+      nextDueDate: new Date('2025-12-01'),
+    });
+
+    const today = new Date('2026-05-21').toISOString();
+
+    await request(app)
+      .post(`/api/members/${member._id}/payments`)
+      .set(authHeader(token))
+      .send({ method: 'cash', paidDate: today });
+
+    await request(app)
+      .post(`/api/members/${member._id}/payments`)
+      .set(authHeader(token))
+      .send({ method: 'cash', paidDate: today });
+
+    const histRes = await request(app)
+      .get(`/api/members/${member._id}/payments`)
+      .set(authHeader(token));
+
+    expect(histRes.body).toHaveLength(2);
+
+    // Sort by periodStart ascending so order is deterministic regardless of DB sort
+    const sorted = [...histRes.body].sort(
+      (a, b) => new Date(a.periodStart) - new Date(b.periodStart)
+    );
+    const firstEnd  = new Date(sorted[0].periodEnd).toISOString().slice(0, 10);
+    const secondStart = new Date(sorted[1].periodStart).toISOString().slice(0, 10);
+    // Second period starts exactly where the first one ends — no gap, no overlap
+    expect(secondStart).toBe(firstEnd);
+  });
+});

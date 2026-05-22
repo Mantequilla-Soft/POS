@@ -18,6 +18,12 @@ const storeSchema = new mongoose.Schema({
   features: {
     memberships: { type: Boolean, default: false },
     bitcoinLightning: { type: Boolean, default: false },
+    emailReminders: { type: Boolean, default: false },
+  },
+  language: { type: String, default: 'en' },
+  emailSettings: {
+    reminderSubject: { type: String, default: '' },
+    reminderBody:    { type: String, default: '' },
   },
   bitcoinLightningConfig: { type: mongoose.Schema.Types.Mixed, default: null },
   published: { type: Boolean, default: false },

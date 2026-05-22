@@ -17,6 +17,8 @@ async function clearAll() {
 
 async function disconnect() {
   await mongoose.connection.dropDatabase();
+  // dropDatabase leaves one connection checked-out briefly; wait for it to return
+  await new Promise(resolve => setTimeout(resolve, 50));
   await mongoose.connection.close();
   await mongod.stop();
 }

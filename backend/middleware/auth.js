@@ -25,4 +25,15 @@ function requireRole(...roles) {
   ];
 }
 
-module.exports = { authenticate, requireRole };
+// Use after `authenticate` (or any router that already authenticates)
+// — gates a single route without re-running authentication.
+function roleOnly(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    next();
+  };
+}
+
+module.exports = { authenticate, requireRole, roleOnly };

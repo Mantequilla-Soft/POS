@@ -1,9 +1,15 @@
 const router = require('express').Router();
-const { requireRole } = require('../middleware/auth');
+const { authenticate, roleOnly } = require('../middleware/auth');
 const MembershipType = require('../models/MembershipType');
 
-router.use(requireRole('store_owner', 'superadmin'));
+router.use(authenticate);
 
+router.use((req, res, next) => {
+  if (!req.user.storeId) return res.status(400).json({ error: 'No store found. Please create and publish your store first.' });
+  next();
+});
+
+// GET is open to cashiers — they need to see plans when registering members and recording payments
 router.get('/', async (req, res) => {
   try {
     const types = await MembershipType.find({ storeId: req.user.storeId }).sort({ name: 1 });
@@ -12,6 +18,9 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Plan creation/edit/delete is admin-only
+router.use(roleOnly('store_owner', 'superadmin'));
 
 router.post('/', async (req, res) => {
   try {

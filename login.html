@@ -363,6 +363,8 @@
             }
         }
     </style>
+  <link rel="manifest" href="manifest.json">
+  <script src="pwa.js"></script>
 </head>
 <body>
     <div class="login-container">
@@ -374,6 +376,7 @@
         <div class="form-container">
             <div class="form-toggle">
                 <button class="toggle-btn active" id="loginToggle" data-i18n="login.tabLogin">Login</button>
+                <button class="toggle-btn" id="cashierToggle" data-i18n="login.tabCashier">Cashier</button>
                 <button class="toggle-btn" id="registerToggle" data-i18n="login.tabRegister">Register</button>
             </div>
 
@@ -404,6 +407,27 @@
                 <div class="forgot-password">
                     <a href="#" id="forgotPasswordLink" data-i18n="login.forgotPassword">Forgot your password?</a>
                 </div>
+            </form>
+
+            <!-- Cashier Login Form -->
+            <form class="form-section" id="cashierForm">
+                <div class="form-group">
+                    <label for="cashierUsername" data-i18n="login.usernameLabel">Username</label>
+                    <input type="text" id="cashierUsername" class="form-input" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="cashierPassword" data-i18n="login.passwordLabel">Password</label>
+                    <div class="password-container">
+                        <input type="password" id="cashierPassword" class="form-input" required autocomplete="current-password">
+                        <button type="button" class="password-toggle" data-target="cashierPassword">👁️</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cashierStoreHive" data-i18n="login.storeHiveLabel">Store Hive Account <span style="font-weight:400;color:var(--text-3)" data-i18n="login.hiveOptional">(optional)</span></label>
+                    <input type="text" id="cashierStoreHive" class="form-input" autocomplete="off" placeholder="e.g. mybakery">
+                    <div class="requirements" data-i18n="login.storeHiveHelp">Only needed if multiple stores share the same cashier username</div>
+                </div>
+                <button type="submit" class="submit-btn" id="cashierBtn" data-i18n="login.goToPOS">Go to POS</button>
             </form>
 
             <!-- Register Form -->
@@ -474,9 +498,11 @@
         });
         
         // DOM Elements
-        const loginToggle = document.getElementById('loginToggle');
+        const loginToggle    = document.getElementById('loginToggle');
+        const cashierToggle  = document.getElementById('cashierToggle');
         const registerToggle = document.getElementById('registerToggle');
-        const loginForm = document.getElementById('loginForm');
+        const loginForm    = document.getElementById('loginForm');
+        const cashierForm  = document.getElementById('cashierForm');
         const registerForm = document.getElementById('registerForm');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
@@ -490,29 +516,18 @@
         const debugConsole = document.getElementById('debugConsole');
         const clearDebugBtn = document.getElementById('clearDebugBtn');
 
-        // Toggle between login and register forms
-        loginToggle.addEventListener('click', () => {
-            switchForm('login');
-        });
-
-        registerToggle.addEventListener('click', () => {
-            switchForm('register');
-        });
+        // Toggle between forms
+        loginToggle.addEventListener('click',    () => switchForm('login'));
+        cashierToggle.addEventListener('click',  () => switchForm('cashier'));
+        registerToggle.addEventListener('click', () => switchForm('register'));
 
         function switchForm(formType) {
             clearMessages();
-            
-            if (formType === 'login') {
-                loginToggle.classList.add('active');
-                registerToggle.classList.remove('active');
-                loginForm.classList.add('active');
-                registerForm.classList.remove('active');
-            } else {
-                registerToggle.classList.add('active');
-                loginToggle.classList.remove('active');
-                registerForm.classList.add('active');
-                loginForm.classList.remove('active');
-            }
+            [loginToggle, cashierToggle, registerToggle].forEach(b => b.classList.remove('active'));
+            [loginForm, cashierForm, registerForm].forEach(f => f.classList.remove('active'));
+            if (formType === 'login')    { loginToggle.classList.add('active');    loginForm.classList.add('active'); }
+            if (formType === 'cashier')  { cashierToggle.classList.add('active');  cashierForm.classList.add('active'); }
+            if (formType === 'register') { registerToggle.classList.add('active'); registerForm.classList.add('active'); }
         }
 
         // Password toggle functionality
@@ -533,6 +548,7 @@
 
         // Form submission handlers
         loginForm.addEventListener('submit', handleLogin);
+        cashierForm.addEventListener('submit', handleCashierLogin);
         registerForm.addEventListener('submit', handleRegister);
 
         // Password confirmation validation
@@ -590,6 +606,54 @@
                 }
             } catch (error) {
                 console.error('Login error:', error);
+                showError(t('common.networkError'));
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function handleCashierLogin(e) {
+            e.preventDefault();
+            clearMessages();
+
+            const username       = document.getElementById('cashierUsername').value.trim();
+            const password       = document.getElementById('cashierPassword').value;
+            const storeHiveAccount = document.getElementById('cashierStoreHive').value.trim().replace('@', '');
+
+            if (!username || !password) { showError(t('login.fillAllFields')); return; }
+
+            setLoading(true);
+            try {
+                const { response, data } = await debugFetch(`${API_BASE_URL}/auth/cashier-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, storeHiveAccount: storeHiveAccount || undefined }),
+                });
+
+                if (response.ok) {
+                    // Save cashier token and store config to localStorage
+                    localStorage.setItem('pos_cashier_token', data.token);
+                    localStorage.setItem('pos_cashier_user', JSON.stringify({ username: data.cashier.username }));
+                    // Seed store config so the POS works immediately
+                    if (data.store) {
+                        localStorage.setItem('pos_items',    JSON.stringify(data.store.items || []));
+                        localStorage.setItem('pos_settings', JSON.stringify({
+                            businessName: data.store.businessName || '',
+                            bannerUrl:    data.store.bannerUrl || '',
+                            categories:   data.store.categories || [],
+                            hiveAccount:  data.store.hiveAccount || '',
+                            currency:     data.store.currency || 'USD',
+                            bitcoinLightningEnabled:  data.store.features?.bitcoinLightning || false,
+                            bitcoinLightningConfig:   data.store.bitcoinLightningConfig || {},
+                        }));
+                        localStorage.setItem('pos_features', JSON.stringify(data.store.features || {}));
+                    }
+                    showSuccess('Logged in! Opening POS…');
+                    setTimeout(() => { window.location.href = 'pos.html'; }, 800);
+                } else {
+                    showError(data.error || data.message || t('login.loginFailed'));
+                }
+            } catch (err) {
                 showError(t('common.networkError'));
             } finally {
                 setLoading(false);
@@ -682,12 +746,8 @@
 
         // Check if user is already logged in
         function checkAuthStatus() {
-            const token = localStorage.getItem('pos_admin_token');
-            if (token) {
-                // Optionally verify token with server
-                // For now, just redirect if token exists
-                window.location.href = 'dashboard.html';
-            }
+            if (localStorage.getItem('pos_admin_token'))   { window.location.href = 'dashboard.html'; return; }
+            if (localStorage.getItem('pos_cashier_token')) { window.location.href = 'pos.html'; return; }
         }
 
         // Forgot password handler (placeholder)

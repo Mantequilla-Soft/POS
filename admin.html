@@ -163,7 +163,20 @@
             background: #1177bb;
             transform: scale(1.1);
         }
+
+        @media (max-width: 640px) {
+            body { margin: 1rem 0.75rem; }
+            .header-container { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+            .header-buttons { flex-wrap: wrap; }
+            .item-card { width: calc(50% - 0.5rem); }
+            #storeSettings, #membershipSettingsSection, #bitcoinLightningSettings, #emailReminderSettings { max-width: 100%; }
+        }
+        @media (max-width: 400px) {
+            .item-card { width: 100%; }
+        }
     </style>
+  <link rel="manifest" href="manifest.json">
+  <script src="pwa.js"></script>
 </head>
 <body>
     <div class="header-container">
@@ -279,7 +292,7 @@
             <!-- Inline add/edit form -->
             <div id="mtForm" style="display:none;background:var(--surface);border:1px solid var(--green-border);border-radius:var(--r);padding:1rem;margin-top:.75rem">
                 <input type="hidden" id="mtId">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:.75rem">
                     <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planName">Plan Name *</label><br>
                         <input type="text" id="mtName" data-i18n-placeholder="admin.planNamePlaceholder" placeholder="Monthly" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
                     <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planDays">Duration (days) *</label><br>
@@ -296,6 +309,32 @@
                     <button type="button" onclick="closeMtForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.45rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="common.cancel">Cancel</button>
                 </div>
                 <div id="mtError" style="color:var(--red);font-size:.82em;margin-top:.5rem"></div>
+            </div>
+
+            <!-- Email Reminders -->
+            <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--green-border)">
+                <label style="display:flex;align-items:center;gap:0.6em;font-size:.95em;cursor:pointer">
+                    <input type="checkbox" id="enableEmailReminders">
+                    <strong data-i18n="admin.enableEmailReminders">Email Reminders</strong>
+                </label>
+                <p style="font-size:.82em;color:var(--text-2);margin:.4em 0 .9rem" data-i18n="admin.emailRemindersHelp">
+                    Automatically email overdue members. Requires SMTP configured in .env.
+                </p>
+
+                <div id="emailReminderTemplatePanel" style="display:none">
+                    <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="admin.reminderSubject">Subject line</label>
+                    <input type="text" id="reminderSubject"
+                        data-i18n-placeholder="admin.reminderSubjectPlaceholder"
+                        style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;margin-bottom:.75rem;box-sizing:border-box">
+
+                    <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="admin.reminderBody">Message body</label>
+                    <textarea id="reminderBody" rows="6"
+                        data-i18n-placeholder="admin.reminderBodyPlaceholder"
+                        style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;resize:vertical;box-sizing:border-box"></textarea>
+                    <p style="font-size:.78em;color:var(--text-3);margin:.35rem 0 0">
+                        Variables: <code>{{memberName}}</code> <code>{{businessName}}</code> <code>{{daysOverdue}}</code> <code>{{hiveAccount}}</code>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -601,8 +640,12 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('Config saved to API successfully:', result);
-                    return result;
+                    // Backend returns a fresh token when store is first created
+                    // so storeId is immediately available for cashiers/sales/etc.
+                    if (result.token) {
+                        localStorage.setItem('pos_admin_token', result.token);
+                    }
+                    return result.store || result;
                 } else {
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -628,7 +671,9 @@
                 hiveAccount: '',
                 bitcoinLightningEnabled: false,
                 bitcoinLightningConfig: undefined
-            }
+            },
+            features: { memberships: false, bitcoinLightning: false },
+            emailSettings: { reminderSubject: '', reminderBody: '' }
         };
 
         // Mark data as dirty (changed)
@@ -763,7 +808,10 @@
 
                 const config = {
                     items: currentData.items,
-                    settings: currentData.settings
+                    settings: currentData.settings,
+                    features: currentData.features || {},
+                    emailSettings: currentData.emailSettings || {},
+                    language: i18n.getLocale()
                 };
 
                 // Save to API as draft using the correct endpoint
@@ -817,35 +865,59 @@
             imageFileInput.click();
         };
 
-        // Imgur upload logic for item images
-        const IMGUR_CLIENT_ID = '4d83e353ac99be2';
+        // Shared image compress + upload helper
+        // Resizes to max 900px on longest side, encodes as JPEG @ 82% quality
+        async function compressAndUpload(file, targetInput, onSuccess) {
+            targetInput.value = t('admin.uploading') || 'Uploading…';
+            try {
+                const blob = await compressImage(file, 900, 0.82);
+                const formData = new FormData();
+                formData.append('image', blob, file.name.replace(/\.[^.]+$/, '.jpg'));
+                const token = localStorage.getItem('pos_admin_token');
+                const apiBase = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
+                const res  = await fetch(`${apiBase}/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData,
+                });
+                const data = await res.json();
+                if (res.ok && data.url) {
+                    targetInput.value = data.url;
+                    if (onSuccess) onSuccess(data.url);
+                } else {
+                    targetInput.value = '';
+                    alert(data.error || t('admin.imageUploadFail'));
+                }
+            } catch (err) {
+                targetInput.value = '';
+                alert(t('admin.imageUploadFail'));
+            }
+        }
+
+        function compressImage(file, maxPx, quality) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    let { width, height } = img;
+                    if (width > maxPx || height > maxPx) {
+                        if (width >= height) { height = Math.round(height * maxPx / width); width = maxPx; }
+                        else                 { width  = Math.round(width  * maxPx / height); height = maxPx; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', quality);
+                };
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
         imageFileInput.onchange = function(e) {
             const file = e.target.files[0];
-            if (file) {
-                itemImage.value = 'Uploading...';
-                const formData = new FormData();
-                formData.append('image', file);
-                fetch('https://api.imgur.com/3/image', {
-                    method: 'POST',
-                    headers: {
-                        Authorization: 'Client-ID ' + IMGUR_CLIENT_ID
-                    },
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.data && data.data.link) {
-                        itemImage.value = data.data.link;
-                    } else {
-                        itemImage.value = '';
-                        alert(t('admin.imageUploadFail'));
-                    }
-                })
-                .catch(() => {
-                    itemImage.value = '';
-                    alert(t('admin.imageUploadFail'));
-                });
-            }
+            if (file) compressAndUpload(file, itemImage);
         };
 
         // --- Store Settings Logic ---
@@ -924,43 +996,20 @@
             categoryInput.value = '';
         };
 
-        // Banner image selection logic with Imgur upload
+        // Banner image selection logic
         const selectBannerBtn = document.getElementById('selectBannerBtn');
         const bannerFileInput = document.getElementById('bannerFileInput');
-        const bannerUrlInput = document.getElementById('bannerUrl');
+        const bannerUrlInput  = document.getElementById('bannerUrl');
 
-        selectBannerBtn.onclick = function() {
-            bannerFileInput.click();
-        };
+        selectBannerBtn.onclick = function() { bannerFileInput.click(); };
         bannerFileInput.onchange = function(e) {
             const file = e.target.files[0];
             if (file) {
-                bannerUrlInput.value = 'Uploading...';
-                const formData = new FormData();
-                formData.append('image', file);
-                fetch('https://api.imgur.com/3/image', {
-                    method: 'POST',
-                    headers: {
-                        Authorization: 'Client-ID 4d83e353ac99be2'
-                    },
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(async data => {
-                    if (data.success && data.data && data.data.link) {
-                        bannerUrlInput.value = data.data.link;
-                        // Save to store settings
-                        const settings = await getStoreSettings();
-                        settings.bannerUrl = bannerUrlInput.value;
-                        await saveStoreSettings(settings);
-                    } else {
-                        bannerUrlInput.value = '';
-                        alert(t('admin.bannerUploadFail'));
-                    }
-                })
-                .catch(() => {
-                    bannerUrlInput.value = '';
-                    alert(t('admin.bannerUploadFail'));
+                // Banners can be wider — allow up to 1600px
+                compressAndUpload(file, bannerUrlInput, async (url) => {
+                    const settings = await getStoreSettings();
+                    settings.bannerUrl = url;
+                    await saveStoreSettings(settings);
                 });
             }
         };
@@ -1110,6 +1159,8 @@
                         bitcoinLightningEnabled: false,
                         bitcoinLightningConfig: undefined
                     };
+                    currentData.features = apiConfig.features || { memberships: false, bitcoinLightning: false };
+                    currentData.emailSettings = apiConfig.emailSettings || { reminderSubject: '', reminderBody: '' };
                     
                     // Preserve store ID - it could be at root level or in settings
                     if (apiConfig._id) {
@@ -1378,6 +1429,9 @@
                 const config = {
                     items: items,
                     settings: settings,
+                    features: currentData.features || {},
+                    emailSettings: currentData.emailSettings || {},
+                    language: i18n.getLocale(),
                     published: true
                 };
 
@@ -1419,18 +1473,18 @@
         const membershipTypesPanel = document.getElementById('membershipTypesPanel');
 
         async function loadMembershipFeature() {
-            const settings = await getStoreSettings();
-            const enabled = settings.features?.memberships || false;
+            const enabled = currentData.features?.memberships || false;
             enableMemberships.checked = enabled;
             membershipTypesPanel.style.display = enabled ? '' : 'none';
             if (enabled) loadMembershipTypes();
+            // email reminders live inside the membership panel — reload them too
+            if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
         }
 
-        enableMemberships.onchange = async function() {
-            const settings = await getStoreSettings();
-            if (!settings.features) settings.features = {};
-            settings.features.memberships = this.checked;
-            await saveStoreSettings(settings);
+        enableMemberships.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.memberships = this.checked;
+            markDirty();
             membershipTypesPanel.style.display = this.checked ? '' : 'none';
             if (this.checked) loadMembershipTypes();
         };
@@ -1514,6 +1568,41 @@
         }
 
         loadMembershipFeature();
+
+        // --- Email Reminders Settings Logic ---
+        const enableEmailReminders   = document.getElementById('enableEmailReminders');
+        const emailReminderPanel     = document.getElementById('emailReminderTemplatePanel');
+        const reminderSubjectInput   = document.getElementById('reminderSubject');
+        const reminderBodyInput      = document.getElementById('reminderBody');
+
+        function loadEmailReminderSettings() {
+            const enabled = currentData.features?.emailReminders || false;
+            enableEmailReminders.checked = enabled;
+            emailReminderPanel.style.display = enabled ? '' : 'none';
+            reminderSubjectInput.value = currentData.emailSettings?.reminderSubject || '';
+            reminderBodyInput.value    = currentData.emailSettings?.reminderBody    || '';
+        }
+
+        enableEmailReminders.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.emailReminders = this.checked;
+            emailReminderPanel.style.display = this.checked ? '' : 'none';
+            markDirty();
+        };
+
+        reminderSubjectInput.oninput = function() {
+            if (!currentData.emailSettings) currentData.emailSettings = {};
+            currentData.emailSettings.reminderSubject = this.value;
+            markDirty();
+        };
+
+        reminderBodyInput.oninput = function() {
+            if (!currentData.emailSettings) currentData.emailSettings = {};
+            currentData.emailSettings.reminderBody = this.value;
+            markDirty();
+        };
+
+        loadEmailReminderSettings();
 
         // --- API Server URL Config ---
         const apiBaseInput = document.getElementById('apiBaseInput');

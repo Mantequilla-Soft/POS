@@ -52,16 +52,16 @@ describe('GET /api/members', () => {
       .set(authHeader(token));
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(2);
+    expect(res.body.members).toHaveLength(2);
+    expect(res.body.total).toBe(2);
   });
 
   it('auto-marks members as overdue on GET when nextDueDate has passed', async () => {
     const { store, mtype, token } = await setup();
-    // Create member with nextDueDate in the past
     await createMember(store._id, mtype._id, {
       name: 'Late Payer',
       status: 'active',
-      nextDueDate: new Date(Date.now() - 86400000), // yesterday
+      nextDueDate: new Date(Date.now() - 86400000),
     });
 
     const res = await request(app)
@@ -69,7 +69,7 @@ describe('GET /api/members', () => {
       .set(authHeader(token));
 
     expect(res.status).toBe(200);
-    expect(res.body[0].status).toBe('overdue');
+    expect(res.body.members[0].status).toBe('overdue');
   });
 
   it('filters by status', async () => {
@@ -82,8 +82,8 @@ describe('GET /api/members', () => {
       .set(authHeader(token));
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(1);
-    expect(res.body[0].name).toBe('Suspended');
+    expect(res.body.members).toHaveLength(1);
+    expect(res.body.members[0].name).toBe('Suspended');
   });
 
   it('filters by search term', async () => {
@@ -96,8 +96,8 @@ describe('GET /api/members', () => {
       .set(authHeader(token));
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(1);
-    expect(res.body[0].name).toBe('Carlos Rivera');
+    expect(res.body.members).toHaveLength(1);
+    expect(res.body.members[0].name).toBe('Carlos Rivera');
   });
 });
 
@@ -164,6 +164,69 @@ describe('Multi-tenancy isolation', () => {
       .set(authHeader(tokenA));
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(0);
+    expect(res.body.members).toHaveLength(0);
+  });
+});
+
+describe('GET /api/members — pagination', () => {
+  it('returns paginated shape with total and pages', async () => {
+    const { store, mtype, token } = await setup();
+    await createMember(store._id, mtype._id, { name: 'Alice' });
+    await createMember(store._id, mtype._id, { name: 'Bob' });
+    await createMember(store._id, mtype._id, { name: 'Carlos' });
+
+    const res = await request(app)
+      .get('/api/members?page=1&limit=2')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.members).toHaveLength(2);
+    expect(res.body.total).toBe(3);
+    expect(res.body.pages).toBe(2);
+    expect(res.body.page).toBe(1);
+  });
+
+  it('returns correct members on page 2', async () => {
+    const { store, mtype, token } = await setup();
+    // Names sorted A-Z: Alice, Bob, Carlos
+    await createMember(store._id, mtype._id, { name: 'Carlos' });
+    await createMember(store._id, mtype._id, { name: 'Alice' });
+    await createMember(store._id, mtype._id, { name: 'Bob' });
+
+    const res = await request(app)
+      .get('/api/members?page=2&limit=2')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.members).toHaveLength(1);
+    expect(res.body.members[0].name).toBe('Carlos'); // 3rd alphabetically
+    expect(res.body.page).toBe(2);
+  });
+
+  it('caps limit at 100', async () => {
+    const { store, mtype, token } = await setup();
+
+    const res = await request(app)
+      .get('/api/members?limit=999')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.members).toBeDefined();
+  });
+
+  it('search and pagination work together', async () => {
+    const { store, mtype, token } = await setup();
+    await createMember(store._id, mtype._id, { name: 'Anna Smith' });
+    await createMember(store._id, mtype._id, { name: 'Anna Jones' });
+    await createMember(store._id, mtype._id, { name: 'Bob Davis' });
+
+    const res = await request(app)
+      .get('/api/members?search=anna&limit=1&page=1')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(2);   // 2 Annas total
+    expect(res.body.pages).toBe(2);   // split across 2 pages
+    expect(res.body.members).toHaveLength(1); // only 1 per page
   });
 });

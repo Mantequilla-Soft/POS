@@ -3,105 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Review Receipt</title>
+    <title>Sales Reports</title>
     <script src="i18n.js"></script>
     <link rel="stylesheet" href="theme.css">
     <style>
-        body { margin: 2rem; }
-        h1 { color: var(--text); margin-bottom: 1.5rem; }
-        .receipt-form { background: var(--surface); padding: 1.5rem; border-radius: var(--r-lg); box-shadow: var(--sh-sm); border: 1px solid var(--border); max-width: 500px; margin: 0 auto 2rem auto; }
-        .receipt-display { background: var(--surface); padding: 1.5rem; border-radius: var(--r-lg); box-shadow: var(--sh-sm); border: 1px solid var(--border); max-width: 500px; margin: 0 auto; }
-        .receipt-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
-        .receipt-table th, .receipt-table td { border-bottom: 1px solid var(--border); padding: 0.5em 0.7em; text-align: left; }
-        .receipt-table th { background: var(--bg); color: var(--text-3); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .receipt-total { font-size: 1.2em; font-weight: bold; text-align: right; margin-top: 1em; color: var(--text); }
-        .receipt-meta { margin-bottom: 1em; color: var(--text-2); }
-        .paid-type { font-weight: bold; color: var(--green); }
-        #printBtnContainer { text-align: center; margin-bottom: 1rem; }
+        body { margin: 0; background: var(--bg); color: var(--text); }
+        .page-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .page-header h1 { margin: 0; font-size: 1.2rem; }
+        .back-btn { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--r); padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.85rem; }
+        .page-body { padding: 1.5rem; max-width: 960px; margin: 0 auto; }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .filter-bar label { font-size: 0.78rem; font-weight: 600; color: var(--text-2); display: flex; flex-direction: column; gap: 0.25rem; }
+        .filter-bar input[type="date"], .filter-bar select {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-size: 0.875rem;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .filter-bar .btn { margin-top: 0; align-self: flex-end; }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 1rem 1.25rem;
+            text-align: center;
+        }
+        .summary-value { font-size: 1.75rem; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 0.3rem; }
+        .summary-label { font-size: 0.72rem; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+        /* Method breakdown */
+        .method-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+        .method-chip {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-full);
+            padding: 0.3rem 0.85rem;
+            font-size: 0.8rem;
+            display: flex;
+            gap: 0.4rem;
+        }
+        .method-chip .chip-label { color: var(--text-2); }
+        .method-chip .chip-val   { font-weight: 600; color: var(--text); }
+
+        /* Sales table */
+        .sales-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { background: var(--bg); color: var(--text-3); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.65rem 1rem; text-align: left; }
+        tbody tr { border-top: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+        tbody tr:hover { background: var(--bg); }
+        tbody td { padding: 0.7rem 1rem; font-size: 0.875rem; }
+        td.amount { font-weight: 600; }
+        .method-badge {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: var(--r-full);
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .method-hbd       { background: var(--green-light);  color: var(--green); }
+        .method-hive      { background: var(--blue-light);   color: var(--blue); }
+        .method-cash      { background: var(--amber-light);  color: var(--amber); }
+        .method-lightning { background: #fef9c3; color: #a16207; }
+
+        /* Expandable row */
+        .items-row td { padding: 0 1rem 0.75rem; background: var(--bg); }
+        .items-list { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .items-list li { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 0.2rem 0.65rem; font-size: 0.8rem; }
+
+        /* Pagination */
+        .pagination { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem; }
+
+        /* Empty / loading */
+        .state-msg { text-align: center; padding: 3rem 1rem; color: var(--text-3); }
+
         @media (max-width: 600px) {
-            body { margin: 0.5rem; }
-            .receipt-form, .receipt-display { padding: 0.7rem; max-width: 98vw; }
+            .page-body { padding: 1rem; }
+            .filter-bar { flex-direction: column; }
+            thead th:nth-child(4), tbody td:nth-child(4) { display: none; }
         }
         @media print {
-          body, .receipt-display {
-            background: #fff !important;
-            color: #000 !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 58mm;
-            max-width: 100vw;
-          }
-          .receipt-form, #printBtnContainer, h1 {
-            display: none !important;
-          }
-          .receipt-display {
-            margin: 0 !important;
-            padding: 0.5em !important;
-            width: 100%;
-            font-size: 12px !important;
-          }
-          .receipt-table th, .receipt-table td {
-            font-size: 12px !important;
-            padding: 0.2em 0.3em !important;
-          }
-          .receipt-total {
-            font-size: 13px !important;
-            font-weight: bold;
-            text-align: right;
-            margin-top: 0.5em;
-          }
+            .page-header, .filter-bar, .pagination, .back-btn { display: none !important; }
+            body { background: #fff; }
+            .sales-table-wrap { border: none; }
         }
     </style>
+  <link rel="manifest" href="manifest.json">
+  <script src="pwa.js"></script>
 </head>
 <body>
-    <h1 data-i18n="receipts.title">Review Receipt</h1>
-    <div class="receipt-form">
-        <label for="receiptFile"><b data-i18n="receipts.loadLabel">Load Receipt JSON:</b></label>
-        <input type="file" id="receiptFile" accept="application/json" style="margin-top:0.5em;">
+    <div class="page-header">
+        <button class="back-btn" onclick="history.back()">← Back</button>
+        <h1>Sales Reports</h1>
+        <span id="langToggleContainer" style="margin-left:auto"></span>
     </div>
-    <div id="printBtnContainer" style="text-align:center;display:none;">
-        <button id="printReceiptBtn" class="btn btn-primary" data-i18n="receipts.printBtn">Print Receipt</button>
-    </div>
-    <div id="receiptDisplay"></div>
-    <script>
-    document.addEventListener('DOMContentLoaded', () => i18n.init());
 
-    document.getElementById('receiptFile').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            try {
-                const data = JSON.parse(evt.target.result);
-                renderReceipt(data);
-            } catch (err) {
-                document.getElementById('receiptDisplay').innerHTML = `<div style="color:#e74c3c;">${t('receipts.invalidJson')}</div>`;
-                document.getElementById('printBtnContainer').style.display = 'none';
-            }
-        };
-        reader.readAsText(file);
+    <div class="page-body">
+        <!-- Filter bar -->
+        <div class="filter-bar">
+            <label>From
+                <input type="date" id="filterFrom">
+            </label>
+            <label>To
+                <input type="date" id="filterTo">
+            </label>
+            <label>Payment
+                <select id="filterMethod">
+                    <option value="">All methods</option>
+                    <option value="hbd">HBD</option>
+                    <option value="hive">HIVE</option>
+                    <option value="cash">Cash</option>
+                    <option value="lightning">Lightning</option>
+                </select>
+            </label>
+            <button class="btn btn-primary" id="applyFilterBtn" style="margin-top:0">Apply</button>
+            <button class="btn" id="todayBtn" style="margin-top:0">Today</button>
+            <button class="btn" id="thisMonthBtn" style="margin-top:0">This Month</button>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-grid" id="summaryGrid">
+            <div class="summary-card"><div class="summary-value" id="sumRevenue">—</div><div class="summary-label">Total Revenue</div></div>
+            <div class="summary-card"><div class="summary-value" id="sumCount">—</div><div class="summary-label">Transactions</div></div>
+            <div class="summary-card"><div class="summary-value" id="sumAvg">—</div><div class="summary-label">Avg Sale</div></div>
+        </div>
+        <div class="method-row" id="methodRow"></div>
+
+        <!-- Sales table -->
+        <div class="sales-table-wrap">
+            <table id="salesTable">
+                <thead>
+                    <tr>
+                        <th>Date &amp; Time</th>
+                        <th>Method</th>
+                        <th>Items</th>
+                        <th>From</th>
+                        <th style="text-align:right">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="salesBody">
+                    <tr><td colspan="5" class="state-msg">Select a date range and press Apply</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination" id="paginationRow"></div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        i18n.init();
+        i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+
+        // Default date range: today (local)
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const todayYmd = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+        document.getElementById('filterFrom').value = todayYmd;
+        document.getElementById('filterTo').value   = todayYmd;
+
+        loadData(1);
     });
-    function renderReceipt(data) {
-        let html = '<div class="receipt-display">';
-        html += `<div class='receipt-meta'><b>${t('receipts.colDate')}</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}</div>`;
-        html += `<div class='receipt-meta'><b>${t('receipts.colType')}</b> <span class='paid-type'>${data.paymentType ? data.paymentType.toUpperCase() : 'N/A'}</span></div>`;
-        html += '<table class="receipt-table">';
-        html += `<tr><th>${t('receipts.colItem')}</th><th>${t('receipts.colQty')}</th><th>${t('receipts.colPrice')}</th><th>${t('receipts.colSubtotal')}</th></tr>`;
-        if (Array.isArray(data.items)) {
-            data.items.forEach(item => {
-                html += `<tr><td>${item.name || ''}</td><td>${item.qty || 0}</td><td>$${item.price ? item.price.toFixed(2) : '0.00'}</td><td>$${item.qty && item.price ? (item.qty * item.price).toFixed(2) : '0.00'}</td></tr>`;
-            });
-        }
-        html += '</table>';
-        html += `<div class='receipt-total'>${t('receipts.totalPaid', { amount: data.total ? data.total.toFixed(2) : '0.00' })}</div>`;
-        html += '</div>';
-        document.getElementById('receiptDisplay').innerHTML = html;
-        document.getElementById('printBtnContainer').style.display = '';
+
+    const API_BASE = (localStorage.getItem('pos_api_base') || 'http://localhost:3001') + '/api';
+    const token    = localStorage.getItem('pos_admin_token');
+    let currentPage = 1;
+
+    function authHeaders() {
+        return { 'Authorization': 'Bearer ' + token };
     }
-    document.getElementById('printReceiptBtn').onclick = function() {
-        window.print();
-    };
+
+    document.getElementById('applyFilterBtn').onclick  = () => loadData(1);
+    document.getElementById('todayBtn').onclick        = () => setRange(0)  && loadData(1);
+    document.getElementById('thisMonthBtn').onclick    = () => setRange('month') && loadData(1);
+
+    function setRange(preset) {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        if (preset === 0) {
+            document.getElementById('filterFrom').value = ymd(now);
+            document.getElementById('filterTo').value   = ymd(now);
+        } else if (preset === 'month') {
+            document.getElementById('filterFrom').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`;
+            document.getElementById('filterTo').value   = ymd(now);
+        }
+        return true;
+    }
+
+    async function loadData(page) {
+        if (!token) {
+            document.getElementById('salesBody').innerHTML =
+                `<tr><td colspan="5" class="state-msg">No admin token found. Please log in from the Dashboard first.</td></tr>`;
+            return;
+        }
+
+        const fromYmd = document.getElementById('filterFrom').value;
+        const toYmd   = document.getElementById('filterTo').value;
+        const method  = document.getElementById('filterMethod').value;
+
+        // Convert YYYY-MM-DD picker values to local-midnight ISO strings
+        function ymdToLocalISO(ymd, end) {
+            const [y, m, d] = ymd.split('-').map(Number);
+            return end
+                ? new Date(y, m - 1, d, 23, 59, 59, 999).toISOString()
+                : new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
+        }
+
+        const from = fromYmd ? ymdToLocalISO(fromYmd, false) : '';
+        const to   = toYmd   ? ymdToLocalISO(toYmd,   true)  : '';
+
+        const params = new URLSearchParams({ page, limit: 50 });
+        if (from)   params.set('from', from);
+        if (to)     params.set('to', to);
+        if (method) params.set('method', method);
+
+        document.getElementById('salesBody').innerHTML =
+            `<tr><td colspan="5" class="state-msg">Loading…</td></tr>`;
+
+        try {
+            const [listRes, sumRes] = await Promise.all([
+                fetch(`${API_BASE}/sales?${params}`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/sales/summary?${new URLSearchParams({ from, to })}`, { headers: authHeaders() }),
+            ]);
+
+            if (!listRes.ok || !sumRes.ok) throw new Error('Auth failed or server error');
+
+            const { sales, total, pages } = await listRes.json();
+            const summary = await sumRes.json();
+
+            renderSummary(summary);
+            renderTable(sales);
+            renderPagination(page, pages);
+            currentPage = page;
+        } catch (err) {
+            document.getElementById('salesBody').innerHTML =
+                `<tr><td colspan="5" class="state-msg">Failed to load: ${err.message}</td></tr>`;
+        }
+    }
+
+    function renderSummary(s) {
+        document.getElementById('sumRevenue').textContent = '$' + (s.revenue || 0).toFixed(2);
+        document.getElementById('sumCount').textContent   = s.count || 0;
+        document.getElementById('sumAvg').textContent     = s.count
+            ? '$' + (s.revenue / s.count).toFixed(2) : '$0.00';
+
+        const methodRow = document.getElementById('methodRow');
+        methodRow.innerHTML = (s.byMethod || []).map(m =>
+            `<div class="method-chip">
+                <span class="chip-label">${m._id.toUpperCase()}</span>
+                <span class="chip-val">$${m.revenue.toFixed(2)}</span>
+                <span class="chip-label">(${m.count})</span>
+            </div>`
+        ).join('');
+    }
+
+    function renderTable(sales) {
+        const tbody = document.getElementById('salesBody');
+        if (!sales.length) {
+            tbody.innerHTML = `<tr><td colspan="5" class="state-msg">No sales found for this period.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = sales.map((s, idx) => {
+            const dt   = new Date(s.createdAt).toLocaleString();
+            const meth = s.paymentMethod;
+            const itemsSummary = s.items.map(i => `${i.qty}× ${i.name}`).join(', ');
+            const from = s.hiveFrom ? `@${s.hiveFrom}` : '—';
+            return `
+                <tr data-idx="${idx}" onclick="toggleItems(this, ${idx})">
+                    <td>${dt}</td>
+                    <td><span class="method-badge method-${meth}">${meth.toUpperCase()}</span></td>
+                    <td style="color:var(--text-2);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itemsSummary}</td>
+                    <td style="color:var(--text-2);font-size:0.8rem">${from}</td>
+                    <td class="amount" style="text-align:right">$${s.total.toFixed(2)}</td>
+                </tr>
+                <tr class="items-row" id="items-${idx}" style="display:none">
+                    <td colspan="5">
+                        <ul class="items-list">
+                            ${s.items.map(i => `<li>${i.qty}× ${i.name} — $${(i.price*i.qty).toFixed(2)}</li>`).join('')}
+                        </ul>
+                    </td>
+                </tr>`;
+        }).join('');
+
+        // store sales for printing
+        window._salesData = sales;
+    }
+
+    function toggleItems(row, idx) {
+        const detailRow = document.getElementById('items-' + idx);
+        detailRow.style.display = detailRow.style.display === 'none' ? '' : 'none';
+    }
+
+    function renderPagination(page, pages) {
+        const el = document.getElementById('paginationRow');
+        if (pages <= 1) { el.innerHTML = ''; return; }
+        let html = '';
+        if (page > 1) html += `<button class="btn btn-sm" onclick="loadData(${page-1})">← Prev</button>`;
+        html += `<span style="padding:0.4rem 0.75rem;font-size:0.85rem;color:var(--text-2)">Page ${page} of ${pages}</span>`;
+        if (page < pages) html += `<button class="btn btn-sm" onclick="loadData(${page+1})">Next →</button>`;
+        el.innerHTML = html;
+    }
     </script>
 </body>
 </html>

@@ -2,6 +2,10 @@
 node_modules/
 backend/node_modules/
 
+# Uploaded images (stored on server, not in git)
+backend/uploads/*
+!backend/uploads/.keep
+
 # Environment files
 .env
 backend/.env

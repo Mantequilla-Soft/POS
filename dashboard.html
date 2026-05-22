@@ -153,6 +153,8 @@
             .store-content { padding: 1rem; }
         }
     </style>
+  <link rel="manifest" href="manifest.json">
+  <script src="pwa.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -451,12 +453,10 @@
                 `background-image: url('${bannerUrl}');` : 
                 `background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));`;
 
-            // Metrics - can now pull from config or store data
+            // Metrics
             const itemsCount = userStore.items?.length || userStore.itemCount || 0;
-            const categoriesCount = userStore.categories?.length || userStore.categoryCount || 0;
+            const categoriesCount = userStore.settings?.categories?.length || userStore.categories?.length || userStore.categoryCount || 0;
             const cashiersCount = cashiers.length || 0;
-            const totalSales = userStore.totalSales || 0; // Can be pulled from config
-            const todayOrders = userStore.todayOrders || 0; // Can be pulled from config
 
             storeDisplay.innerHTML = `
                 <div class="store-display">
@@ -482,14 +482,21 @@
                                 <div class="metric-number">${cashiersCount}</div>
                                 <div class="metric-label">${t('dashboard.metricCashiers')}</div>
                             </div>
-                            <div class="metric-card">
-                                <div class="metric-number">${todayOrders}</div>
-                                <div class="metric-label">${t('dashboard.metricOrders')}</div>
+                            <div class="metric-card" id="todayRevenueCard" style="cursor:pointer" onclick="window.location.href='reviewreceipts.html'" title="View sales report">
+                                <div class="metric-number" id="todayRevenueNum">…</div>
+                                <div class="metric-label">${t('dashboard.metricTodayRevenue')}</div>
                             </div>
                             <div class="metric-card" id="overdueWidget" style="display:none;border-color:#f39c12;cursor:pointer" onclick="window.location.href='members.html?status=overdue'">
                                 <div class="metric-number" id="overdueCount" style="color:#e67e22">0</div>
                                 <div class="metric-label" style="color:#e67e22">${t('dashboard.metricOverdue')}</div>
                             </div>
+                        </div>
+                        <div style="margin-top:.75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                            <button id="sendRemindersBtn" onclick="sendRemindersNow()"
+                                style="display:none;align-items:center;gap:.4rem;background:var(--amber,#f59e0b);color:#fff;border:none;border-radius:var(--r);padding:.45rem 1rem;cursor:pointer;font-size:.85em;font-weight:600">
+                                ✉️ ${t('dashboard.sendRemindersNow')}
+                            </button>
+                            <span id="reminderStatus" style="font-size:.82em"></span>
                         </div>
                     </div>
                 </div>
@@ -636,15 +643,9 @@
                     closeCashierModal();
                     await loadCashiers();
                 } else {
-                    const errorText = await response.text();
-                    let errorMessage;
-                    try {
-                        const errorData = JSON.parse(errorText);
-                        errorMessage = errorData.message || errorText;
-                    } catch {
-                        errorMessage = errorText || 'Failed to save cashier';
-                    }
-                    throw new Error(errorMessage);
+                    const errorData = await response.json().catch(() => ({}));
+                    const msg = errorData.error || errorData.message || 'Failed to save cashier';
+                    throw new Error(msg);
                 }
             } catch (error) {
                 console.error('Error saving cashier:', error);
@@ -827,18 +828,68 @@
             }
         };
 
+        async function loadTodayRevenue() {
+            try {
+                const now = new Date();
+                const from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+                const to   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
+                const res = await fetch(`${API_BASE_URL}/sales/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers: getAuthHeaders() });
+                if (!res.ok) return;
+                const s = await res.json();
+                const el = document.getElementById('todayRevenueNum');
+                const currency = userStore?.settings?.currency || userStore?.currency || '';
+                const symbol = currency === 'HBD' ? 'HBD ' : '$';
+                if (el) el.textContent = symbol + (s.revenue || 0).toFixed(2);
+            } catch {}
+        }
+
         async function loadOverdueMembers() {
             try {
-                const res = await fetch(`${API_BASE_URL}/members?status=overdue`, { headers: getAuthHeaders() });
+                const res = await fetch(`${API_BASE_URL}/members?status=overdue&limit=1`, { headers: getAuthHeaders() });
                 if (!res.ok) return;
-                const members = await res.json();
+                const data = await res.json();
+                const total = Array.isArray(data) ? data.length : (data.total ?? 0);
                 const widget = document.getElementById('overdueWidget');
-                const count = document.getElementById('overdueCount');
-                if (widget && count && members.length >= 0) {
+                const count  = document.getElementById('overdueCount');
+                if (widget && count) {
                     widget.style.display = 'block';
-                    count.textContent = members.length;
+                    count.textContent = total;
+                }
+                // Show reminder button only when emailReminders is enabled
+                const reminderBtn = document.getElementById('sendRemindersBtn');
+                if (reminderBtn && userStore?.features?.emailReminders) {
+                    reminderBtn.style.display = 'inline-flex';
                 }
             } catch {}
+        }
+
+        async function sendRemindersNow() {
+            const btn = document.getElementById('sendRemindersBtn');
+            const status = document.getElementById('reminderStatus');
+            btn.disabled = true;
+            btn.textContent = t('dashboard.sendingReminders');
+            status.textContent = '';
+            try {
+                const res = await fetch(`${API_BASE_URL}/reminders/send`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    status.style.color = 'var(--green)';
+                    status.textContent = t('dashboard.remindersSent', { sent: data.sent, skipped: data.skipped });
+                    loadOverdueMembers();
+                } else {
+                    status.style.color = 'var(--red)';
+                    status.textContent = data.error || t('dashboard.remindersFailed');
+                }
+            } catch {
+                status.style.color = 'var(--red)';
+                status.textContent = t('dashboard.remindersFailed');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = t('dashboard.sendRemindersNow');
+            }
         }
 
         // Authentication check and dashboard initialization
@@ -852,13 +903,10 @@
                 document.getElementById('usernameDisplay').textContent = userInfo.username;
             }
 
-            // Load data
+            // Load data — store must render first so metric card elements exist in DOM
             try {
-                await Promise.all([
-                    loadUserStore(),
-                    loadCashiers(),
-                    loadOverdueMembers()
-                ]);
+                await Promise.all([loadUserStore(), loadCashiers()]);
+                await Promise.all([loadOverdueMembers(), loadTodayRevenue()]);
             } catch (error) {
                 console.error('Failed to initialize dashboard:', error);
                 showToast('Failed to load dashboard data', 'error');

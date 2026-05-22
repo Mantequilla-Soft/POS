@@ -28,10 +28,8 @@
     .badge-expired  { background: var(--red-light); color: var(--red); border: 1px solid var(--red-border); }
 
     /* Modal tweaks */
-    .modal h3 { color: var(--text); margin-bottom: 1.25rem; font-size: 1.1rem; }
     .form-row { display: flex; gap: 1rem; }
     .form-row .form-group { flex: 1; }
-    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; }
     .section-title { font-size: .8rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .75rem; }
 
     /* QR payment modal */
@@ -52,6 +50,8 @@
       .form-row { flex-direction: column; gap: 0; }
     }
   </style>
+  <link rel="manifest" href="manifest.json">
+  <script src="pwa.js"></script>
 </head>
 <body>
 
@@ -59,9 +59,9 @@
   <div class="header-inner">
     <h1 data-i18n="members.title">Members</h1>
     <div class="nav-links">
-      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
+      <a href="dashboard.html" data-i18n="common.dashboard" id="navDashboard">Dashboard</a>
       <a href="pos.html" data-i18n="common.pos">POS</a>
-      <a href="admin.html" data-i18n="common.settings">Settings</a>
+      <a href="admin.html" data-i18n="common.settings" id="navSettings">Settings</a>
       <span id="langToggleContainer"></span>
     </div>
   </div>
@@ -84,54 +84,61 @@
     <div class="card-header">
       <h2 id="memberCountLabel">Members</h2>
     </div>
+    <div class="table-wrap">
     <table>
       <thead><tr>
         <th data-i18n="common.name">Name</th><th data-i18n="members.colMembership">Membership</th><th data-i18n="members.colNextDue">Next Due</th><th data-i18n="common.status">Status</th><th data-i18n="common.actions">Actions</th>
       </tr></thead>
       <tbody id="membersBody"></tbody>
     </table>
+    </div>
+    <div id="membersPagination" style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2);"></div>
   </div>
 </div>
 
 <!-- Add / Edit Member Modal -->
+<!-- Add / Edit Member Modal -->
 <div class="modal-overlay" id="memberModal">
   <div class="modal">
-    <h3 id="modalTitle" data-i18n="members.addTitle">Add Member</h3>
-    <div class="form-row">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle" data-i18n="members.addTitle">Add Member</span>
+      <button class="modal-close" onclick="closeModal('memberModal')" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
       <div class="form-group">
         <label data-i18n="members.fullName">Full Name *</label>
         <input type="text" id="fName" data-i18n-placeholder="members.fullNamePlaceholder" placeholder="e.g. John Smith">
       </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label data-i18n="common.phone">Phone</label>
-        <input type="tel" id="fPhone" data-i18n-placeholder="members.phonePlaceholder" placeholder="+1 555 0000">
+      <div class="form-row">
+        <div class="form-group">
+          <label data-i18n="common.phone">Phone</label>
+          <input type="tel" id="fPhone" data-i18n-placeholder="members.phonePlaceholder" placeholder="+1 555 0000">
+        </div>
+        <div class="form-group">
+          <label data-i18n="common.email">Email</label>
+          <input type="email" id="fEmail" data-i18n-placeholder="members.emailPlaceholder" placeholder="john@example.com">
+        </div>
       </div>
       <div class="form-group">
-        <label data-i18n="common.email">Email</label>
-        <input type="email" id="fEmail" data-i18n-placeholder="members.emailPlaceholder" placeholder="john@example.com">
+        <label data-i18n="common.hiveAccount">Hive Account</label>
+        <input type="text" id="fHive" data-i18n-placeholder="members.hivePlaceholder" placeholder="hivename (no @)">
       </div>
-    </div>
-    <div class="form-group">
-      <label data-i18n="common.hiveAccount">Hive Account</label>
-      <input type="text" id="fHive" data-i18n-placeholder="members.hivePlaceholder" placeholder="hivename (no @)">
-    </div>
-    <div class="form-row">
+      <div class="form-row">
+        <div class="form-group">
+          <label data-i18n="members.plan">Membership Plan *</label>
+          <select id="fMembershipType"></select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="members.startDate">Start Date *</label>
+          <input type="date" id="fStartDate">
+        </div>
+      </div>
       <div class="form-group">
-        <label data-i18n="members.plan">Membership Plan *</label>
-        <select id="fMembershipType"></select>
-      </div>
-      <div class="form-group">
-        <label data-i18n="members.startDate">Start Date *</label>
-        <input type="date" id="fStartDate">
+        <label data-i18n="common.notes">Notes</label>
+        <textarea id="fNotes" data-i18n-placeholder="members.notesPlaceholder" placeholder="Optional notes…"></textarea>
       </div>
     </div>
-    <div class="form-group">
-      <label data-i18n="common.notes">Notes</label>
-      <textarea id="fNotes" data-i18n-placeholder="members.notesPlaceholder" placeholder="Optional notes…"></textarea>
-    </div>
-    <div class="modal-actions">
+    <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('memberModal')" data-i18n="common.cancel">Cancel</button>
       <button class="btn btn-primary" onclick="saveMember()" data-i18n="members.saveBtn">Save</button>
     </div>
@@ -141,52 +148,59 @@
 <!-- Record Payment Modal -->
 <div class="modal-overlay" id="paymentModal">
   <div class="modal">
-    <h3>Record Payment — <span id="payMemberName"></span></h3>
-    <div class="payment-tabs">
-      <button class="tab-btn active" id="tabCash" onclick="switchTab('cash')" data-i18n="members.tabCash">Cash</button>
-      <button class="tab-btn" id="tabHbd" onclick="switchTab('hbd')" data-i18n="members.tabHbd">HBD (Hive)</button>
+    <div class="modal-header">
+      <span class="modal-title">Record Payment — <span id="payMemberName"></span></span>
+      <button class="modal-close" onclick="closeModal('paymentModal')" aria-label="Close">&times;</button>
     </div>
+    <div class="modal-body">
+      <div class="payment-tabs">
+        <button class="tab-btn active" id="tabCash" onclick="switchTab('cash')" data-i18n="members.tabCash">Cash</button>
+        <button class="tab-btn" id="tabHbd" onclick="switchTab('hbd')" data-i18n="members.tabHbd">HBD (Hive)</button>
+      </div>
 
-    <!-- Cash panel -->
-    <div id="panelCash">
-      <div class="form-row">
-        <div class="form-group">
-          <label data-i18n="common.amount">Amount</label>
-          <input type="number" id="pAmount" step="0.001" min="0">
+      <!-- Cash panel -->
+      <div id="panelCash">
+        <div class="form-row">
+          <div class="form-group">
+            <label data-i18n="common.amount">Amount</label>
+            <input type="number" id="pAmount" step="0.001" min="0">
+          </div>
+          <div class="form-group">
+            <label data-i18n="common.currency">Currency</label>
+            <input type="text" id="pCurrency" value="HBD" maxlength="6">
+          </div>
         </div>
         <div class="form-group">
-          <label data-i18n="common.currency">Currency</label>
-          <input type="text" id="pCurrency" value="HBD" maxlength="6">
+          <label data-i18n="members.paymentDate">Payment Date</label>
+          <input type="date" id="pDate">
+        </div>
+        <div class="form-group">
+          <label data-i18n="common.notes">Notes</label>
+          <input type="text" id="pNotes" data-i18n-placeholder="members.notesOptional" placeholder="Optional">
         </div>
       </div>
-      <div class="form-group">
-        <label data-i18n="members.paymentDate">Payment Date</label>
-        <input type="date" id="pDate">
+
+      <!-- HBD QR panel -->
+      <div id="panelHbd" style="display:none">
+        <p style="font-size:.88rem;color:var(--text-2);margin-bottom:1rem" data-i18n="members.hbdExplain">A QR code will be generated for the customer to scan with their Hive wallet. Payment is confirmed automatically.</p>
+        <div class="form-group">
+          <label data-i18n="members.amountHbd">Amount (HBD)</label>
+          <input type="number" id="hbdAmount" step="0.001" min="0.01">
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="generateHbdQr()" data-i18n="members.generateQr">Generate QR Code</button>
+        <div id="qrContainer">
+          <div id="qrCode" style="display:inline-block;margin:1rem 0"></div>
+          <p style="font-size:.8rem;color:var(--text-2)" id="qrMemoDisplay"></p>
+        </div>
+        <div id="payStatus"></div>
       </div>
-      <div class="form-group">
-        <label data-i18n="common.notes">Notes</label>
-        <input type="text" id="pNotes" data-i18n-placeholder="members.notesOptional" placeholder="Optional">
-      </div>
-      <div class="modal-actions">
+    </div>
+    <div class="modal-footer">
+      <div id="paymentModalFooterCash">
         <button class="btn btn-secondary" onclick="closeModal('paymentModal')" data-i18n="common.cancel">Cancel</button>
         <button class="btn btn-success" onclick="recordCashPayment()" data-i18n="members.recordCash">Record Cash Payment</button>
       </div>
-    </div>
-
-    <!-- HBD QR panel -->
-    <div id="panelHbd" style="display:none">
-      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem" data-i18n="members.hbdExplain">A QR code will be generated for the customer to scan with their Hive wallet. Payment is confirmed automatically.</p>
-      <div class="form-group">
-        <label data-i18n="members.amountHbd">Amount (HBD)</label>
-        <input type="number" id="hbdAmount" step="0.001" min="0.01">
-      </div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="generateHbdQr()" data-i18n="members.generateQr">Generate QR Code</button>
-      <div id="qrContainer">
-        <div id="qrCode" style="display:inline-block;margin:1rem 0"></div>
-        <p style="font-size:.8rem;color:var(--muted)" id="qrMemoDisplay"></p>
-      </div>
-      <div id="payStatus"></div>
-      <div class="modal-actions">
+      <div id="paymentModalFooterHbd" style="display:none">
         <button class="btn btn-secondary" onclick="cancelHbdPolling()" data-i18n="common.cancel">Cancel</button>
       </div>
     </div>
@@ -196,9 +210,14 @@
 <!-- Payment History Modal -->
 <div class="modal-overlay" id="historyModal">
   <div class="modal" style="max-width:560px">
-    <h3 id="historyModalTitle">Payment History — <span id="histMemberName"></span></h3>
-    <div id="historyBody" style="margin-top:.5rem"></div>
-    <div class="modal-actions">
+    <div class="modal-header">
+      <span class="modal-title">Payment History — <span id="histMemberName"></span></span>
+      <button class="modal-close" onclick="closeModal('historyModal')" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="historyBody"></div>
+    </div>
+    <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('historyModal')" data-i18n="common.close">Close</button>
     </div>
   </div>
@@ -209,12 +228,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 const API_BASE = localStorage.getItem('pos_api_base') || 'http://localhost:3001';
-const token = localStorage.getItem('pos_admin_token');
+const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+const isCashier = !localStorage.getItem('pos_admin_token') && !!localStorage.getItem('pos_cashier_token');
 if (!token) { window.location.href = 'login.html'; }
 
 document.addEventListener('DOMContentLoaded', () => {
   i18n.init();
   i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+  if (isCashier) {
+    document.getElementById('navDashboard')?.remove();
+    document.getElementById('navSettings')?.remove();
+  }
 });
 
 function authHeaders() {
@@ -237,36 +261,52 @@ let allMembers = [];
 let membershipTypes = [];
 let debounceTimer;
 
+let currentPage = 1;
+const PAGE_SIZE = 50;
+
 function debounceLoad() {
   clearTimeout(debounceTimer);
+  currentPage = 1;
   debounceTimer = setTimeout(loadMembers, 300);
 }
 
-async function loadMembers() {
+async function loadMembers(page = currentPage) {
   const search = document.getElementById('searchInput').value.trim();
   const status = document.getElementById('statusFilter').value;
-  let url = `${API_BASE}/api/members?`;
-  if (search) url += `search=${encodeURIComponent(search)}&`;
-  if (status) url += `status=${status}`;
+  const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
 
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(`${API_BASE}/api/members?${params}`, { headers: authHeaders() });
   if (res.status === 401) { window.location.href = 'login.html'; return; }
-  allMembers = await res.json();
+  const data = await res.json();
 
-  document.getElementById('memberCountLabel').textContent = t('members.countLabel', { n: allMembers.length });
+  // Support both old array shape and new paginated shape
+  const members = Array.isArray(data) ? data : (data.members || []);
+  const total   = Array.isArray(data) ? data.length : (data.total || 0);
+  const pages   = Array.isArray(data) ? 1 : (data.pages || 1);
+  currentPage   = Array.isArray(data) ? 1 : (data.page || 1);
+  allMembers    = members;
+
+  document.getElementById('memberCountLabel').textContent =
+    total > PAGE_SIZE
+      ? `Members (${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, total)} of ${total})`
+      : `Members (${total})`;
+
   const tbody = document.getElementById('membersBody');
-  if (!allMembers.length) {
+  if (!members.length) {
     tbody.innerHTML = `<tr><td colspan="5" class="empty">${t('members.noMembers')}</td></tr>`;
+    renderPagination(currentPage, pages, total);
     return;
   }
-  tbody.innerHTML = allMembers.map(m => `
+  tbody.innerHTML = members.map(m => `
     <tr>
       <td>
         <strong>${esc(m.name)}</strong>
-        ${m.hiveAccount ? `<br><small style="color:var(--muted)">@${esc(m.hiveAccount)}</small>` : ''}
+        ${m.hiveAccount ? `<br><small style="color:var(--text-2)">@${esc(m.hiveAccount)}</small>` : ''}
       </td>
       <td>${esc(m.membershipTypeId?.name || '—')}<br>
-        <small style="color:var(--muted)">${m.membershipTypeId ? m.membershipTypeId.price + ' ' + m.membershipTypeId.currency : ''}</small>
+        <small style="color:var(--text-2)">${m.membershipTypeId ? m.membershipTypeId.price + ' ' + m.membershipTypeId.currency : ''}</small>
       </td>
       <td>${fmtDate(m.nextDueDate)}</td>
       <td><span class="badge badge-${m.status}">${m.status}</span></td>
@@ -275,10 +315,24 @@ async function loadMembers() {
           <button class="btn btn-success btn-sm" onclick="openPayment('${m._id}', '${esc(m.name)}', ${m.membershipTypeId?.price || 0}, '${m.membershipTypeId?.currency || 'HBD'}')">${t('members.payBtn')}</button>
           <button class="btn btn-outline btn-sm" onclick="openHistory('${m._id}', '${esc(m.name)}')">${t('members.historyBtn')}</button>
           <button class="btn btn-secondary btn-sm" onclick="openEditModal('${m._id}')">${t('common.edit')}</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteMember('${m._id}', '${esc(m.name)}')">${t('members.delBtn')}</button>
+          ${isCashier ? '' : `<button class="btn btn-danger btn-sm" onclick="deleteMember('${m._id}', '${esc(m.name)}')">${t('members.delBtn')}</button>`}
         </div>
       </td>
     </tr>`).join('');
+
+  renderPagination(currentPage, pages, total);
+}
+
+function renderPagination(page, pages, total) {
+  const bar = document.getElementById('membersPagination');
+  if (pages <= 1) { bar.innerHTML = ''; return; }
+  const prev = page > 1
+    ? `<button class="btn btn-secondary btn-sm" onclick="loadMembers(${page - 1})">← Prev</button>`
+    : `<button class="btn btn-secondary btn-sm" disabled>← Prev</button>`;
+  const next = page < pages
+    ? `<button class="btn btn-secondary btn-sm" onclick="loadMembers(${page + 1})">Next →</button>`
+    : `<button class="btn btn-secondary btn-sm" disabled>Next →</button>`;
+  bar.innerHTML = `${prev}<span>Page ${page} of ${pages}</span>${next}`;
 }
 
 async function loadMembershipTypes() {
@@ -388,6 +442,8 @@ function switchTab(tab) {
   document.getElementById('tabHbd').classList.toggle('active', tab === 'hbd');
   document.getElementById('panelCash').style.display = tab === 'cash' ? '' : 'none';
   document.getElementById('panelHbd').style.display = tab === 'hbd' ? '' : 'none';
+  document.getElementById('paymentModalFooterCash').style.display = tab === 'cash' ? 'contents' : 'none';
+  document.getElementById('paymentModalFooterHbd').style.display = tab === 'hbd' ? 'contents' : 'none';
   if (tab === 'cash') cancelHbdPolling();
 }
 

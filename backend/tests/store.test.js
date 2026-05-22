@@ -11,7 +11,7 @@ afterEach(() => db.clearAll());
 afterAll(() => db.disconnect());
 
 describe('POST /api/store', () => {
-  it('creates a store with settings correctly flattened', async () => {
+  it('creates a store and returns { store, token }', async () => {
     const owner = await createUser({ username: 'owner' });
 
     const res = await request(app)
@@ -29,9 +29,11 @@ describe('POST /api/store', () => {
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.businessName).toBe('Iron Gym');
-    expect(res.body.hiveAccount).toBe('irongym');
-    expect(res.body.published).toBe(true);
+    expect(res.body.store.businessName).toBe('Iron Gym');
+    expect(res.body.store.hiveAccount).toBe('irongym');
+    expect(res.body.store.published).toBe(true);
+    // Fresh token with storeId should be returned
+    expect(res.body.token).toBeDefined();
   });
 
   it('rejects a second store for the same owner', async () => {
@@ -49,6 +51,54 @@ describe('POST /api/store', () => {
   it('requires authentication', async () => {
     const res = await request(app).post('/api/store').send({});
     expect(res.status).toBe(401);
+  });
+
+  it('blocks cashiers from creating stores', async () => {
+    const owner = await createUser({ username: 'owner' });
+    const store = await createStore(owner._id);
+    const cashierToken = require('jsonwebtoken').sign(
+      { cashierId: 'abc', storeId: store._id, role: 'cashier', username: 'bob' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    const res = await request(app)
+      .post('/api/store')
+      .set(authHeader(cashierToken))
+      .send({ settings: { businessName: 'Hacked Store' } });
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('GET /api/store', () => {
+  it('owner can read their store', async () => {
+    const owner = await createUser({ username: 'owner' });
+    const store = await createStore(owner._id, { businessName: 'My Shop' });
+
+    const res = await request(app)
+      .get('/api/store')
+      .set(authHeader(tokenFor(owner, store._id)));
+
+    expect(res.status).toBe(200);
+    expect(res.body.businessName).toBe('My Shop');
+  });
+
+  it('cashier can read their store', async () => {
+    const owner = await createUser({ username: 'owner' });
+    const store = await createStore(owner._id, { businessName: 'Cashier Store' });
+    const cashierToken = require('jsonwebtoken').sign(
+      { cashierId: 'abc', storeId: store._id, role: 'cashier', username: 'bob' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    const res = await request(app)
+      .get('/api/store')
+      .set(authHeader(cashierToken));
+
+    expect(res.status).toBe(200);
+    expect(res.body.businessName).toBe('Cashier Store');
   });
 });
 
@@ -84,7 +134,7 @@ describe('GET /api/store/config', () => {
 });
 
 describe('PUT /api/store', () => {
-  it('updates store fields including feature flags', async () => {
+  it('updates store fields and returns { store }', async () => {
     const owner = await createUser({ username: 'owner' });
     const store = await createStore(owner._id, { features: { memberships: false } });
 
@@ -97,8 +147,42 @@ describe('PUT /api/store', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(res.body.businessName).toBe('Updated Name');
+    expect(res.body.store.businessName).toBe('Updated Name');
+    expect(res.body.store.features.memberships).toBe(true);
+  });
+
+  it('saves membership feature flag correctly', async () => {
+    const owner = await createUser({ username: 'owner' });
+    const store = await createStore(owner._id, { features: { memberships: false } });
+
+    await request(app)
+      .put('/api/store')
+      .set(authHeader(tokenFor(owner, store._id)))
+      .send({ features: { memberships: true } });
+
+    // Read it back
+    const res = await request(app)
+      .get('/api/store')
+      .set(authHeader(tokenFor(owner, store._id)));
+
     expect(res.body.features.memberships).toBe(true);
+  });
+
+  it('blocks cashiers from updating the store', async () => {
+    const owner = await createUser({ username: 'owner' });
+    const store = await createStore(owner._id);
+    const cashierToken = require('jsonwebtoken').sign(
+      { cashierId: 'abc', storeId: store._id, role: 'cashier', username: 'bob' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    const res = await request(app)
+      .put('/api/store')
+      .set(authHeader(cashierToken))
+      .send({ settings: { businessName: 'Hacked' } });
+
+    expect(res.status).toBe(403);
   });
 });
 
@@ -108,7 +192,6 @@ describe('Multi-tenancy isolation', () => {
     const ownerB = await createUser({ username: 'ownerb' });
     await createStore(ownerB._id, { businessName: "B's Store" });
 
-    // ownerA has no store — should get 404, not B's store
     const res = await request(app)
       .get('/api/store/config')
       .set(authHeader(tokenFor(ownerA)));

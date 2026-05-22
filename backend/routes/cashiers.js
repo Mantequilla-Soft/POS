@@ -5,6 +5,11 @@ const Cashier = require('../models/Cashier');
 
 router.use(requireRole('store_owner', 'superadmin'));
 
+router.use((req, res, next) => {
+  if (!req.user.storeId) return res.status(400).json({ error: 'No store found. Please create and publish your store first.' });
+  next();
+});
+
 router.get('/', async (req, res) => {
   try {
     const cashiers = await Cashier.find({ storeId: req.user.storeId }).select('-password');

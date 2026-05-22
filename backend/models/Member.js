@@ -11,6 +11,7 @@ const memberSchema = new mongoose.Schema({
   nextDueDate: { type: Date, required: true },
   status: { type: String, enum: ['active', 'overdue', 'suspended', 'expired'], default: 'active' },
   notes: { type: String, default: '' },
+  lastReminderSent: { type: Date, default: null },
 }, { timestamps: true });
 
 memberSchema.index({ storeId: 1, status: 1 });

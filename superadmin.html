@@ -31,6 +31,8 @@
       th, td { padding: .5rem .6rem; }
     }
   </style>
+  <link rel="manifest" href="manifest.json">
+  <script src="pwa.js"></script>
 </head>
 <body>
 
@@ -57,7 +59,7 @@
       <h2 data-i18n="superadmin.approvals">Pending Approvals</h2>
       <span id="pendingCount" class="badge badge-pending"></span>
     </div>
-    <div class="card-body" style="padding:0">
+    <div class="card-body table-wrap" style="padding:0">
       <table>
         <thead><tr>
           <th data-i18n="common.username">Username</th><th data-i18n="common.hiveAccount">Hive Account</th><th data-i18n="superadmin.registered">Registered</th><th data-i18n="common.actions">Actions</th>
@@ -70,10 +72,10 @@
   <!-- All stores -->
   <div class="card">
     <div class="card-header"><h2 data-i18n="superadmin.allStores">All Stores</h2></div>
-    <div class="card-body" style="padding:0">
+    <div class="card-body table-wrap" style="padding:0">
       <table>
         <thead><tr>
-          <th data-i18n="superadmin.business">Business</th><th data-i18n="superadmin.owner">Owner</th><th data-i18n="common.hiveAccount">Hive Account</th><th data-i18n="superadmin.memberships">Memberships</th><th data-i18n="superadmin.lightning">Lightning</th><th data-i18n="common.status">Status</th>
+          <th data-i18n="superadmin.business">Business</th><th data-i18n="superadmin.owner">Owner</th><th data-i18n="common.hiveAccount">Hive Account</th><th data-i18n="superadmin.memberships">Memberships</th><th data-i18n="superadmin.lightning">Lightning</th><th data-i18n="superadmin.emailReminders">Email Rem.</th><th data-i18n="common.status">Status</th>
         </tr></thead>
         <tbody id="storesBody"></tbody>
       </table>
@@ -156,6 +158,7 @@
         <td>${s.hiveAccount || '—'}</td>
         <td>${s.features?.memberships ? `<span class="badge badge-active">${t('common.on')}</span>` : `<span class="badge" style="background:#eee;color:#666">${t('common.off')}</span>`}</td>
         <td>${s.features?.bitcoinLightning ? `<span class="badge badge-active">${t('common.on')}</span>` : `<span class="badge" style="background:#eee;color:#666">${t('common.off')}</span>`}</td>
+        <td>${s.features?.emailReminders ? `<span class="badge badge-active">${t('common.on')}</span>` : `<span class="badge" style="background:#eee;color:#666">${t('common.off')}</span>`}</td>
         <td>${s.published ? `<span class="badge badge-active">${t('common.published')}</span>` : `<span class="badge badge-pending">${t('common.draft')}</span>`}</td>
       </tr>`).join('');
   }

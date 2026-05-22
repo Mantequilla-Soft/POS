@@ -1,10 +1,17 @@
 const router = require('express').Router();
-const { requireRole } = require('../middleware/auth');
+const { authenticate, roleOnly } = require('../middleware/auth');
 const Member = require('../models/Member');
 const MemberPayment = require('../models/MemberPayment');
 const MembershipType = require('../models/MembershipType');
 
-router.use(requireRole('store_owner', 'superadmin'));
+// Any authenticated user with a storeId (store_owner, superadmin, or cashier)
+// can read members and record payments. Destructive operations are gated below.
+router.use(authenticate);
+
+router.use((req, res, next) => {
+  if (!req.user.storeId) return res.status(400).json({ error: 'No store found. Please create and publish your store first.' });
+  next();
+});
 
 // Mark members as overdue if nextDueDate has passed
 async function syncOverdueStatus(storeId) {
@@ -26,10 +33,20 @@ router.get('/', async (req, res) => {
         { hiveAccount: { $regex: req.query.search, $options: 'i' } },
       ];
     }
-    const members = await Member.find(filter)
-      .populate('membershipTypeId', 'name price currency durationDays')
-      .sort({ name: 1 });
-    res.json(members);
+
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 50);
+
+    const [members, total] = await Promise.all([
+      Member.find(filter)
+        .populate('membershipTypeId', 'name price currency durationDays')
+        .sort({ name: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Member.countDocuments(filter),
+    ]);
+
+    res.json({ members, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -69,7 +86,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', roleOnly('store_owner', 'superadmin'), async (req, res) => {
   try {
     await Member.findOneAndDelete({ _id: req.params.id, storeId: req.user.storeId });
     await MemberPayment.deleteMany({ memberId: req.params.id });
@@ -83,7 +100,7 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id/payments', async (req, res) => {
   try {
     const payments = await MemberPayment.find({ memberId: req.params.id, storeId: req.user.storeId })
-      .sort({ paidDate: -1 });
+      .sort({ periodStart: -1, createdAt: -1 });
     res.json(payments);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -100,8 +117,12 @@ router.post('/:id/payments', async (req, res) => {
     if (!membershipType) return res.status(400).json({ error: 'Membership type not found' });
 
     const paidDate = new Date(req.body.paidDate || new Date());
-    const periodStart = paidDate;
-    const periodEnd = new Date(paidDate);
+    // If the member is already paid up into the future, chain from nextDueDate
+    // so advance payments stack correctly instead of overlapping.
+    const periodStart = (member.nextDueDate && member.nextDueDate > paidDate)
+      ? new Date(member.nextDueDate)
+      : paidDate;
+    const periodEnd = new Date(periodStart);
     periodEnd.setDate(periodEnd.getDate() + membershipType.durationDays);
 
     const payment = await MemberPayment.create({
