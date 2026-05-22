@@ -1,4 +1,4 @@
-const CACHE = 'poshive-v1';
+const CACHE = 'poshive-v2';
 
 const APP_SHELL = [
   'login.html',
