@@ -24,7 +24,7 @@ const authLimiter = rateLimit({
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve frontend static files from the parent directory
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '..'), { index: 'login.html' }));
 
 // Routes
 app.use('/api/auth', authLimiter, require('./routes/auth'));
