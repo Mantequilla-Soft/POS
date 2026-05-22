@@ -61,6 +61,7 @@ router.post('/', async (req, res) => {
       status: 'pending',
       startDate: null,
       nextDueDate: null,
+      createdBy: req.user.username || '',
     });
     res.status(201).json(member);
   } catch (err) {
@@ -145,7 +146,7 @@ router.post('/:id/payments', async (req, res) => {
       periodStart,
       periodEnd,
       notes: req.body.notes || '',
-      recordedBy: req.body.recordedBy || '',
+      recordedBy: req.user.username || '',
     });
 
     // First payment activates a pending member and sets their start date

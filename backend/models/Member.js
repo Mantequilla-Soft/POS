@@ -12,6 +12,7 @@ const memberSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'active', 'overdue', 'suspended', 'expired'], default: 'pending' },
   gender:   { type: String, enum: ['male', 'female', 'other', 'unspecified'], default: 'unspecified' },
   ageGroup: { type: String, enum: ['under_18', '18_25', '26_35', '36_45', '46_55', '56_plus', 'unspecified'], default: 'unspecified' },
+  createdBy: { type: String, default: '' },
   notes: { type: String, default: '' },
   lastReminderSent: { type: Date, default: null },
 }, { timestamps: true });
