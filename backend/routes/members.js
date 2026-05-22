@@ -16,7 +16,7 @@ router.use((req, res, next) => {
 // Mark members as overdue if nextDueDate has passed
 async function syncOverdueStatus(storeId) {
   await Member.updateMany(
-    { storeId, status: 'active', nextDueDate: { $lt: new Date() } },
+    { storeId, status: 'active', nextDueDate: { $lt: new Date(), $ne: null } },
     { $set: { status: 'overdue' } }
   );
 }
@@ -54,7 +54,14 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const member = await Member.create({ ...req.body, storeId: req.user.storeId });
+    const { name, phone, email, hiveAccount, membershipTypeId, notes } = req.body;
+    const member = await Member.create({
+      storeId: req.user.storeId,
+      name, phone, email, hiveAccount, membershipTypeId, notes,
+      status: 'pending',
+      startDate: null,
+      nextDueDate: null,
+    });
     res.status(201).json(member);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -117,8 +124,8 @@ router.post('/:id/payments', async (req, res) => {
     if (!membershipType) return res.status(400).json({ error: 'Membership type not found' });
 
     const paidDate = new Date(req.body.paidDate || new Date());
-    // If the member is already paid up into the future, chain from nextDueDate
-    // so advance payments stack correctly instead of overlapping.
+    // Chain from nextDueDate only when the member is already paid into the future.
+    // Pending members have no nextDueDate yet, so always start from paidDate.
     const periodStart = (member.nextDueDate && member.nextDueDate > paidDate)
       ? new Date(member.nextDueDate)
       : paidDate;
@@ -141,7 +148,8 @@ router.post('/:id/payments', async (req, res) => {
       recordedBy: req.body.recordedBy || '',
     });
 
-    // Advance member due date and restore active status
+    // First payment activates a pending member and sets their start date
+    if (member.status === 'pending') member.startDate = paidDate;
     member.nextDueDate = periodEnd;
     member.status = 'active';
     await member.save();

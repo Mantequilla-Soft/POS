@@ -26,6 +26,7 @@
     .badge-overdue  { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
     .badge-suspended { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
     .badge-expired  { background: var(--red-light); color: var(--red); border: 1px solid var(--red-border); }
+    .badge-pending  { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
 
     /* Modal tweaks */
     .form-row { display: flex; gap: 1rem; }
@@ -127,10 +128,6 @@
         <div class="form-group">
           <label data-i18n="members.plan">Membership Plan *</label>
           <select id="fMembershipType"></select>
-        </div>
-        <div class="form-group">
-          <label data-i18n="members.startDate">Start Date *</label>
-          <input type="date" id="fStartDate">
         </div>
       </div>
       <div class="form-group">
@@ -308,8 +305,8 @@ async function loadMembers(page = currentPage) {
       <td>${esc(m.membershipTypeId?.name || '—')}<br>
         <small style="color:var(--text-2)">${m.membershipTypeId ? m.membershipTypeId.price + ' ' + m.membershipTypeId.currency : ''}</small>
       </td>
-      <td>${fmtDate(m.nextDueDate)}</td>
-      <td><span class="badge badge-${m.status}">${m.status}</span></td>
+      <td>${m.status === 'pending' ? `<span style="color:var(--text-3);font-size:.8rem">${t('members.awaitingPayment')}</span>` : fmtDate(m.nextDueDate)}</td>
+      <td><span class="badge badge-${m.status}">${t('members.status_' + m.status) || m.status}</span></td>
       <td>
         <div class="actions">
           <button class="btn btn-success btn-sm" onclick="openPayment('${m._id}', '${esc(m.name)}', ${m.membershipTypeId?.price || 0}, '${m.membershipTypeId?.currency || 'HBD'}')">${t('members.payBtn')}</button>
@@ -351,7 +348,6 @@ function openAddModal() {
   editingMemberId = null;
   document.getElementById('modalTitle').textContent = t('members.addTitle');
   ['fName','fPhone','fEmail','fHive','fNotes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('fStartDate').value = today();
   loadMembershipTypes();
   openModal('memberModal');
 }
@@ -366,7 +362,6 @@ async function openEditModal(id) {
   document.getElementById('fPhone').value = m.phone || '';
   document.getElementById('fEmail').value = m.email || '';
   document.getElementById('fHive').value = m.hiveAccount || '';
-  document.getElementById('fStartDate').value = m.startDate ? m.startDate.slice(0,10) : today();
   document.getElementById('fNotes').value = m.notes || '';
   const sel = document.getElementById('fMembershipType');
   if (m.membershipTypeId) sel.value = m.membershipTypeId._id;
@@ -376,13 +371,7 @@ async function openEditModal(id) {
 async function saveMember() {
   const name = document.getElementById('fName').value.trim();
   const membershipTypeId = document.getElementById('fMembershipType').value;
-  const startDate = document.getElementById('fStartDate').value;
-  if (!name || !membershipTypeId || !startDate) { toast(t('members.requiredFields'), false); return; }
-
-  const mtype = membershipTypes.find(t => t._id === membershipTypeId);
-  const start = new Date(startDate);
-  const nextDue = new Date(start);
-  nextDue.setDate(nextDue.getDate() + (mtype?.durationDays || 30));
+  if (!name || !membershipTypeId) { toast(t('members.requiredFields'), false); return; }
 
   const body = {
     name,
@@ -390,8 +379,6 @@ async function saveMember() {
     email: document.getElementById('fEmail').value.trim(),
     hiveAccount: document.getElementById('fHive').value.trim().replace('@',''),
     membershipTypeId,
-    startDate: start.toISOString(),
-    nextDueDate: nextDue.toISOString(),
     notes: document.getElementById('fNotes').value.trim(),
   };
 
