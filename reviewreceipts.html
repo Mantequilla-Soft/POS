@@ -41,7 +41,8 @@
             background: var(--bg);
             color: var(--text);
         }
-        .filter-bar .btn { margin-top: 0; align-self: flex-end; }
+        .filter-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-self: flex-end; }
+        .filter-actions .btn { margin-top: 0; }
 
         /* Summary cards */
         .summary-grid {
@@ -106,9 +107,18 @@
         /* Empty / loading */
         .state-msg { text-align: center; padding: 3rem 1rem; color: var(--text-3); }
 
+        @media (max-width: 768px) {
+            /* Override theme.css column-stacking the page header */
+            .page-header { flex-direction: row !important; align-items: center; }
+        }
         @media (max-width: 600px) {
             .page-body { padding: 1rem; }
-            .filter-bar { flex-direction: column; }
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .filter-bar label { width: 100%; }
+            .filter-bar input[type="date"],
+            .filter-bar select { width: 100%; box-sizing: border-box; }
+            .filter-actions { width: 100%; }
+            .filter-actions .btn { flex: 1; }
             thead th:nth-child(4), tbody td:nth-child(4) { display: none; }
         }
         @media print {
@@ -145,9 +155,11 @@
                     <option value="lightning">Lightning</option>
                 </select>
             </label>
-            <button class="btn btn-primary" id="applyFilterBtn" style="margin-top:0">Apply</button>
-            <button class="btn" id="todayBtn" style="margin-top:0">Today</button>
-            <button class="btn" id="thisMonthBtn" style="margin-top:0">This Month</button>
+            <div class="filter-actions">
+                <button class="btn btn-primary" id="applyFilterBtn">Apply</button>
+                <button class="btn" id="todayBtn">Today</button>
+                <button class="btn" id="thisMonthBtn">This Month</button>
+            </div>
         </div>
 
         <!-- Summary -->
