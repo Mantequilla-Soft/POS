@@ -1210,6 +1210,8 @@
                 await renderItems();
                 await renderCurrentHiveAccount();
                 await loadBitcoinLightningSettings();
+                if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
+                if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
                 
                 // Update UI state
                 updatePublishStatus();
@@ -1233,10 +1235,12 @@
                     await renderItems();
                     await renderCurrentHiveAccount();
                     await loadBitcoinLightningSettings();
-                    
+                    if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
+                    if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
+
                     updatePublishStatus();
                     updateSaveDraftButton();
-                    
+
                     console.log('App initialized with fresh store after error');
                 } catch (renderError) {
                     console.error('Failed to render UI:', renderError);
