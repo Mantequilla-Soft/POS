@@ -27,6 +27,10 @@ window.POS_THEMES = {
       '--ink':          '#6366F1',
       '--ink-text':     '#FFFFFF',
       '--ink-hover':    '#4F52CC',
+      '--green-light':  '#0C2015',
+      '--green-border': '#1A4A2C',
+      '--amber-light':  '#1F1300',
+      '--amber-border': '#4A2D00',
     }
   },
   ocean: {
@@ -122,6 +126,10 @@ window.POS_THEMES = {
       '--ink':          '#D97706',
       '--ink-text':     '#1C0A00',
       '--ink-hover':    '#F59E0B',
+      '--green-light':  '#0A1A08',
+      '--green-border': '#1A4020',
+      '--amber-light':  '#2A1800',
+      '--amber-border': '#5C3300',
     }
   },
 };

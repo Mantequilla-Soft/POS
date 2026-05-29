@@ -275,10 +275,10 @@
 
         <!-- Publish Store Section -->
         <div id="publishSection" style="margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--border);">
-            <div id="draftStatus" style="background:var(--amber-light);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--amber-border);">
+            <div id="draftStatus" style="background:var(--surface-2);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--border);border-left:4px solid var(--amber);">
                 <strong>📝 Draft Mode:</strong> Your changes are kept in memory. Use "Save Draft" to save your progress, then "Publish Store" to make it live!
             </div>
-            <div id="publishedStatus" style="background:var(--green-light);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--green-border);display:none;">
+            <div id="publishedStatus" style="background:var(--surface-2);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--border);border-left:4px solid var(--green);display:none;">
                 <strong>✅ Store Published:</strong> Your store is live! Changes are kept in memory until you save or publish.
             </div>
             <button type="button" id="publishStoreBtn" style="background:var(--green);color:#fff;padding:1rem 2rem;font-size:1.1rem;font-weight:600;border:none;border-radius:var(--r);cursor:pointer;transition:var(--ease);margin-top:0">
@@ -309,7 +309,7 @@
     </div>
 
     <!-- Membership Settings Section -->
-    <div id="membershipSettingsSection" style="background:var(--green-light);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--green-border);max-width:600px;">
+    <div id="membershipSettingsSection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);border-left:4px solid var(--green);box-shadow:var(--sh-sm);max-width:600px;">
         <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
             <input type="checkbox" id="enableMemberships">
             <span data-i18n="admin.enableMemberships">Enable Membership / Subscription Management</span>
@@ -2092,6 +2092,8 @@
                 '--amber':         accent,
                 '--amber-light':   blend(accent, bg, 0.85),
                 '--amber-border':  blend(accent, bg, 0.55),
+                '--green-light':   blend('#16A34A', bg, 0.85),
+                '--green-border':  blend('#16A34A', bg, 0.55),
             };
         }
 
