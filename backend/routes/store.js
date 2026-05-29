@@ -104,6 +104,7 @@ router.get('/config', async (req, res) => {
       tax:           store.tax,
       tables:        store.tables || [],
       hasKitchenPin: !!store.kitchenPin,
+      theme:         store.theme || null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -154,13 +155,14 @@ router.post('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
 // PUT / — update store
 router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
   try {
-    const { settings, items, published, features, pluginConfigs: incomingPlugins, kitchenPin: rawPin, tables, ...rest } = req.body;
+    const { settings, items, published, features, pluginConfigs: incomingPlugins, kitchenPin: rawPin, tables, theme, ...rest } = req.body;
 
     const update = { ...rest };
     if (published !== undefined) update.published = published;
     if (features)                update.features  = features;
     if (items)                   update.items     = items;
     if (tables !== undefined)    update.tables    = tables;
+    if (theme !== undefined)     update.theme     = theme;
 
     if (rawPin) {
       update.kitchenPin = await bcrypt.hash(String(rawPin), 10);

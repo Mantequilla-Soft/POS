@@ -47,6 +47,7 @@ const storeSchema = new mongoose.Schema({
     name:      { type: String,  default: 'Tax' },
     inclusive: { type: Boolean, default: false },
   },
+  theme:        { type: mongoose.Schema.Types.Mixed, default: null },
   language:     { type: String, default: 'en' },
   emailSettings: {
     reminderSubject: { type: String, default: '' },

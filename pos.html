@@ -13,6 +13,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/sweetplace logo.png">
     <link rel="stylesheet" href="theme.css">
+  <script src="theme-loader.js"></script>
     <style>
         /* ── POS page layout ── */
         body { margin: 0; }
@@ -1032,6 +1033,10 @@
                         localStorage.setItem('pos_features', JSON.stringify(store.features || {}));
                         localStorage.setItem('pos_tables', JSON.stringify(store.tables || []));
                         localStorage.setItem('pos_plugin_configs', JSON.stringify(store.pluginConfigs || {}));
+                        if (store.theme) {
+                            localStorage.setItem('pos_theme', JSON.stringify(store.theme));
+                            window.applyPosTheme && window.applyPosTheme(store.theme);
+                        }
                     }
                 } catch (e) {
                     // Network error — fall back to whatever is in localStorage
