@@ -48,6 +48,7 @@ if (require.main === module) {
       const port = process.env.PORT || 3001;
       app.listen(port, () => console.log(`POSHIVE backend running on port ${port}`));
       require('./services/reminderJob').startReminderJob();
+      require('./services/backupJob').startBackupJob();
     })
     .catch((err) => {
       console.error('MongoDB connection error:', err.message);

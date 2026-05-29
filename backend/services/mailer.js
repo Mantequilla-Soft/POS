@@ -158,4 +158,26 @@ async function sendOverdueReminder(member, store) {
   }
 }
 
-module.exports = { sendOverdueReminder, isConfigured };
+async function sendBackupEmail(store, toEmail, csvContent) {
+  const transporter = createTransporter();
+  const today = new Date().toISOString().slice(0, 10);
+  const filename = `members-${today}.csv`;
+
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      to: toEmail,
+      subject: `Monthly member backup — ${store.businessName} (${today})`,
+      text: `Hi,\n\nPlease find your monthly member list backup for ${store.businessName} attached.\n\nThis email was sent automatically by POSHIVE.\n`,
+      attachments: [{
+        filename,
+        content: '﻿' + csvContent,  // BOM for Excel
+        contentType: 'text/csv; charset=utf-8',
+      }],
+    });
+  } finally {
+    transporter.close();
+  }
+}
+
+module.exports = { sendOverdueReminder, sendBackupEmail, isConfigured };

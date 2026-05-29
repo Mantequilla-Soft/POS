@@ -31,6 +31,8 @@ const storeSchema = new mongoose.Schema({
     reminderSubject: { type: String, default: '' },
     reminderBody:    { type: String, default: '' },
   },
+  ownerEmail:   { type: String,  default: '' },
+  backupEmail:  { type: Boolean, default: true },
   bitcoinLightningConfig: { type: mongoose.Schema.Types.Mixed, default: null },
   published: { type: Boolean, default: false },
   items: { type: [itemSchema], default: [] },

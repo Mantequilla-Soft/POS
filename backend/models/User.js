@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   hiveAccount: { type: String, trim: true, default: '' },
   role: { type: String, enum: ['superadmin', 'store_owner'], default: 'store_owner' },
   approved: { type: Boolean, default: false },
+  email:    { type: String,  default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

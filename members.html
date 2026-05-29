@@ -84,6 +84,8 @@
       <option value="passes" data-i18n="pass.filterPasses">Passes only</option>
     </select>
     <button class="btn btn-primary" onclick="openAddModal()" data-i18n="members.addBtn">+ Add Member</button>
+    <button class="btn btn-outline" id="exportCsvBtn" style="display:none" onclick="exportMembers('csv')" data-i18n="export.csvBtn">⬇ Export CSV</button>
+    <button class="btn btn-outline" id="exportPdfBtn" style="display:none" onclick="exportMembers('pdf')" data-i18n="export.pdfBtn">⬇ Export PDF</button>
   </div>
 
   <div class="card">
@@ -275,6 +277,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isCashier) {
     document.getElementById('navDashboard')?.remove();
     document.getElementById('navSettings')?.remove();
+  } else {
+    document.getElementById('exportCsvBtn').style.display = '';
+    document.getElementById('exportPdfBtn').style.display = '';
   }
 });
 
@@ -292,6 +297,25 @@ function toast(msg, ok = true) {
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+// ─── Export ──────────────────────────────────────────────────────────
+function exportMembers(format) {
+  const search = document.getElementById('searchInput').value.trim();
+  const status = document.getElementById('statusFilter').value;
+  const passFilter = document.getElementById('passFilter').value;
+  const params = new URLSearchParams({ format, token });
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  if (passFilter === 'passes')  params.set('isPass', 'true');
+  if (passFilter === 'members') params.set('isPass', 'false');
+  const url = `${API_BASE}/api/members/export?${params}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 // ─── Members list ────────────────────────────────────────────────────
 let allMembers = [];

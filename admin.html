@@ -260,6 +260,22 @@
             <p style="font-size:.78em;color:var(--text-3);margin-top:.3em">Set this to your self-hosted backend URL (e.g. https://api.yourdomain.com)</p>
         </div>
 
+        <!-- Owner Email & Monthly Backup -->
+        <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+            <label style="font-size:.9em;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="export.ownerEmail">Owner Email (for monthly backup)</label>
+            <input type="email" id="ownerEmail"
+                data-i18n-placeholder="export.ownerEmailPlaceholder"
+                placeholder="your@email.com"
+                style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:var(--r);font-size:.9em;box-sizing:border-box;margin-bottom:.6rem">
+            <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;font-size:.85em">
+                <input type="checkbox" id="enableBackupEmail" style="margin-top:2px;flex-shrink:0">
+                <span>
+                    <strong data-i18n="export.backupToggle">Send monthly member list backup by email</strong><br>
+                    <span style="color:var(--text-3)" data-i18n="export.backupHelp">A CSV of your member list will be emailed on the 1st of each month. Requires SMTP configured in .env.</span>
+                </span>
+            </label>
+        </div>
+
         <!-- Publish Store Section -->
         <div id="publishSection" style="margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--border);">
             <div id="draftStatus" style="background:var(--amber-light);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--amber-border);">
@@ -844,7 +860,9 @@
                     settings: currentData.settings,
                     features: currentData.features || {},
                     emailSettings: currentData.emailSettings || {},
-                    language: i18n.getLocale()
+                    language: i18n.getLocale(),
+                    ownerEmail: currentData.ownerEmail || '',
+                    backupEmail: currentData.backupEmail !== false,
                 };
 
                 // Save to API as draft using the correct endpoint
@@ -1195,6 +1213,8 @@
                     currentData.features = apiConfig.features || { memberships: false, bitcoinLightning: false };
                     currentData.emailSettings = apiConfig.emailSettings || { reminderSubject: '', reminderBody: '' };
                     currentData.tax = apiConfig.tax || { enabled: false, rate: 0, name: 'Tax', inclusive: false };
+                    currentData.ownerEmail = apiConfig.ownerEmail || '';
+                    currentData.backupEmail = apiConfig.backupEmail !== false;
                     
                     // Preserve store ID - it could be at root level or in settings
                     if (apiConfig._id) {
@@ -1247,7 +1267,8 @@
                 if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                 if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
                 if (typeof loadTaxSettings === 'function') loadTaxSettings();
-                
+                if (typeof loadBackupSettings === 'function') loadBackupSettings();
+
                 // Update UI state
                 updatePublishStatus();
                 updateSaveDraftButton();
@@ -1273,6 +1294,7 @@
                     if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                     if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
                     if (typeof loadTaxSettings === 'function') loadTaxSettings();
+                    if (typeof loadBackupSettings === 'function') loadBackupSettings();
 
                     updatePublishStatus();
                     updateSaveDraftButton();
@@ -1472,7 +1494,9 @@
                     features: currentData.features || {},
                     emailSettings: currentData.emailSettings || {},
                     language: i18n.getLocale(),
-                    published: true
+                    published: true,
+                    ownerEmail: currentData.ownerEmail || '',
+                    backupEmail: currentData.backupEmail !== false,
                 };
 
                 // Save to API using the correct endpoint based on store existence
@@ -1708,6 +1732,27 @@
         };
 
         loadTaxSettings();
+
+        // --- Owner Email & Monthly Backup ---
+        const ownerEmailInput    = document.getElementById('ownerEmail');
+        const enableBackupEmail  = document.getElementById('enableBackupEmail');
+
+        function loadBackupSettings() {
+            ownerEmailInput.value       = currentData.ownerEmail || '';
+            enableBackupEmail.checked   = currentData.backupEmail !== false;
+        }
+
+        ownerEmailInput.oninput = function() {
+            currentData.ownerEmail = this.value.trim();
+            markDirty();
+        };
+
+        enableBackupEmail.onchange = function() {
+            currentData.backupEmail = this.checked;
+            markDirty();
+        };
+
+        loadBackupSettings();
 
         // --- API Server URL Config ---
         const apiBaseInput = document.getElementById('apiBaseInput');

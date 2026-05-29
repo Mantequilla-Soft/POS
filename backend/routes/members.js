@@ -3,6 +3,36 @@ const { authenticate, roleOnly } = require('../middleware/auth');
 const Member = require('../models/Member');
 const MemberPayment = require('../models/MemberPayment');
 const MembershipType = require('../models/MembershipType');
+const PDFDocument = require('pdfkit');
+
+function csvEscape(v) {
+  const s = v == null ? '' : String(v);
+  return s.includes(',') || s.includes('"') || s.includes('\n')
+    ? '"' + s.replace(/"/g, '""') + '"'
+    : s;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toISOString().slice(0, 10);
+}
+
+async function queryMembers(storeId, query) {
+  const filter = { storeId };
+  if (query.status) filter.status = query.status;
+  if (query.isPass === 'true')  filter.isPass = true;
+  if (query.isPass === 'false') filter.isPass = { $ne: true };
+  if (query.search) {
+    filter.$or = [
+      { name:        { $regex: query.search, $options: 'i' } },
+      { phone:       { $regex: query.search, $options: 'i' } },
+      { hiveAccount: { $regex: query.search, $options: 'i' } },
+    ];
+  }
+  return Member.find(filter)
+    .populate('membershipTypeId', 'name price currency durationDays isPass')
+    .sort({ name: 1 });
+}
 
 // Any authenticated user with a storeId (store_owner, superadmin, or cashier)
 // can read members and record payments. Destructive operations are gated below.
@@ -73,6 +103,118 @@ router.post('/', async (req, res) => {
       createdBy: req.user.username || '',
     });
     res.status(201).json(member);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/members/export?format=csv|pdf — store_owner / superadmin only
+// Token accepted via ?token= query param so browser can download directly
+router.get('/export', roleOnly('store_owner', 'superadmin'), async (req, res) => {
+  try {
+    const members = await queryMembers(req.user.storeId, req.query);
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (req.query.format === 'pdf') {
+      // ── PDF ────────────────────────────────────────────────────────────
+      const Store = require('../models/Store');
+      const store = await Store.findById(req.user.storeId);
+      const storeName = store?.businessName || 'Store';
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="members-${today}.pdf"`);
+
+      const doc = new PDFDocument({ margin: 40, size: 'LETTER' });
+      doc.pipe(res);
+
+      // Header
+      doc.fontSize(18).font('Helvetica-Bold').text(storeName, { align: 'left' });
+      doc.fontSize(11).font('Helvetica').fillColor('#666')
+         .text(`Member Roster  ·  Generated ${today}`, { align: 'left' });
+
+      // Status counts
+      const counts = members.reduce((acc, m) => { acc[m.status] = (acc[m.status] || 0) + 1; return acc; }, {});
+      const summary = Object.entries(counts).map(([k, v]) => `${v} ${k}`).join('  ·  ');
+      doc.fontSize(9).fillColor('#888').text(summary || 'No members', { align: 'left' });
+      doc.moveDown(0.5);
+
+      // Divider
+      doc.moveTo(40, doc.y).lineTo(570, doc.y).strokeColor('#ccc').stroke();
+      doc.moveDown(0.5);
+
+      // Column definitions
+      const cols = [
+        { label: 'Name',      x: 40,  w: 130 },
+        { label: 'Email',     x: 175, w: 130 },
+        { label: 'Phone',     x: 310, w: 90  },
+        { label: 'Plan',      x: 405, w: 85  },
+        { label: 'Status',    x: 493, w: 55  },
+        { label: 'Next Due',  x: 490, w: 80  },
+      ];
+      // Adjust last two cols
+      const colDefs = [
+        { label: 'Name',     x: 40,  w: 125 },
+        { label: 'Email',    x: 170, w: 125 },
+        { label: 'Phone',    x: 300, w: 85  },
+        { label: 'Plan',     x: 390, w: 90  },
+        { label: 'Status',   x: 485, w: 55  },
+        { label: 'Due',      x: 543, w: 70  },
+      ];
+
+      // Table header row
+      const headerY = doc.y;
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#333');
+      colDefs.forEach(c => doc.text(c.label, c.x, headerY, { width: c.w }));
+      doc.moveDown(0.3);
+
+      doc.moveTo(40, doc.y).lineTo(610, doc.y).strokeColor('#999').stroke();
+      doc.moveDown(0.2);
+
+      // Rows
+      doc.font('Helvetica').fontSize(8).fillColor('#222');
+      for (const m of members) {
+        if (doc.y > 720) { doc.addPage(); }
+        const rowY = doc.y;
+        const row = [
+          m.name,
+          m.email || '',
+          m.phone || '',
+          m.membershipTypeId?.name || '—',
+          m.status,
+          fmtDate(m.nextDueDate),
+        ];
+        colDefs.forEach((c, i) => {
+          doc.text(row[i], c.x, rowY, { width: c.w, ellipsis: true });
+        });
+        doc.moveDown(0.35);
+      }
+
+      doc.end();
+
+    } else {
+      // ── CSV (default) ──────────────────────────────────────────────────
+      const headers = ['Name','Email','Phone','Hive Account','Membership Type','Is Pass','Status','Start Date','Next Due Date','Gender','Age Group','Notes','Created Date'];
+      const rows = members.map(m => [
+        m.name,
+        m.email || '',
+        m.phone || '',
+        m.hiveAccount || '',
+        m.membershipTypeId?.name || '',
+        m.isPass ? 'Yes' : 'No',
+        m.status,
+        fmtDate(m.startDate),
+        fmtDate(m.nextDueDate),
+        m.gender || '',
+        m.ageGroup || '',
+        m.notes || '',
+        fmtDate(m.createdAt),
+      ].map(csvEscape).join(','));
+
+      const csv = [headers.map(csvEscape).join(','), ...rows].join('\r\n');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="members-${today}.csv"`);
+      res.send('﻿' + csv); // BOM for Excel UTF-8 compatibility
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

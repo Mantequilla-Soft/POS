@@ -58,6 +58,11 @@ router.get('/config', async (req, res) => {
       },
       published: store.published,
       features: store.features,
+      emailSettings: store.emailSettings,
+      ownerEmail: store.ownerEmail,
+      backupEmail: store.backupEmail,
+      language: store.language,
+      tax: store.tax,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

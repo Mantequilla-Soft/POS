@@ -502,6 +502,13 @@ const i18n = (() => {
       'pass.registered':         'Pass holder registered!',
       'pass.registerError':      'Could not register pass holder.',
       'pass.convertTitle':       'Convert Pass to Membership',
+
+      'export.csvBtn':           '⬇ Export CSV',
+      'export.pdfBtn':           '⬇ Export PDF',
+      'export.ownerEmail':       'Owner Email (for monthly backup)',
+      'export.ownerEmailPlaceholder': 'your@email.com',
+      'export.backupToggle':     'Send monthly member list backup by email',
+      'export.backupHelp':       'A CSV of your member list will be emailed on the 1st of each month. Requires SMTP configured in .env.',
     },
 
     es: {
@@ -1006,6 +1013,13 @@ const i18n = (() => {
       'pass.registered':         '¡Titular de pase registrado!',
       'pass.registerError':      'No se pudo registrar el titular del pase.',
       'pass.convertTitle':       'Convertir pase a membresía',
+
+      'export.csvBtn':           '⬇ Exportar CSV',
+      'export.pdfBtn':           '⬇ Exportar PDF',
+      'export.ownerEmail':       'Correo del propietario (respaldo mensual)',
+      'export.ownerEmailPlaceholder': 'tu@correo.com',
+      'export.backupToggle':     'Enviar respaldo mensual de miembros por correo',
+      'export.backupHelp':       'Se enviará un CSV el 1ro de cada mes. Requiere SMTP configurado en .env.',
     }
   };
 
