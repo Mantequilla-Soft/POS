@@ -1005,7 +1005,6 @@
             const settings = await getStoreSettings();
             document.getElementById('businessName').value = settings.businessName || '';
             document.getElementById('bannerUrl').value = settings.bannerUrl || '';
-            document.getElementById('hiveAccount').value = settings.hiveAccount || '';
             renderCategoryTags(settings.categories || []);
         }
         function renderCategoryTags(categories) {
@@ -1294,7 +1293,6 @@
                 await renderStoreSettings();
                 await renderCategoryOptions();
                 await renderItems();
-                await renderCurrentHiveAccount();
                 if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                 if (typeof loadPluginSections === 'function') loadPluginSections();
                 if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
@@ -1434,28 +1432,6 @@
         if (storeSettingsDiv2) {
             storeSettingsDiv2.appendChild(restoreBtn);
         }
-
-        // Hive account update button logic
-        const updateHiveAccountBtn = document.getElementById('updateHiveAccountBtn');
-        const hiveAccountInput = document.getElementById('hiveAccount');
-        const currentHiveAccountDisplay = document.getElementById('currentHiveAccountDisplay');
-        async function renderCurrentHiveAccount() {
-            const settings = await getStoreSettings();
-            if (settings.hiveAccount) {
-                currentHiveAccountDisplay.textContent = `Current: @${settings.hiveAccount}`;
-            } else {
-                currentHiveAccountDisplay.textContent = t('admin.noAccount');
-            }
-        }
-        updateHiveAccountBtn.onclick = async function() {
-            const val = hiveAccountInput.value.trim();
-            const settings = await getStoreSettings();
-            settings.hiveAccount = val;
-            await saveStoreSettings(settings);
-            renderCurrentHiveAccount();
-        };
-        // On page load, show current account
-        renderCurrentHiveAccount();
 
         // --- Publish Store Logic ---
         const publishStoreBtn = document.getElementById('publishStoreBtn');
