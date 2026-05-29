@@ -894,6 +894,7 @@
             if (voidTabBtn_)      voidTabBtn_.onclick     = voidTab;
             if (sendToKitchenBtn) sendToKitchenBtn.onclick = sendToKitchen;
             if (backToTablesBtn)  backToTablesBtn.onclick  = function() {
+                stopKitchenPoll();
                 cart = []; currentTabState = null;
                 renderTabBadge(); renderCart(); renderMenu(); showTablesPanel();
             };
