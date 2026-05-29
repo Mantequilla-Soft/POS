@@ -9,7 +9,7 @@
  *   node backend/scripts/migrate-subscriptions.js --days 30         (grace period, default: 30)
  */
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const Store = require('../models/Store');
 const Subscription = require('../models/Subscription');

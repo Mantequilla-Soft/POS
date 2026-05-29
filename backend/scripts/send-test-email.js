@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { sendOverdueReminder } = require('../services/mailer');
 
 const member = {
