@@ -185,7 +185,7 @@ router.get('/members/by-type', async (req, res) => {
     const rows = await MemberPayment.aggregate([
       { $match: match },
       { $lookup: { from: 'membershiptypes', localField: 'membershipTypeId', foreignField: '_id', as: 'plan' } },
-      { $unwind: { path: '$plan', preserveNullAndEmpty: true } },
+      { $unwind: { path: '$plan', preserveNullAndEmptyArrays: true } },
       { $group: {
           _id:     { $ifNull: ['$plan.name', 'Unknown'] },
           count:   { $sum: 1 },
@@ -222,7 +222,7 @@ router.get('/passes', async (req, res) => {
       MemberPayment.aggregate([
         { $match: payMatch },
         { $lookup: { from: 'membershiptypes', localField: 'membershipTypeId', foreignField: '_id', as: 'plan' } },
-        { $unwind: { path: '$plan', preserveNullAndEmpty: true } },
+        { $unwind: { path: '$plan', preserveNullAndEmptyArrays: true } },
         { $group: { _id: { $ifNull: ['$plan.name', 'Unknown'] }, count: { $sum: 1 }, revenue: { $sum: '$amount' } } },
         { $sort: { count: -1 } },
       ]),

@@ -4,6 +4,8 @@ const User = require('../../models/User');
 const Store = require('../../models/Store');
 const MembershipType = require('../../models/MembershipType');
 const Member = require('../../models/Member');
+const Sale = require('../../models/Sale');
+const MemberPayment = require('../../models/MemberPayment');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -64,4 +66,38 @@ function authHeader(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
-module.exports = { createUser, createStore, createMembershipType, createMember, tokenFor, authHeader };
+async function createSale(storeId, overrides = {}) {
+  return Sale.create({
+    storeId,
+    items: [{ id: 'i1', name: 'Protein Bar', category: 'nutrition', price: 5, qty: 1 }],
+    total: 5,
+    subtotal: 5,
+    taxAmount: 0,
+    currency: 'HBD',
+    paymentMethod: 'cash',
+    cashier: 'testcashier',
+    ...overrides,
+  });
+}
+
+async function createMemberPayment(storeId, memberId, membershipTypeId, overrides = {}) {
+  const now = new Date();
+  return MemberPayment.create({
+    storeId,
+    memberId,
+    membershipTypeId,
+    amount: 50,
+    currency: 'HBD',
+    method: 'cash',
+    paidDate: now,
+    periodStart: now,
+    periodEnd: new Date(now.getTime() + 30 * 86400000),
+    ...overrides,
+  });
+}
+
+module.exports = {
+  createUser, createStore, createMembershipType, createMember,
+  createSale, createMemberPayment,
+  tokenFor, authHeader,
+};

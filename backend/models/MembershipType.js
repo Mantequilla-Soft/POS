@@ -8,6 +8,7 @@ const membershipTypeSchema = new mongoose.Schema({
   durationDays: { type: Number, required: true },
   description: { type: String, default: '' },
   active: { type: Boolean, default: true },
+  isPass: { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model('MembershipType', membershipTypeSchema);
