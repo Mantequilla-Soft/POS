@@ -622,6 +622,21 @@ const i18n = (() => {
       'kitchen.markReady':       'Mark Ready',
       'kitchen.ready':           '✓ Ready',
       'kitchen.invalidPin':      'Invalid PIN',
+
+      // ── Void tab ──────────────────────────────────────────────────────────
+      'pos.voidTab':             'Void Tab',
+      'pos.voidTabConfirm':      'Void this tab? This cannot be undone.',
+      'pos.voidTabUnsaved':      'Discard this tab?',
+      'pos.voidTabError':        'Could not void tab: {error}',
+      'pos.voidTileConfirm':     'Void tab for {label}?',
+
+      // ── Item notes ────────────────────────────────────────────────────────
+      'pos.addNote':             'Add note',
+      'pos.noteFor':             'Note for "{item}":',
+
+      // ── Counter-to-kitchen ────────────────────────────────────────────────
+      'pos.sendToKitchen':       'Send to Kitchen',
+      'pos.counterLabel':        'Counter',
     },
 
     es: {
@@ -1246,6 +1261,21 @@ const i18n = (() => {
       'kitchen.markReady':       'Marcar Listo',
       'kitchen.ready':           '✓ Listo',
       'kitchen.invalidPin':      'PIN inválido',
+
+      // ── Void tab ──────────────────────────────────────────────────────────
+      'pos.voidTab':             'Anular Cuenta',
+      'pos.voidTabConfirm':      '¿Anular esta cuenta? Esta acción no se puede deshacer.',
+      'pos.voidTabUnsaved':      '¿Descartar esta cuenta?',
+      'pos.voidTabError':        'No se pudo anular la cuenta: {error}',
+      'pos.voidTileConfirm':     '¿Anular la cuenta de {label}?',
+
+      // ── Item notes ────────────────────────────────────────────────────────
+      'pos.addNote':             'Agregar nota',
+      'pos.noteFor':             'Nota para "{item}":',
+
+      // ── Counter-to-kitchen ────────────────────────────────────────────────
+      'pos.sendToKitchen':       'Enviar a Cocina',
+      'pos.counterLabel':        'Mostrador',
     }
   };
 

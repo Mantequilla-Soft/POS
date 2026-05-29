@@ -43,6 +43,13 @@
     #emptyState { text-align: center; color: #555; padding: 4rem 1rem; font-size: 1.1rem; }
     #pollStatus { font-size: 0.72rem; color: #555; }
     #storeNameLabel { font-weight: 600; color: #ccc; }
+    .order-card.late { border-color: #f39c12; }
+    .order-card.very-late { border-color: #e74c3c; animation: pulse-border 1.5s ease-in-out infinite; }
+    @keyframes pulse-border { 0%,100% { border-color:#e74c3c; } 50% { border-color:#c0392b; } }
+    .order-elapsed { font-size: 0.7rem; padding: .15rem .45rem; border-radius: 10px; font-weight: 600; }
+    .order-elapsed.ok   { background: #333; color: #888; }
+    .order-elapsed.late { background: #f39c1233; color: #f39c12; }
+    .order-elapsed.very-late { background: #e74c3c33; color: #e74c3c; }
   </style>
 </head>
 <body>
@@ -195,6 +202,10 @@ async function fetchOrders() {
   }
 }
 
+function elapsedMins(dateStr) {
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+}
+
 function renderOrders(orders) {
   ordersGrid.innerHTML = '';
   if (!orders.length) {
@@ -204,15 +215,19 @@ function renderOrders(orders) {
   emptyState.style.display = 'none';
   orders.forEach(order => {
     const allReady = order.items.every(i => i.kitchenStatus === 'ready');
+    const mins = elapsedMins(order.openedAt || order.createdAt);
+    const urgency = mins >= 20 ? 'very-late' : mins >= 10 ? 'late' : '';
     const card = document.createElement('div');
-    card.className = 'order-card' + (allReady ? ' all-ready' : '');
+    card.className = 'order-card' + (allReady ? ' all-ready' : urgency ? ` ${urgency}` : '');
     const opened = new Date(order.openedAt || order.createdAt);
     const timeStr = opened.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const tableLabel = order.tableLabel || (order.tableId ? `Table ${order.tableId}` : 'Counter');
+    const elapsedLabel = mins < 1 ? '< 1 min' : `${mins} min`;
+    const elapsedClass = urgency || 'ok';
     card.innerHTML = `
       <div class="order-card-header">
         <span class="table-badge">${escHtml(tableLabel)}</span>
-        <span class="order-time">${timeStr}</span>
+        <span class="order-elapsed ${elapsedClass}">${elapsedLabel}</span>
       </div>
       <ul class="order-items" id="items-${order._id}">
         ${order.items.map((item, idx) => renderItem(order._id, item, idx)).join('')}

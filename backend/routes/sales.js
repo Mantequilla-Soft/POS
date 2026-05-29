@@ -156,17 +156,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/sales/:id/items — replace items on an open tab
+// PATCH /api/sales/:id/items — replace items on an open tab (preserves kitchenStatus)
 router.patch('/:id/items', async (req, res) => {
   try {
     const { items, subtotal, taxAmount, total } = req.body;
     if (!items?.length) return res.status(400).json({ error: 'items are required' });
-    const tab = await Sale.findOneAndUpdate(
-      { _id: req.params.id, storeId: req.user.storeId, status: 'open' },
-      { $set: { items, subtotal: subtotal ?? total ?? 0, taxAmount: taxAmount ?? 0, total: total ?? 0 } },
-      { new: true }
-    );
+    const tab = await Sale.findOne({ _id: req.params.id, storeId: req.user.storeId, status: 'open' });
     if (!tab) return res.status(404).json({ error: 'Open tab not found' });
+    // Preserve kitchen-side ready status for items that already existed (matched by id)
+    const prevStatus = {};
+    tab.items.forEach(i => { if (i.id) prevStatus[i.id] = i.kitchenStatus; });
+    tab.items = items.map(i => ({ ...i, kitchenStatus: prevStatus[i.id] || 'pending' }));
+    tab.subtotal  = subtotal ?? total ?? 0;
+    tab.taxAmount = taxAmount ?? 0;
+    tab.total     = total ?? 0;
+    tab.markModified('items');
+    await tab.save();
     res.json(tab);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -196,6 +201,21 @@ router.patch('/:id/close', async (req, res) => {
     );
     if (!tab) return res.status(404).json({ error: 'Open tab not found' });
     res.json(tab);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/sales/:id — void an open tab
+router.delete('/:id', async (req, res) => {
+  try {
+    const tab = await Sale.findOneAndDelete({
+      _id: req.params.id,
+      storeId: req.user.storeId,
+      status: 'open',
+    });
+    if (!tab) return res.status(404).json({ error: 'Open tab not found' });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

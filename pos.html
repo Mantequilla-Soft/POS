@@ -229,9 +229,11 @@
         #tablesOverlay.open { display:flex; }
         .tables-panel { background:var(--surface); border-radius:var(--r-lg); padding:1.5rem; max-width:520px; width:100%; box-shadow:var(--sh-lg); max-height:80vh; overflow-y:auto; }
         .tables-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:.75rem; margin-top:1rem; }
-        .table-tile { padding:.9rem .5rem; border-radius:var(--r); border:2px solid var(--border); background:var(--bg); cursor:pointer; text-align:center; transition:var(--ease); user-select:none; }
+        .table-tile { padding:.9rem .5rem; border-radius:var(--r); border:2px solid var(--border); background:var(--bg); cursor:pointer; text-align:center; transition:var(--ease); user-select:none; position:relative; }
         .table-tile:hover { border-color:var(--primary); }
         .table-tile.has-tab { border-color:var(--amber); background:var(--amber-light,#fff8ed); }
+        .tile-void-x { position:absolute; top:.3rem; right:.3rem; background:transparent; border:none; color:var(--red,#e74c3c); font-size:1rem; line-height:1; cursor:pointer; width:1.4rem; height:1.4rem; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+        .tile-void-x:hover { background:var(--red,#e74c3c); color:#fff; }
         .tile-label { font-weight:700; font-size:1rem; }
         .tile-sub { font-size:.72rem; color:var(--text-2); margin-top:.15rem; }
         .tile-sub.open { color:var(--amber); font-weight:600; }
@@ -522,9 +524,12 @@
                 cart.forEach((item, idx) => {
                     const lineTotal = item.price * item.qty;
                     const li = document.createElement('li');
+                    const noteDisplay = (!item.isPass && item.notes)
+                        ? `<span style="font-size:.7rem;color:var(--amber);display:block;margin-top:.1rem;">${posEscHtml(item.notes)}</span>`
+                        : '';
                     const nameHtml = item.isPass
                         ? `<span class="cart-item-name">${item.name}<br><span style="font-size:.75em;color:var(--amber);font-weight:600">👤 ${item.passContact?.name || ''}</span></span>`
-                        : `<span class="cart-item-name">${item.name}</span>`;
+                        : `<span class="cart-item-name">${item.name}${noteDisplay}<button onclick="editItemNote(${idx})" title="${t('pos.addNote')}" style="background:none;border:none;cursor:pointer;font-size:.7rem;color:var(--text-3);padding:0 .15rem;vertical-align:middle;">📝</button></span>`;
                     const qtyHtml = item.isPass
                         ? `<span class="cart-item-qty"><button class="remove-btn" onclick="removeFromCart(${idx})">✕</button></span>`
                         : `<span class="cart-item-qty">
@@ -570,7 +575,7 @@
                 alert(t('pos.noHiveAccount'));
                 return;
             }
-            const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+            const { total } = calculateCartTotals();
             if (total <= 0) {
                 alert('Cart is empty.');
                 return;
@@ -701,6 +706,7 @@
                 html += `<div id="tabSaveRow" style="display:flex;gap:.5rem;margin-bottom:.5rem;">
                     <button id="saveTabBtn" type="button" class="btn btn-secondary btn-sm" style="flex:1;" ${dis}>💾 Save Tab</button>
                     <button id="backToTablesBtn" type="button" class="btn btn-ghost btn-sm" style="flex-shrink:0;">🪑 Tables</button>
+                    <button id="voidTabBtn" type="button" class="btn btn-ghost btn-sm" style="color:var(--red,#e74c3c);flex-shrink:0;" title="${t('pos.voidTab')}">🗑</button>
                 </div>`;
             }
             html += `<div id="paymentButtonsRow" style="display:flex;flex-direction:column;gap:0.5rem;">`;
@@ -723,6 +729,13 @@
                 html += `<button id="payWithBtcBtn" type="button" class="btn btn-block" style="background:#f7931a;color:#fff;border-color:#f7931a;" ${dis}>${t('pos.payBtc')}</button>`;
             }
             html += `</div>`;
+            // Counter-to-kitchen: only when tabs enabled, no active table tab
+            if (!currentTabState) {
+                const _feats = JSON.parse(localStorage.getItem('pos_features') || '{}');
+                if (_feats.tabs) {
+                    html += `<button id="sendToKitchenBtn" type="button" class="btn btn-secondary btn-block" style="border-color:var(--amber);color:var(--amber);margin-top:.25rem;" ${dis}>🍳 ${t('pos.sendToKitchen')}</button>`;
+                }
+            }
             // Cash section (change calculator)
             html += `<div id="cashPaymentSection" style="display:none;padding-top:0.75rem;">
                 <div class="form-group">
@@ -790,9 +803,13 @@
                 externalSection.style.display = 'block';
                 extNotesInput.focus();
             }
-            const saveTabBtn     = document.getElementById('saveTabBtn');
+            const saveTabBtn      = document.getElementById('saveTabBtn');
             const backToTablesBtn = document.getElementById('backToTablesBtn');
+            const voidTabBtn_     = document.getElementById('voidTabBtn');
+            const sendToKitchenBtn = document.getElementById('sendToKitchenBtn');
             if (saveTabBtn) saveTabBtn.onclick = saveTab;
+            if (voidTabBtn_) voidTabBtn_.onclick = voidTab;
+            if (sendToKitchenBtn) sendToKitchenBtn.onclick = sendToKitchen;
             if (backToTablesBtn) backToTablesBtn.onclick = function() {
                 cart = [];
                 currentTabState = null;
@@ -1200,8 +1217,15 @@
                 const div = document.createElement('div');
                 div.className = 'table-tile' + (tab ? ' has-tab' : '');
                 div.innerHTML = `<div class="tile-label">${posEscHtml(table.label)}</div>
-                    <div class="tile-sub${tab ? ' open' : ''}">${tab ? `${tab.items.length} item${tab.items.length===1?'':'s'}` : 'Available'}</div>`;
+                    <div class="tile-sub${tab ? ' open' : ''}">${tab ? `${tab.items.length} item${tab.items.length===1?'':'s'}` : 'Available'}</div>
+                    ${tab ? `<button class="tile-void-x" title="${t('pos.voidTab')}">×</button>` : ''}`;
                 div.onclick = () => selectTable(table, tab);
+                if (tab) {
+                    div.querySelector('.tile-void-x').addEventListener('click', e => {
+                        e.stopPropagation();
+                        voidTabFromTile(tab._id, table.id, table.label);
+                    });
+                }
                 grid.appendChild(div);
             });
             document.getElementById('tablesOverlay').classList.add('open');
@@ -1274,6 +1298,107 @@
             renderMenu();
             showTablesPanel();
         }
+        // ── Void tab (from payment row) ───────────────────────────────────
+        async function voidTab() {
+            if (!currentTabState?.tabId) {
+                if (!confirm(t('pos.voidTabUnsaved'))) return;
+                cart = [];
+                currentTabState = null;
+                renderTabBadge();
+                renderCart();
+                renderMenu();
+                return;
+            }
+            if (!confirm(t('pos.voidTabConfirm'))) return;
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const apiB = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            try {
+                const res = await fetch(`${apiB}/sales/${currentTabState.tabId}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Error');
+                if (currentTabState.tableId) delete openTabsByTable[currentTabState.tableId];
+                cart = [];
+                currentTabState = null;
+                renderTabBadge();
+                renderCart();
+                renderMenu();
+                showTablesPanel();
+            } catch (e) {
+                alert(t('pos.voidTabError', { error: e.message }));
+            }
+        }
+        window.voidTab = voidTab;
+
+        // ── Void tab from tile (tables panel × button) ────────────────────
+        async function voidTabFromTile(tabId, tableId, tableLabel) {
+            if (!confirm(t('pos.voidTileConfirm', { label: tableLabel }))) return;
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const apiB = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            try {
+                await fetch(`${apiB}/sales/${tabId}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (tableId) delete openTabsByTable[tableId];
+                if (currentTabState?.tabId === tabId) {
+                    cart = [];
+                    currentTabState = null;
+                    renderTabBadge();
+                    renderCart();
+                    renderMenu();
+                }
+                showTablesPanel();
+            } catch (e) {
+                alert(t('pos.voidTabError', { error: e.message }));
+            }
+        }
+        window.voidTabFromTile = voidTabFromTile;
+
+        // ── Send counter order to kitchen (no table) ──────────────────────
+        async function sendToKitchen() {
+            if (!cart.length) return;
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const apiB = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            const { subtotal, taxAmount, total } = calculateCartTotals();
+            const items = cart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty, notes: i.notes || '' }));
+            const counterId = 'counter-' + Date.now();
+            try {
+                const res = await fetch(`${apiB}/sales/open`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        items, subtotal, taxAmount, total,
+                        currency: getStoreSettings().currency || 'HBD',
+                        tableId: counterId,
+                        tableLabel: t('pos.counterLabel'),
+                    }),
+                });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Error');
+                const savedTab = await res.json();
+                currentTabState = { tabId: savedTab._id, tableId: counterId, tableLabel: t('pos.counterLabel') };
+                openTabsByTable[counterId] = savedTab;
+                renderTabBadge();
+                renderCart();
+                renderMenu();
+            } catch (e) {
+                alert(t('pos.voidTabError', { error: e.message }));
+            }
+        }
+        window.sendToKitchen = sendToKitchen;
+
+        // ── Per-item notes ────────────────────────────────────────────────
+        function editItemNote(idx) {
+            const item = cart[idx];
+            if (!item) return;
+            const note = window.prompt(t('pos.noteFor', { item: item.name }), item.notes || '');
+            if (note === null) return;
+            cart[idx].notes = note.trim();
+            renderCart();
+        }
+        window.editItemNote = editItemNote;
+
         // ─────────────────────────────────────────────────────────────────
 
         // Add ability to X out of the Lightning QR modal
