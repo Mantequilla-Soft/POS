@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kitchen Display — POSHIVE</title>
   <link rel="stylesheet" href="theme.css">
+  <script src="i18n.js"></script>
   <style>
     body { background: #1a1a1a; color: #f0f0f0; font-family: sans-serif; margin: 0; min-height: 100vh; }
     #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
@@ -57,15 +58,18 @@
 <!-- Login / PIN screen -->
 <div id="loginScreen">
   <div class="card">
-    <h2>🍳 Kitchen Display</h2>
+    <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1.5rem;">
+      <h2 style="margin:0;" data-i18n="kitchen.title">🍳 Kitchen Display</h2>
+      <span id="loginLangToggle"></span>
+    </div>
     <div id="loginErr" class="err"></div>
-    <label>API Base URL</label>
+    <label data-i18n="kitchen.apiBaseLabel">API Base URL</label>
     <input type="url" id="apiBaseInput" placeholder="http://localhost:3001" autocomplete="off">
-    <label>Store ID</label>
-    <input type="text" id="storeIdInput" placeholder="Paste your Store ID" autocomplete="off">
-    <label>Kitchen PIN</label>
+    <label data-i18n="kitchen.storeIdLabel">Store ID</label>
+    <input type="text" id="storeIdInput" data-i18n-placeholder="kitchen.storeIdPlaceholder" placeholder="Paste your Store ID" autocomplete="off">
+    <label data-i18n="kitchen.pinLabel">Kitchen PIN</label>
     <input type="password" id="pinInput" placeholder="••••" maxlength="10" inputmode="numeric" autocomplete="off">
-    <button class="btn" id="loginBtn">Enter Kitchen</button>
+    <button class="btn" id="loginBtn" data-i18n="kitchen.enterBtn">Enter Kitchen</button>
   </div>
 </div>
 
@@ -73,13 +77,16 @@
 <div id="kitchenScreen">
   <div id="kitchenHeader">
     <div>
-      <h1>Kitchen Display</h1>
-      <div class="meta"><span id="storeNameLabel"></span> &nbsp;·&nbsp; <span id="pollStatus">Loading…</span></div>
+      <h1 data-i18n="kitchen.title">🍳 Kitchen Display</h1>
+      <div class="meta"><span id="storeNameLabel"></span> &nbsp;·&nbsp; <span id="pollStatus" data-i18n="common.loading">Loading…</span></div>
     </div>
-    <button id="logoutBtn">Sign Out</button>
+    <div style="display:flex;align-items:center;gap:.5rem;">
+      <span id="kitchenLangToggle"></span>
+      <button id="logoutBtn" data-i18n="kitchen.signOut">Sign Out</button>
+    </div>
   </div>
   <div id="ordersGrid"></div>
-  <div id="emptyState" style="display:none">No open orders right now. 🎉</div>
+  <div id="emptyState" style="display:none" data-i18n="kitchen.noOrders">No open orders right now. 🎉</div>
 </div>
 
 <script>
@@ -119,6 +126,9 @@ if (urlParams.get('apiBase') && !apiBase) {
 }
 
 function init() {
+  i18n.init();
+  i18n.renderLangToggle(document.getElementById('loginLangToggle'));
+  i18n.renderLangToggle(document.getElementById('kitchenLangToggle'));
   apiBaseInput.value = apiBase || window.location.origin;
   storeIdInput.value = storeId || '';
   if (kitchenToken) {
@@ -134,7 +144,7 @@ loginBtn.onclick = async () => {
   const base = apiBaseInput.value.trim().replace(/\/$/, '');
   const sid  = storeIdInput.value.trim();
   const pin  = pinInput.value.trim();
-  if (!base || !sid || !pin) { loginErr.textContent = 'All fields are required.'; return; }
+  if (!base || !sid || !pin) { loginErr.textContent = t('kitchen.allRequired'); return; }
   loginBtn.disabled = true;
   try {
     const res = await fetch(`${base}/api/kitchen/auth`, {
@@ -143,7 +153,7 @@ loginBtn.onclick = async () => {
       body: JSON.stringify({ pin, storeId: sid }),
     });
     const data = await res.json();
-    if (!res.ok) { loginErr.textContent = data.error || 'Invalid PIN'; return; }
+    if (!res.ok) { loginErr.textContent = data.error || t('kitchen.invalidPin'); return; }
     localStorage.setItem(API_BASE_KEY, base);
     localStorage.setItem(STORE_ID_KEY, sid);
     localStorage.setItem(TOKEN_KEY, data.token);
@@ -153,7 +163,7 @@ loginBtn.onclick = async () => {
     storeId = sid;
     showKitchen();
   } catch (e) {
-    loginErr.textContent = 'Could not connect to server.';
+    loginErr.textContent = t('kitchen.connectError');
   } finally {
     loginBtn.disabled = false;
   }
@@ -190,15 +200,15 @@ async function fetchOrders() {
       kitchenToken = '';
       kitchenScreen.style.display = 'none';
       loginScreen.style.display = 'flex';
-      loginErr.textContent = 'Session expired. Please sign in again.';
+      loginErr.textContent = t('kitchen.sessionExpired');
       return;
     }
     const orders = await res.json();
     renderOrders(orders);
     const now = new Date().toLocaleTimeString();
-    pollStatus.textContent = `Updated ${now}`;
+    pollStatus.textContent = t('kitchen.updated', { time: now });
   } catch (e) {
-    pollStatus.textContent = 'Connection error — retrying…';
+    pollStatus.textContent = t('kitchen.connectionError');
   }
 }
 
@@ -245,7 +255,7 @@ function renderItem(orderId, item, idx) {
       ${item.notes ? `<span class="item-notes">${escHtml(item.notes)}</span>` : ''}
     </span>
     <button class="ready-btn${done ? ' is-ready' : ''}" onclick="toggleItem('${orderId}',${idx},'${done ? 'pending' : 'ready'}')">
-      ${done ? '✓ Ready' : 'Mark Ready'}
+      ${done ? t('kitchen.ready') : t('kitchen.markReady')}
     </button>
   </li>`;
 }
