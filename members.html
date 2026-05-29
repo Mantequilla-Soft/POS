@@ -62,6 +62,7 @@
     <div class="nav-links">
       <a href="dashboard.html" data-i18n="common.dashboard" id="navDashboard">Dashboard</a>
       <a href="pos.html" data-i18n="common.pos">POS</a>
+      <a href="campaigns.html" data-i18n="campaigns.navLink" id="navCampaigns" style="display:none">📧 Campaigns</a>
       <a href="admin.html" data-i18n="common.settings" id="navSettings">Settings</a>
       <span id="langToggleContainer"></span>
     </div>
@@ -271,7 +272,7 @@ const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('p
 const isCashier = !localStorage.getItem('pos_admin_token') && !!localStorage.getItem('pos_cashier_token');
 if (!token) { window.location.href = 'login.html'; }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   i18n.init();
   i18n.renderLangToggle(document.getElementById('langToggleContainer'));
   if (isCashier) {
@@ -280,6 +281,16 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     document.getElementById('exportCsvBtn').style.display = '';
     document.getElementById('exportPdfBtn').style.display = '';
+    // Show campaigns link if the feature is on
+    try {
+      const r = await fetch(`${API_BASE}/api/store/config`, { headers: authHeaders() });
+      if (r.ok) {
+        const cfg = await r.json();
+        if (cfg.features?.emailCampaigns) {
+          document.getElementById('navCampaigns').style.display = '';
+        }
+      }
+    } catch { /* non-critical */ }
   }
 });
 

@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const jwt    = require('jsonwebtoken');
 const { authenticate, roleOnly } = require('../middleware/auth');
 const Member = require('../models/Member');
 const MemberPayment = require('../models/MemberPayment');
@@ -33,6 +34,24 @@ async function queryMembers(storeId, query) {
     .populate('membershipTypeId', 'name price currency durationDays isPass')
     .sort({ name: 1 });
 }
+
+// Public unsubscribe endpoint — must be before authenticate middleware
+router.get('/unsubscribe', async (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).send('<p>Invalid unsubscribe link.</p>');
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (payload.purpose !== 'unsub') throw new Error('wrong token type');
+    await Member.findByIdAndUpdate(payload.memberId, { $set: { emailOptOut: true } });
+    res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Unsubscribed</title>
+      <style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f5f5f4}
+      .box{background:#fff;border-radius:8px;padding:2rem 2.5rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.1);max-width:380px}
+      h2{margin:0 0 .5rem;color:#1c1917}p{color:#78716c;margin:0}</style></head>
+      <body><div class="box"><h2>You've been unsubscribed.</h2><p>You won't receive campaign emails from this store anymore.</p></div></body></html>`);
+  } catch {
+    res.status(400).send('<p>This unsubscribe link is invalid or has expired.</p>');
+  }
+});
 
 // Any authenticated user with a storeId (store_owner, superadmin, or cashier)
 // can read members and record payments. Destructive operations are gated below.

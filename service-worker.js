@@ -1,4 +1,4 @@
-const CACHE = 'poshive-v17';
+const CACHE = 'poshive-v18';
 
 const APP_SHELL = [
   'login.html',
@@ -6,6 +6,7 @@ const APP_SHELL = [
   'pos.html',
   'admin.html',
   'members.html',
+  'campaigns.html',
   'reviewreceipts.html',
   'superadmin.html',
   'quick-sale.html',

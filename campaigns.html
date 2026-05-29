@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaigns — POSHIVE</title>
+  <script src="i18n.js"></script>
+  <link rel="stylesheet" href="theme.css">
+  <!-- Quill rich text editor -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <style>
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: var(--sh-xs); }
+    .header-inner { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .header h1 { color: var(--text); font-size: 1.4rem; }
+    .nav-links { display: flex; gap: .75rem; align-items: center; }
+    .nav-links a { color: var(--text-2); text-decoration: none; font-size: .9rem; }
+    .nav-links a:hover { color: var(--text); }
+    .main { max-width: 1000px; margin: 1.5rem auto; padding: 0 1.5rem; }
+
+    /* Tabs */
+    .tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
+    .tab-btn { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: .6rem 1.2rem; cursor: pointer; font-size: .9rem; color: var(--text-2); font-family: var(--font); transition: var(--ease); }
+    .tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* Cards */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; box-shadow: var(--sh-sm); }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--ink); margin: 0 0 1rem; }
+    .form-group { margin-bottom: .9rem; }
+    .form-group label { display: block; font-size: .82rem; font-weight: 600; color: var(--text-2); margin-bottom: .3rem; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; box-sizing: border-box; padding: .5rem .7rem;
+      border: 1.5px solid var(--border); border-radius: var(--r); font-size: .9rem;
+      background: var(--surface); color: var(--text); font-family: var(--font);
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--ink); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+    /* Recipient count pill */
+    .recipient-count { background: var(--green-light); border: 1px solid var(--green-border); border-radius: var(--r); padding: .6rem 1rem; font-size: .9rem; color: var(--text); margin-top: .75rem; }
+    .recipient-count strong { color: var(--green); }
+    .recipient-count.warn strong { color: var(--amber); }
+    .recipient-count.empty { background: var(--surface-2); border-color: var(--border); color: var(--text-2); }
+
+    /* Token bar */
+    .token-bar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .6rem; font-size: .82rem; color: var(--text-2); }
+    .token-btn { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-full); padding: .25rem .7rem; font-size: .78rem; cursor: pointer; color: var(--text); transition: var(--ease); }
+    .token-btn:hover { background: var(--ink); color: var(--ink-text); border-color: var(--ink); }
+
+    /* Quill overrides */
+    .ql-container { font-family: var(--font); font-size: .9rem; }
+    .ql-toolbar { border-color: var(--border) !important; border-radius: var(--r) var(--r) 0 0; background: var(--surface-2); }
+    .ql-container.ql-snow { border-color: var(--border) !important; border-radius: 0 0 var(--r) var(--r); min-height: 200px; }
+
+    /* Send bar */
+    .send-bar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; padding-top: .25rem; }
+    .send-bar .btn-send { background: var(--green); color: #fff; border: none; border-radius: var(--r); padding: .65rem 1.5rem; font-size: .95rem; font-weight: 600; cursor: pointer; transition: var(--ease); }
+    .send-bar .btn-send:disabled { background: var(--border-strong); cursor: not-allowed; }
+    .send-bar .btn-send:not(:disabled):hover { background: var(--green-hover, #15803d); }
+
+    /* Preview pane */
+    #previewPane { display: none; border: 1.5px solid var(--border); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 1.25rem; }
+    #previewPane .preview-header { background: var(--surface-2); padding: .75rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+    #previewPane .preview-header strong { font-size: .9rem; }
+    #previewContent { padding: 1.5rem; background: #f5f5f4; }
+    #previewInner { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; }
+    #previewInner .prev-header { background: #1c1917; padding: 24px 32px; }
+    #previewInner .prev-header span { color: #fff; font-weight: 700; font-size: 1.1rem; }
+    #previewInner .prev-body { padding: 32px; font-size: 15px; color: #44403c; line-height: 1.7; }
+    #previewInner .prev-footer { background: #fafaf9; border-top: 1px solid #e7e5e4; padding: 16px 32px; text-align: center; font-size: 12px; color: #a8a29e; }
+
+    /* Template actions */
+    .tpl-action-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+
+    /* History table */
+    .history-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .history-table th { text-align: left; padding: .5rem .75rem; font-size: .78rem; font-weight: 600; color: var(--text-2); border-bottom: 2px solid var(--border); }
+    .history-table td { padding: .6rem .75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .history-table tr:last-child td { border-bottom: none; }
+
+    /* Template list */
+    .tpl-item { display: flex; align-items: center; gap: .75rem; padding: .6rem 0; border-bottom: 1px solid var(--border); }
+    .tpl-item:last-child { border-bottom: none; }
+    .tpl-item-name { flex: 1; font-size: .9rem; font-weight: 500; }
+    .tpl-item-sub  { font-size: .78rem; color: var(--text-2); }
+
+    /* Feature-off banner */
+    .feature-off { background: var(--amber-light); border: 1px solid var(--amber-border); border-radius: var(--r-lg); padding: 1.25rem 1.5rem; color: var(--text); font-size: .9rem; }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1c1917; color: #fff; padding: .75rem 1.25rem; border-radius: var(--r); font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 999; }
+    #toast.show { opacity: 1; }
+
+    /* Template save form */
+    #tplSaveForm { display: none; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: .75rem 1rem; margin-top: .75rem; }
+    #tplSaveForm .form-row { align-items: flex-end; }
+
+    /* Load template modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--surface); border-radius: var(--r-lg); padding: 1.5rem; width: 420px; max-width: 95vw; box-shadow: var(--sh-lg); }
+    .modal-box h3 { margin: 0 0 1rem; font-size: 1rem; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1 data-i18n="campaigns.title">Email Campaigns</h1>
+    <div class="nav-links">
+      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
+      <a href="members.html" data-i18n="members.title">Members</a>
+      <a href="admin.html" data-i18n="common.settings">Settings</a>
+      <span id="langToggleContainer"></span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Feature-off banner (shown if emailCampaigns feature is disabled) -->
+  <div id="featureOffBanner" class="feature-off" style="display:none">
+    <span data-i18n="campaigns.featureOff">Email Campaigns are disabled for this store. Enable them in Settings.</span>
+    <a href="admin.html" style="margin-left:.5rem;color:var(--amber);font-weight:600">Go to Settings →</a>
+  </div>
+
+  <div id="campaignApp" style="display:none">
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="composer" onclick="switchTab('composer')" data-i18n="campaigns.tabComposer">Composer</button>
+      <button class="tab-btn" data-tab="history" onclick="switchTab('history')" data-i18n="campaigns.tabHistory">History</button>
+      <button class="tab-btn" data-tab="templates" onclick="switchTab('templates')" data-i18n="campaigns.tabTemplates">Templates</button>
+    </div>
+
+    <!-- ── Composer tab ── -->
+    <div id="tab-composer">
+
+      <!-- Recipients -->
+      <div class="card">
+        <p class="card-title" data-i18n="campaigns.recipientsTitle">Recipients</p>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label data-i18n="campaigns.filterStatus">Member status</label>
+            <select id="filterStatus" onchange="debouncedCount()">
+              <option value="all"       data-i18n="campaigns.allStatuses">All statuses</option>
+              <option value="active"    data-i18n="common.active">Active</option>
+              <option value="overdue"   data-i18n="common.overdue">Overdue</option>
+              <option value="expired"   data-i18n="common.expired">Expired</option>
+              <option value="pending"   data-i18n="common.pending">Pending</option>
+              <option value="suspended" data-i18n="common.suspended">Suspended</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label data-i18n="campaigns.filterType">Membership type</label>
+            <select id="filterType" onchange="debouncedCount()">
+              <option value="all" data-i18n="campaigns.allTypes">All plans</option>
+            </select>
+          </div>
+        </div>
+        <div id="recipientCount" class="recipient-count empty" style="margin-top:.75rem">—</div>
+      </div>
+
+      <!-- Compose -->
+      <div class="card">
+        <p class="card-title" data-i18n="campaigns.composeTitle">Compose</p>
+
+        <!-- Token insert bar -->
+        <div class="token-bar">
+          <span data-i18n="campaigns.insertTokens">Insert:</span>
+          <button class="token-btn" onclick="insertToken('{{name}}')" data-i18n="campaigns.tokenName">First Name</button>
+          <button class="token-btn" onclick="insertToken('{{membership}}')" data-i18n="campaigns.tokenMembership">Membership Type</button>
+          <button class="token-btn" onclick="insertToken('{{dueDate}}')" data-i18n="campaigns.tokenDueDate">Due Date</button>
+          <button class="token-btn" onclick="insertToken('{{storeName}}')" data-i18n="campaigns.tokenStoreName">Store Name</button>
+        </div>
+
+        <div class="form-group">
+          <label data-i18n="campaigns.subjectLabel">Subject *</label>
+          <input type="text" id="subjectInput"
+            data-i18n-placeholder="campaigns.subjectPlaceholder"
+            placeholder="e.g. Your membership renewal is coming up…"
+            onfocus="lastFocused='subject'">
+        </div>
+        <div class="form-group">
+          <label data-i18n="campaigns.previewTextLabel">Preview text (optional)</label>
+          <input type="text" id="previewTextInput"
+            data-i18n-placeholder="campaigns.previewTextPlaceholder"
+            placeholder="Short text shown in inbox before opening…">
+        </div>
+        <div class="form-group">
+          <label data-i18n="campaigns.bodyLabel">Message body *</label>
+          <div id="quillEditor"></div>
+        </div>
+
+        <!-- Template actions -->
+        <div class="tpl-action-row">
+          <button class="btn btn-outline" onclick="openLoadTplModal()" data-i18n="campaigns.loadTemplateBtn">Load Template</button>
+          <button class="btn btn-outline" onclick="toggleTplSaveForm()" data-i18n="campaigns.saveTemplateBtn">Save as Template</button>
+        </div>
+        <div id="tplSaveForm">
+          <div class="form-row" style="align-items:flex-end">
+            <div class="form-group" style="margin-bottom:0">
+              <label data-i18n="campaigns.templateNameLabel">Template name</label>
+              <input type="text" id="tplNameInput"
+                data-i18n-placeholder="campaigns.templateNamePlaceholder"
+                placeholder="e.g. Monthly Promo">
+            </div>
+            <div style="display:flex;gap:.5rem;margin-bottom:0">
+              <button class="btn btn-primary" style="margin-top:0" onclick="saveTemplate()" data-i18n="campaigns.saveTemplateConfirm">Save</button>
+              <button class="btn" style="margin-top:0" onclick="toggleTplSaveForm()">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview pane -->
+      <div id="previewPane">
+        <div class="preview-header">
+          <strong data-i18n="campaigns.previewTitle">Email Preview</strong>
+          <button class="btn" style="margin-top:0;padding:.3rem .75rem;font-size:.82rem" onclick="closePreview()" data-i18n="campaigns.closePreview">Close Preview</button>
+        </div>
+        <div id="previewContent">
+          <div id="previewInner">
+            <div class="prev-header"><span id="prevStoreName"></span></div>
+            <div class="prev-body" id="prevBody"></div>
+            <div class="prev-footer" id="prevFooter"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Send bar -->
+      <div class="send-bar">
+        <button class="btn btn-outline" onclick="showPreview()" data-i18n="campaigns.previewBtn">Preview</button>
+        <button class="btn-send" id="sendBtn" onclick="sendCampaign()" data-i18n="campaigns.sendBtn">Send Campaign</button>
+        <span id="sendStatus" style="font-size:.85rem;color:var(--text-2)"></span>
+      </div>
+    </div>
+
+    <!-- ── History tab ── -->
+    <div id="tab-history" style="display:none">
+      <div class="card">
+        <p class="card-title" data-i18n="campaigns.historyTitle">Campaign History</p>
+        <div id="historyWrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th data-i18n="campaigns.historyDate">Date</th>
+                <th data-i18n="campaigns.historySubject">Subject</th>
+                <th data-i18n="campaigns.historySent">Sent</th>
+                <th data-i18n="campaigns.historyBy">By</th>
+              </tr>
+            </thead>
+            <tbody id="historyList"></tbody>
+          </table>
+          <p id="historyEmpty" style="display:none;text-align:center;color:var(--text-2);padding:2rem" data-i18n="campaigns.noHistory">No campaigns sent yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Templates tab ── -->
+    <div id="tab-templates" style="display:none">
+      <div class="card">
+        <p class="card-title" data-i18n="campaigns.tabTemplates">Templates</p>
+        <div id="templatesList"></div>
+        <p id="templatesEmpty" style="display:none;color:var(--text-2);font-size:.88rem;padding:.5rem 0" data-i18n="campaigns.noTemplates">No saved templates yet.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Load Template modal -->
+<div class="modal-overlay" id="loadTplModal">
+  <div class="modal-box">
+    <h3 data-i18n="campaigns.loadTemplateBtn">Load Template</h3>
+    <div id="loadTplList"></div>
+    <div style="margin-top:1rem;text-align:right">
+      <button class="btn" onclick="closeLoadTplModal()" data-i18n="common.cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="pwa.js"></script>
+<script>
+const API_BASE = localStorage.getItem('pos_api_base') || window.location.origin;
+const token    = localStorage.getItem('pos_admin_token');
+if (!token) window.location.href = 'login.html';
+
+let storeName = '';
+let lastFocused = 'body'; // 'subject' or 'body'
+let subjectEl;
+let quill;
+let countDebounceTimer;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  i18n.init();
+  i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+  subjectEl = document.getElementById('subjectInput');
+
+  quill = new Quill('#quillEditor', {
+    theme: 'snow',
+    placeholder: 'Write your message here…',
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link'],
+        ['clean'],
+      ],
+    },
+  });
+
+  quill.on('selection-change', rng => { if (rng) lastFocused = 'body'; });
+  subjectEl.addEventListener('focus', () => { lastFocused = 'subject'; });
+
+  await initApp();
+});
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+}
+
+function toast(msg, ok = true) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = ok ? '#1c1917' : '#dc2626';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function switchTab(tab) {
+  ['composer','history','templates'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+    document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'history')   loadHistory();
+  if (tab === 'templates') loadTemplates();
+}
+
+async function initApp() {
+  try {
+    const res = await fetch(`${API_BASE}/api/store/config`, { headers: authHeaders() });
+    if (!res.ok) { window.location.href = 'login.html'; return; }
+    const cfg = await res.json();
+    storeName = cfg.settings?.businessName || '';
+
+    const campaignsEnabled = cfg.features?.emailCampaigns;
+    if (!campaignsEnabled) {
+      document.getElementById('featureOffBanner').style.display = '';
+      return;
+    }
+    document.getElementById('campaignApp').style.display = '';
+    document.getElementById('prevStoreName').textContent = storeName;
+    document.getElementById('prevFooter').innerHTML =
+      `${storeName} &nbsp;·&nbsp; Powered by POSHIVE<br>
+       You're receiving this because you're a member of ${storeName}.<br>
+       <a href="#" style="color:#a8a29e">Unsubscribe</a>`;
+
+    await loadMembershipTypes();
+    debouncedCount();
+  } catch {
+    window.location.href = 'login.html';
+  }
+}
+
+async function loadMembershipTypes() {
+  const res = await fetch(`${API_BASE}/api/membership-types`, { headers: authHeaders() });
+  if (!res.ok) return;
+  const types = await res.json();
+  const sel = document.getElementById('filterType');
+  // preserve "All plans" option
+  while (sel.options.length > 1) sel.remove(1);
+  types.filter(t => t.active && !t.isPass).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t._id;
+    opt.textContent = t.name;
+    sel.appendChild(opt);
+  });
+  const passOpt = document.createElement('option');
+  passOpt.value = 'passes';
+  passOpt.setAttribute('data-i18n', 'campaigns.passesOnly');
+  passOpt.textContent = t('campaigns.passesOnly');
+  sel.appendChild(passOpt);
+}
+
+// ── Recipient count ──────────────────────────────────────────────────────
+
+function debouncedCount() {
+  clearTimeout(countDebounceTimer);
+  countDebounceTimer = setTimeout(fetchCount, 350);
+}
+
+async function fetchCount() {
+  const filters = getFilters();
+  try {
+    const res = await fetch(`${API_BASE}/api/campaigns/preview-count`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ filters }),
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    const el = document.getElementById('recipientCount');
+    if (d.willReceive === 0) {
+      el.className = 'recipient-count empty';
+      el.innerHTML = `<span data-i18n="campaigns.noEmail">${t('campaigns.noEmail')}</span>`;
+    } else {
+      el.className = 'recipient-count' + (d.willReceive < 5 ? ' warn' : '');
+      let html = t('campaigns.willReceive', { n: `<strong>${d.willReceive}</strong>` });
+      if (d.skippedNoEmail > 0) html += ` &nbsp;·&nbsp; ${t('campaigns.skippedNoEmail', { n: d.skippedNoEmail })}`;
+      if (d.skippedOptOut  > 0) html += ` &nbsp;·&nbsp; ${t('campaigns.skippedOptOut',  { n: d.skippedOptOut  })}`;
+      el.innerHTML = html;
+    }
+  } catch { /* silent */ }
+}
+
+function getFilters() {
+  return {
+    status:           document.getElementById('filterStatus').value,
+    membershipTypeId: document.getElementById('filterType').value,
+  };
+}
+
+// ── Token insertion ──────────────────────────────────────────────────────
+
+function insertToken(token) {
+  if (lastFocused === 'subject') {
+    const el = subjectEl;
+    const start = el.selectionStart;
+    const end   = el.selectionEnd;
+    el.value = el.value.slice(0, start) + token + el.value.slice(end);
+    el.selectionStart = el.selectionEnd = start + token.length;
+    el.focus();
+  } else {
+    const range = quill.getSelection(true);
+    quill.insertText(range ? range.index : quill.getLength(), token);
+    quill.focus();
+  }
+}
+
+// ── Preview ──────────────────────────────────────────────────────────────
+
+function showPreview() {
+  const body = quill.root.innerHTML;
+  const subst = sampleSubstitute(body);
+  document.getElementById('prevBody').innerHTML = subst;
+  document.getElementById('previewPane').style.display = '';
+  document.getElementById('previewPane').scrollIntoView({ behavior: 'smooth' });
+}
+
+function closePreview() {
+  document.getElementById('previewPane').style.display = 'none';
+}
+
+function sampleSubstitute(html) {
+  return html
+    .replace(/\{\{name\}\}/gi,       '<strong>[First Name]</strong>')
+    .replace(/\{\{membership\}\}/gi, '<em>[Membership Type]</em>')
+    .replace(/\{\{dueDate\}\}/gi,    '<em>[Due Date]</em>')
+    .replace(/\{\{storeName\}\}/gi,  storeName || '[Store Name]');
+}
+
+// ── Send ─────────────────────────────────────────────────────────────────
+
+async function sendCampaign() {
+  const subject = subjectEl.value.trim();
+  const body    = quill.root.innerHTML;
+  const previewText = document.getElementById('previewTextInput').value.trim();
+
+  if (!subject) { toast(t('campaigns.subjectLabel') + ' required', false); subjectEl.focus(); return; }
+  if (!body || quill.getText().trim() === '') { toast(t('campaigns.bodyLabel') + ' required', false); return; }
+
+  // Get current count
+  const countEl = document.getElementById('recipientCount');
+  const willReceive = parseInt(countEl.querySelector('strong')?.textContent || '0');
+  if (isNaN(willReceive) || willReceive === 0) {
+    toast(t('campaigns.noEmail'), false);
+    return;
+  }
+
+  if (!confirm(t('campaigns.confirmSend', { n: willReceive }))) return;
+
+  const sendBtn    = document.getElementById('sendBtn');
+  const statusEl   = document.getElementById('sendStatus');
+  sendBtn.disabled = true;
+  sendBtn.textContent = t('campaigns.sending');
+  statusEl.textContent = '';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/campaigns/send`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ subject, previewText, body, filters: getFilters() }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.error?.includes('SMTP') || data.error?.includes('Email')) {
+        toast(t('campaigns.smtpRequired'), false);
+      } else {
+        toast(t('campaigns.sendError', { err: data.error || res.status }), false);
+      }
+      return;
+    }
+    const log = data.log;
+    toast(t('campaigns.sent', { n: log.sentCount }));
+    statusEl.textContent = '';
+    // Reset composer
+    subjectEl.value = '';
+    document.getElementById('previewTextInput').value = '';
+    quill.setContents([]);
+    closePreview();
+  } catch (err) {
+    toast(t('campaigns.sendError', { err: err.message }), false);
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = t('campaigns.sendBtn');
+  }
+}
+
+// ── Templates ────────────────────────────────────────────────────────────
+
+function toggleTplSaveForm() {
+  const f = document.getElementById('tplSaveForm');
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+  if (f.style.display !== 'none') document.getElementById('tplNameInput').focus();
+}
+
+async function saveTemplate() {
+  const name = document.getElementById('tplNameInput').value.trim();
+  if (!name) { toast('Template name required', false); return; }
+  const subject     = subjectEl.value.trim();
+  const previewText = document.getElementById('previewTextInput').value.trim();
+  const body        = quill.root.innerHTML;
+
+  const res = await fetch(`${API_BASE}/api/campaigns/templates`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ name, subject, previewText, body }),
+  });
+  if (res.ok) {
+    toast(t('campaigns.templateSaved'));
+    document.getElementById('tplNameInput').value = '';
+    toggleTplSaveForm();
+  } else {
+    const e = await res.json();
+    toast(e.error || 'Save failed', false);
+  }
+}
+
+async function loadTemplates() {
+  const res = await fetch(`${API_BASE}/api/campaigns/templates`, { headers: authHeaders() });
+  const list = res.ok ? await res.json() : [];
+  renderTemplateList(list, document.getElementById('templatesList'));
+  document.getElementById('templatesEmpty').style.display = list.length ? 'none' : '';
+}
+
+function renderTemplateList(list, container) {
+  container.innerHTML = '';
+  list.forEach(tpl => {
+    const row = document.createElement('div');
+    row.className = 'tpl-item';
+    row.innerHTML = `
+      <div style="flex:1">
+        <div class="tpl-item-name">${esc(tpl.name)}</div>
+        <div class="tpl-item-sub">${esc(tpl.subject || '—')}</div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:0;font-size:.8rem;padding:.3rem .7rem" onclick="loadTemplateIntoComposer(${JSON.stringify(tpl._id)})" data-i18n="campaigns.loadTemplate">${t('campaigns.loadTemplate')}</button>
+      <button class="btn" style="margin-top:0;font-size:.8rem;padding:.3rem .7rem;background:var(--red);color:#fff;border-color:var(--red)" onclick="deleteTemplate(${JSON.stringify(tpl._id)}, this.closest('.tpl-item'))" data-i18n="campaigns.deleteTemplate">${t('campaigns.deleteTemplate')}</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+async function deleteTemplate(id, rowEl) {
+  if (!confirm('Delete this template?')) return;
+  const res = await fetch(`${API_BASE}/api/campaigns/templates/${id}`, { method: 'DELETE', headers: authHeaders() });
+  if (res.ok) rowEl.remove();
+  else toast('Delete failed', false);
+}
+
+async function loadTemplateById(id) {
+  const res = await fetch(`${API_BASE}/api/campaigns/templates`, { headers: authHeaders() });
+  const list = res.ok ? await res.json() : [];
+  const tpl  = list.find(t => t._id === id);
+  if (tpl) applyTemplate(tpl);
+}
+
+async function loadTemplateIntoComposer(id) {
+  // We need the full template data; re-use the list
+  const res = await fetch(`${API_BASE}/api/campaigns/templates`, { headers: authHeaders() });
+  const list = res.ok ? await res.json() : [];
+  const tpl  = list.find(t => t._id === id);
+  if (!tpl) return;
+  applyTemplate(tpl);
+  switchTab('composer');
+  toast(t('campaigns.templateLoaded'));
+}
+
+function applyTemplate(tpl) {
+  subjectEl.value = tpl.subject || '';
+  document.getElementById('previewTextInput').value = tpl.previewText || '';
+  quill.root.innerHTML = tpl.body || '';
+}
+
+// Load template modal
+async function openLoadTplModal() {
+  const res  = await fetch(`${API_BASE}/api/campaigns/templates`, { headers: authHeaders() });
+  const list = res.ok ? await res.json() : [];
+  const container = document.getElementById('loadTplList');
+  if (list.length === 0) {
+    container.innerHTML = `<p style="color:var(--text-2);font-size:.88rem">${t('campaigns.noTemplates')}</p>`;
+  } else {
+    container.innerHTML = '';
+    list.forEach(tpl => {
+      const btn = document.createElement('div');
+      btn.className = 'tpl-item';
+      btn.innerHTML = `
+        <div style="flex:1;cursor:pointer" onclick="applyTemplateFromModal('${tpl._id}')">
+          <div class="tpl-item-name">${esc(tpl.name)}</div>
+          <div class="tpl-item-sub">${esc(tpl.subject || '—')}</div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:0;font-size:.8rem" onclick="applyTemplateFromModal('${tpl._id}')">${t('campaigns.loadTemplate')}</button>
+      `;
+      container.appendChild(btn);
+    });
+  }
+  document.getElementById('loadTplModal').classList.add('open');
+}
+
+let _loadTplCache = [];
+async function applyTemplateFromModal(id) {
+  const res  = await fetch(`${API_BASE}/api/campaigns/templates`, { headers: authHeaders() });
+  const list = res.ok ? await res.json() : [];
+  const tpl  = list.find(t => t._id === id);
+  if (tpl) { applyTemplate(tpl); toast(t('campaigns.templateLoaded')); }
+  closeLoadTplModal();
+}
+
+function closeLoadTplModal() {
+  document.getElementById('loadTplModal').classList.remove('open');
+}
+
+// ── History ──────────────────────────────────────────────────────────────
+
+async function loadHistory() {
+  const res  = await fetch(`${API_BASE}/api/campaigns`, { headers: authHeaders() });
+  const data = res.ok ? await res.json() : { logs: [] };
+  const tbody = document.getElementById('historyList');
+  tbody.innerHTML = '';
+  if (!data.logs.length) {
+    document.getElementById('historyEmpty').style.display = '';
+    document.querySelector('.history-table').style.display = 'none';
+  } else {
+    document.getElementById('historyEmpty').style.display = 'none';
+    document.querySelector('.history-table').style.display = '';
+    data.logs.forEach(log => {
+      const tr = document.createElement('tr');
+      const date = new Date(log.sentAt).toLocaleDateString();
+      const counts = `${log.sentCount} sent${log.errorCount ? ` / ${log.errorCount} failed` : ''}`;
+      tr.innerHTML = `
+        <td style="white-space:nowrap;color:var(--text-2);font-size:.82rem">${date}</td>
+        <td>${esc(log.subject)}</td>
+        <td style="white-space:nowrap;font-size:.85rem">${counts}</td>
+        <td style="color:var(--text-2);font-size:.82rem">${esc(log.sentBy || '—')}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+// ── Utility ──────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

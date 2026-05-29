@@ -158,6 +158,60 @@ async function sendOverdueReminder(member, store) {
   }
 }
 
+async function sendCampaignEmail(member, store, subject, htmlBody, unsubscribeUrl, previewText) {
+  const transporter = createTransporter();
+
+  const footer = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:1px solid #e7e5e4">
+      <tr>
+        <td style="padding:16px 0;text-align:center;font-size:12px;color:#a8a29e">
+          ${store.businessName} &nbsp;·&nbsp; Powered by POSHIVE<br>
+          You're receiving this because you're a member of ${store.businessName}.<br>
+          <a href="${unsubscribeUrl}" style="color:#a8a29e">Unsubscribe</a>
+        </td>
+      </tr>
+    </table>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+${previewText ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all">${previewText}</div>` : ''}
+</head>
+<body style="margin:0;padding:0;background:#f5f5f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;padding:32px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+        <tr>
+          <td style="background:#1c1917;padding:24px 32px">
+            <p style="margin:0;font-size:18px;font-weight:700;color:#ffffff">${store.businessName}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px;font-size:15px;color:#44403c;line-height:1.7">
+            ${htmlBody}
+            ${footer}
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    await transporter.sendMail({
+      from:     process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      replyTo:  store.ownerEmail || undefined,
+      to:       member.email,
+      subject,
+      html,
+      text: htmlBody.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() + `\n\nUnsubscribe: ${unsubscribeUrl}`,
+    });
+  } finally {
+    transporter.close();
+  }
+}
+
 async function sendBackupEmail(store, toEmail, csvContent) {
   const transporter = createTransporter();
   const today = new Date().toISOString().slice(0, 10);
@@ -180,4 +234,4 @@ async function sendBackupEmail(store, toEmail, csvContent) {
   }
 }
 
-module.exports = { sendOverdueReminder, sendBackupEmail, isConfigured };
+module.exports = { sendOverdueReminder, sendCampaignEmail, sendBackupEmail, isConfigured };

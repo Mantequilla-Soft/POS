@@ -19,6 +19,7 @@ const storeSchema = new mongoose.Schema({
     memberships:      { type: Boolean, default: false },
     bitcoinLightning: { type: Boolean, default: false },
     emailReminders:   { type: Boolean, default: false },
+    emailCampaigns:   { type: Boolean, default: false },
   },
   tax: {
     enabled:   { type: Boolean, default: false },

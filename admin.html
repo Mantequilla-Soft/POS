@@ -331,6 +331,17 @@
                 <div id="mtError" style="color:var(--red);font-size:.82em;margin-top:.5rem"></div>
             </div>
 
+            <!-- Email Campaigns -->
+            <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--green-border)">
+                <label style="display:flex;align-items:center;gap:0.6em;font-size:.95em;cursor:pointer">
+                    <input type="checkbox" id="enableEmailCampaigns">
+                    <strong data-i18n="admin.enableEmailCampaigns">Email Campaigns</strong>
+                </label>
+                <p style="font-size:.82em;color:var(--text-2);margin:.4em 0 0" data-i18n="admin.emailCampaignsHelp">
+                    Send broadcast emails to your members from the Campaigns page.
+                </p>
+            </div>
+
             <!-- Email Reminders -->
             <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--green-border)">
                 <label style="display:flex;align-items:center;gap:0.6em;font-size:.95em;cursor:pointer">
@@ -1266,6 +1277,7 @@
                 await loadBitcoinLightningSettings();
                 if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                 if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
+                if (typeof loadEmailCampaignsFeature === 'function') loadEmailCampaignsFeature();
                 if (typeof loadTaxSettings === 'function') loadTaxSettings();
                 if (typeof loadBackupSettings === 'function') loadBackupSettings();
 
@@ -1293,6 +1305,7 @@
                     await loadBitcoinLightningSettings();
                     if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                     if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
+                    if (typeof loadEmailCampaignsFeature === 'function') loadEmailCampaignsFeature();
                     if (typeof loadTaxSettings === 'function') loadTaxSettings();
                     if (typeof loadBackupSettings === 'function') loadBackupSettings();
 
@@ -1660,6 +1673,17 @@
             markDirty();
         };
 
+        // Email Campaigns toggle
+        const enableEmailCampaigns = document.getElementById('enableEmailCampaigns');
+        function loadEmailCampaignsFeature() {
+            enableEmailCampaigns.checked = currentData.features?.emailCampaigns || false;
+        }
+        enableEmailCampaigns.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.emailCampaigns = this.checked;
+            markDirty();
+        };
+
         reminderSubjectInput.oninput = function() {
             if (!currentData.emailSettings) currentData.emailSettings = {};
             currentData.emailSettings.reminderSubject = this.value;
@@ -1673,6 +1697,7 @@
         };
 
         loadEmailReminderSettings();
+        loadEmailCampaignsFeature();
 
         // --- Tax Settings Logic ---
         const enableTaxChk   = document.getElementById('enableTax');

@@ -14,8 +14,10 @@ const memberSchema = new mongoose.Schema({
   ageGroup: { type: String, enum: ['under_18', '18_25', '26_35', '36_45', '46_55', '56_plus', 'unspecified'], default: 'unspecified' },
   createdBy: { type: String, default: '' },
   notes: { type: String, default: '' },
-  lastReminderSent: { type: Date, default: null },
-  isPass: { type: Boolean, default: false },
+  lastReminderSent:  { type: Date,    default: null },
+  isPass:            { type: Boolean, default: false },
+  emailOptOut:       { type: Boolean, default: false },
+  unsubscribeToken:  { type: String,  default: '' },
 }, { timestamps: true });
 
 memberSchema.index({ storeId: 1, status: 1 });
