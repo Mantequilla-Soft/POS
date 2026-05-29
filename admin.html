@@ -1539,7 +1539,7 @@
             }
             list.innerHTML = types.map(t => `
                 <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--green-border);border-radius:var(--r);padding:.5rem .85rem;font-size:.88em">
-                    <span><strong>${t.name}</strong> — ${t.price} ${t.currency} / ${t.durationDays}d${t.description ? ' · ' + t.description : ''}</span>
+                    <span><strong>${t.name}</strong> — ${t.currency === 'HBD' ? '$' : t.currency + ' '}${parseFloat(t.price).toFixed(2)} / ${t.durationDays}d${t.description ? ' · ' + t.description : ''}</span>
                     <div style="display:flex;gap:.4rem">
                         <button onclick="editMt('${t._id}','${t.name.replace(/'/g,"\\'")}',${t.price},'${t.currency}',${t.durationDays},'${(t.description||'').replace(/'/g,"\\'")}')}" style="background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.78em">Edit</button>
                         <button onclick="deleteMt('${t._id}')" style="background:var(--red);color:#fff;border:none;border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.78em">Del</button>

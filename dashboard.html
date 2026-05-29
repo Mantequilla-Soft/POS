@@ -841,7 +841,7 @@
                 const s = await res.json();
                 const el = document.getElementById('todayRevenueNum');
                 const currency = userStore?.settings?.currency || userStore?.currency || '';
-                const symbol = currency === 'HBD' ? 'HBD ' : '$';
+                const symbol = currency === 'HBD' ? '$' : (currency ? currency + ' ' : '$');
                 if (el) el.textContent = symbol + (s.revenue || 0).toFixed(2);
             } catch {}
         }
