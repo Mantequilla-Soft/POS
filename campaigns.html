@@ -447,7 +447,7 @@ function showPreview() {
   const body = quill.root.innerHTML;
   const subst = sampleSubstitute(body);
   document.getElementById('prevBody').innerHTML = subst;
-  document.getElementById('previewPane').style.display = '';
+  document.getElementById('previewPane').style.display = 'block';
   document.getElementById('previewPane').scrollIntoView({ behavior: 'smooth' });
 }
 
