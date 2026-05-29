@@ -646,9 +646,9 @@
 
         // Logout function
         function logout() {
-            // Clear authentication data
             localStorage.removeItem('pos_admin_token');
             localStorage.removeItem('pos_admin_user');
+            localStorage.removeItem('pos_theme');
             
             // Optional: Clear cached data (uncomment if you want to clear cache on logout)
             // localStorage.removeItem('pos_items');
@@ -1264,11 +1264,13 @@
                     currentData.tables = apiConfig.tables || [];
                     currentData.hasKitchenPin = apiConfig.hasKitchenPin || false;
                     currentData.theme = apiConfig.theme || null;
-                    // Sync theme to localStorage so all pages pick it up
+                    // Always sync — clear if this store has no theme set
                     if (apiConfig.theme) {
                         localStorage.setItem('pos_theme', JSON.stringify(apiConfig.theme));
-                        window.applyPosTheme(apiConfig.theme);
+                    } else {
+                        localStorage.removeItem('pos_theme');
                     }
+                    window.applyPosTheme(apiConfig.theme || null);
                     
                     // Preserve store ID - it could be at root level or in settings
                     if (apiConfig._id) {

@@ -1033,10 +1033,13 @@
                         localStorage.setItem('pos_features', JSON.stringify(store.features || {}));
                         localStorage.setItem('pos_tables', JSON.stringify(store.tables || []));
                         localStorage.setItem('pos_plugin_configs', JSON.stringify(store.pluginConfigs || {}));
+                        // Always sync theme — clear it if this store has none
                         if (store.theme) {
                             localStorage.setItem('pos_theme', JSON.stringify(store.theme));
-                            window.applyPosTheme && window.applyPosTheme(store.theme);
+                        } else {
+                            localStorage.removeItem('pos_theme');
                         }
+                        window.applyPosTheme && window.applyPosTheme(store.theme || null);
                     }
                 } catch (e) {
                     // Network error — fall back to whatever is in localStorage
@@ -1070,6 +1073,7 @@
             } else {
                 localStorage.removeItem('pos_admin_token');
             }
+            localStorage.removeItem('pos_theme');
             window.location.href = 'login.html';
         };
 
