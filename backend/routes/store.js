@@ -58,7 +58,11 @@ router.get('/config', async (req, res) => {
         bitcoinLightningConfig: store.bitcoinLightningConfig,
       },
       published: store.published,
-      features: store.features,
+      // Backward compat: auto-enable hive if a hiveAccount was set before the feature flag existed
+      features: {
+        ...store.features.toObject(),
+        hive: store.features.hive || !!store.hiveAccount,
+      },
       emailSettings: store.emailSettings,
       ownerEmail: store.ownerEmail,
       backupEmail: store.backupEmail,

@@ -241,13 +241,25 @@
                 <button type="button" id="addCategoryBtn" style="padding:0.5em 1em;">Add</button>
             </div>
         </label>
-        <label><span data-i18n="admin.hivePayments">Hive Account to Receive Payments:</span>
-            <div style="display:flex;gap:0.5em;align-items:center;">
-                <input type="text" id="hiveAccount" placeholder="e.g. myhiveaccount" style="width:100%;margin-bottom:0.5rem;">
-                <button type="button" id="updateHiveAccountBtn" style="padding:0.5em 1em;" data-i18n="common.update">Update</button>
+        <!-- Hive / HBD Payments plugin toggle -->
+        <div style="margin-bottom:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);">
+            <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;margin-bottom:0;">
+                <input type="checkbox" id="enableHive" style="margin-top:3px;flex-shrink:0">
+                <span>
+                    <strong data-i18n="admin.enableHive">Hive / HBD Payments</strong><br>
+                    <span style="color:var(--text-3);font-size:.82em" data-i18n="admin.hiveHelp">Accept HBD (stable $1 crypto) at the POS via QR code. Customers scan with any Hive wallet.</span>
+                </span>
+            </label>
+            <div id="hiveAccountPanel" style="display:none;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border);">
+                <label><span data-i18n="admin.hivePayments">Hive Account to Receive Payments:</span>
+                    <div style="display:flex;gap:0.5em;align-items:center;">
+                        <input type="text" id="hiveAccount" placeholder="e.g. myhiveaccount" style="width:100%;margin-bottom:0.5rem;">
+                        <button type="button" id="updateHiveAccountBtn" style="padding:0.5em 1em;" data-i18n="common.update">Update</button>
+                    </div>
+                    <div id="currentHiveAccountDisplay" style="margin-top:0.5em;color:var(--text-2);font-size:1.05em;"></div>
+                </label>
             </div>
-            <div id="currentHiveAccountDisplay" style="margin-top:0.5em;color:var(--text-2);font-size:1.05em;"></div>
-        </label>
+        </div>
         
         <!-- API Server Config -->
         <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
@@ -1333,6 +1345,7 @@
                 await renderCurrentHiveAccount();
                 await loadBitcoinLightningSettings();
                 if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
+                if (typeof loadHiveFeature === 'function') loadHiveFeature();
                 if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
                 if (typeof loadEmailCampaignsFeature === 'function') loadEmailCampaignsFeature();
                 if (typeof loadTaxSettings === 'function') loadTaxSettings();
@@ -1362,6 +1375,7 @@
                     await renderCurrentHiveAccount();
                     await loadBitcoinLightningSettings();
                     if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
+                if (typeof loadHiveFeature === 'function') loadHiveFeature();
                     if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
                     if (typeof loadEmailCampaignsFeature === 'function') loadEmailCampaignsFeature();
                     if (typeof loadTaxSettings === 'function') loadTaxSettings();
@@ -1711,6 +1725,26 @@
         }
 
         loadMembershipFeature();
+
+        // --- Hive / HBD Payments Feature ---
+        const enableHive       = document.getElementById('enableHive');
+        const hiveAccountPanel = document.getElementById('hiveAccountPanel');
+
+        function loadHiveFeature() {
+            // Default to enabled if a hiveAccount was already configured (backward compat)
+            const enabled = currentData.features?.hive ?? !!currentData.settings?.hiveAccount;
+            enableHive.checked = enabled;
+            hiveAccountPanel.style.display = enabled ? '' : 'none';
+        }
+
+        enableHive.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.hive = this.checked;
+            hiveAccountPanel.style.display = this.checked ? '' : 'none';
+            markDirty();
+        };
+
+        loadHiveFeature();
 
         // --- Email Reminders Settings Logic ---
         const enableEmailReminders   = document.getElementById('enableEmailReminders');

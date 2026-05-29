@@ -623,6 +623,10 @@ const i18n = (() => {
       'kitchen.ready':           '✓ Ready',
       'kitchen.invalidPin':      'Invalid PIN',
 
+      // ── Hive plugin ──────────────────────────────────────────────────────
+      'admin.enableHive':        'Hive / HBD Payments',
+      'admin.hiveHelp':          'Accept HBD (stable $1 crypto) at the POS via QR code. Customers scan with any Hive wallet.',
+
       // ── Void tab ──────────────────────────────────────────────────────────
       'pos.voidTab':             'Void Tab',
       'pos.voidTabConfirm':      'Void this tab? This cannot be undone.',
@@ -1261,6 +1265,10 @@ const i18n = (() => {
       'kitchen.markReady':       'Marcar Listo',
       'kitchen.ready':           '✓ Listo',
       'kitchen.invalidPin':      'PIN inválido',
+
+      // ── Hive plugin ──────────────────────────────────────────────────────
+      'admin.enableHive':        'Pagos Hive / HBD',
+      'admin.hiveHelp':          'Acepta HBD (cripto estable $1) en el POS mediante código QR. Los clientes escanean con cualquier billetera Hive.',
 
       // ── Void tab ──────────────────────────────────────────────────────────
       'pos.voidTab':             'Anular Cuenta',

@@ -558,8 +558,9 @@
         }
         function renderHiveAccount() {
             const settings = getStoreSettings();
+            const features = JSON.parse(localStorage.getItem('pos_features') || '{}');
             const hiveDiv = document.getElementById('hiveAccountDisplay');
-            if (settings.hiveAccount) {
+            if (features.hive && settings.hiveAccount) {
                 hiveDiv.textContent = `@${settings.hiveAccount}`;
                 hiveDiv.style.display = '';
             } else {
@@ -712,8 +713,11 @@
             html += `<div id="paymentButtonsRow" style="display:flex;flex-direction:column;gap:0.5rem;">`;
             // Primary row: HBD + Cash
             html += `<div style="display:flex;gap:0.5rem;">`;
-            html += `<button id="payWithHbdBtn" type="button" class="btn btn-success" style="flex:1;" ${dis}>${t('pos.payHbd')}</button>`;
-            html += `<button id="payWithCashBtn" type="button" class="btn" style="flex:1;background:var(--amber);color:#fff;border-color:var(--amber);" ${dis}>${t('pos.payCash')}</button>`;
+            const _hiveOn = JSON.parse(localStorage.getItem('pos_features') || '{}').hive;
+            if (_hiveOn) {
+                html += `<button id="payWithHbdBtn" type="button" class="btn btn-success" style="flex:1;" ${dis}>${t('pos.payHbd')}</button>`;
+            }
+            html += `<button id="payWithCashBtn" type="button" class="btn" style="flex:${_hiveOn ? '1' : '1 1 100%'};background:var(--amber);color:#fff;border-color:var(--amber);" ${dis}>${t('pos.payCash')}</button>`;
             html += `</div>`;
             // Secondary row: Card + Bank Transfer
             html += `<div style="display:flex;gap:0.5rem;">`;
