@@ -2148,20 +2148,39 @@
             renderThemeSwatches();
         };
 
-        function applyAndSaveTheme(themeData) {
+        async function applyAndSaveTheme(themeData) {
             localStorage.setItem('pos_theme', JSON.stringify(themeData));
             window.applyPosTheme(themeData);
             currentData.theme = themeData;
-            markDirty();
+            // Save immediately to backend so all devices (cashiers) pick it up
+            const token = localStorage.getItem('pos_admin_token');
+            if (token && currentData._id) {
+                const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+                try {
+                    await fetch(`${apiBase}/store`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ theme: themeData }),
+                    });
+                } catch (_) {}
+            }
         }
 
+        let _customThemeDebounce = null;
         function applyCustomTheme() {
             const bg     = document.getElementById('customBg').value;
             const surface= document.getElementById('customSurface').value;
             const ink    = document.getElementById('customInk').value;
             const accent = document.getElementById('customAmber').value;
             const vars   = buildCustomVars(bg, surface, ink, accent);
-            applyAndSaveTheme({ preset: 'custom', vars });
+            // Apply locally immediately for live preview
+            const themeData = { preset: 'custom', vars };
+            localStorage.setItem('pos_theme', JSON.stringify(themeData));
+            window.applyPosTheme(themeData);
+            currentData.theme = themeData;
+            // Debounce the backend save so we don't fire on every pixel drag
+            clearTimeout(_customThemeDebounce);
+            _customThemeDebounce = setTimeout(() => applyAndSaveTheme(themeData), 600);
         }
 
         // Wire custom pickers — apply live on change
