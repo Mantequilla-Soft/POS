@@ -212,19 +212,19 @@ router.patch('/:id/close', async (req, res) => {
 router.post('/stripe/intent', async (req, res) => {
   try {
     const store = await Store.findById(req.user.storeId);
-    if (!store?.stripeConfig?.secretKey) {
+    if (!store?.pluginConfigs?.stripe?.secretKey) {
       return res.status(400).json({ error: 'Stripe is not configured for this store' });
     }
     const { total } = req.body;
     if (!total || total <= 0) return res.status(400).json({ error: 'Invalid total' });
 
-    const stripe = require('stripe')(store.stripeConfig.secretKey);
+    const stripe = require('stripe')(store.pluginConfigs.stripe.secretKey);
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(total * 100),
       currency: 'usd',
       metadata: { storeId: req.user.storeId.toString() },
     });
-    res.json({ clientSecret: intent.client_secret, publishableKey: store.stripeConfig.publishableKey });
+    res.json({ clientSecret: intent.client_secret, publishableKey: store.pluginConfigs.stripe.publishableKey });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -237,11 +237,11 @@ router.post('/stripe/confirm', async (req, res) => {
     if (!paymentIntentId) return res.status(400).json({ error: 'paymentIntentId required' });
 
     const store = await Store.findById(req.user.storeId);
-    if (!store?.stripeConfig?.secretKey) {
+    if (!store?.pluginConfigs?.stripe?.secretKey) {
       return res.status(400).json({ error: 'Stripe is not configured for this store' });
     }
 
-    const stripe = require('stripe')(store.stripeConfig.secretKey);
+    const stripe = require('stripe')(store.pluginConfigs.stripe.secretKey);
     const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (intent.status !== 'succeeded') {
       return res.status(400).json({ error: 'Payment has not succeeded' });

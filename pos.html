@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale</title>
     <script src="i18n.js"></script>
+    <script src="payment-plugins.js"></script>
     <meta name="theme-color" content="#b5651d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -694,6 +695,11 @@
         function getCartHasItems() {
             return cart && cart.length > 0;
         }
+        // ── Payment button helpers ────────────────────────────────────────────
+        function getPluginConfigs() {
+            return JSON.parse(localStorage.getItem('pos_plugin_configs') || '{}');
+        }
+
         function renderPaymentButtons() {
             const cartFoot = document.getElementById('cartFoot');
             ['paymentButtonsRow', 'cashPaymentSection', 'externalPaymentSection', 'tabSaveRow', 'sendToKitchenBtn'].forEach(id => {
@@ -703,6 +709,7 @@
             const cartHasItems = getCartHasItems();
             const dis = cartHasItems ? '' : 'disabled';
             let html = '';
+
             if (currentTabState) {
                 html += `<div id="tabSaveRow" style="display:flex;gap:.5rem;margin-bottom:.5rem;">
                     <button id="saveTabBtn" type="button" class="btn btn-secondary btn-sm" style="flex:1;" ${dis}>${t('pos.saveTab')}</button>
@@ -710,36 +717,39 @@
                     <button id="voidTabBtn" type="button" class="btn btn-ghost btn-sm" style="color:var(--red,#e74c3c);flex-shrink:0;" title="${t('pos.voidTab')}">🗑</button>
                 </div>`;
             }
+
             html += `<div id="paymentButtonsRow" style="display:flex;flex-direction:column;gap:0.5rem;">`;
-            // Primary row: HBD + Cash
-            html += `<div style="display:flex;gap:0.5rem;">`;
-            const _hiveOn = JSON.parse(localStorage.getItem('pos_features') || '{}').hive;
-            if (_hiveOn) {
-                html += `<button id="payWithHbdBtn" type="button" class="btn btn-success" style="flex:1;" ${dis}>${t('pos.payHbd')}</button>`;
-            }
-            html += `<button id="payWithCashBtn" type="button" class="btn" style="flex:${_hiveOn ? '1' : '1 1 100%'};background:var(--amber);color:#fff;border-color:var(--amber);" ${dis}>${t('pos.payCash')}</button>`;
+
+            // Cash — always present
+            html += `<button id="payWithCashBtn" type="button" class="btn btn-block" style="background:var(--amber);color:#fff;border-color:var(--amber);" ${dis}>${t('pos.payCash')}</button>`;
+
+            // Active payment plugins from manifest
+            const pluginCfgs = getPluginConfigs();
+            const activePlugins = (window.PAYMENT_PLUGINS || []).filter(p => pluginCfgs[p.id]?.enabled);
+            activePlugins.forEach(plugin => {
+                html += `<button class="plugin-pay-btn btn btn-block" data-plugin="${plugin.id}"
+                    style="background:${plugin.color};color:#fff;border-color:${plugin.color};" ${dis}>
+                    ${plugin.icon} ${t(plugin.posLabel)}
+                </button>`;
+            });
+
+            // Static non-plugin payment methods
+            html += `<div style="display:flex;gap:0.5rem;">
+                <button id="payWithBankBtn"  type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payBankTransfer')}</button>
+                <button id="payWithCheckBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payCheck')}</button>
+                <button id="payWithOtherBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payOther')}</button>
+            </div>`;
+
             html += `</div>`;
-            // Secondary row: Card + Bank Transfer
-            html += `<div style="display:flex;gap:0.5rem;">`;
-            html += `<button id="payWithCardBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payCard')}</button>`;
-            html += `<button id="payWithBankBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payBankTransfer')}</button>`;
-            html += `</div>`;
-            // Third row: Check + Other
-            html += `<div style="display:flex;gap:0.5rem;">`;
-            html += `<button id="payWithCheckBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payCheck')}</button>`;
-            html += `<button id="payWithOtherBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payOther')}</button>`;
-            html += `</div>`;
-            if (isBitcoinLightningEnabled()) {
-                html += `<button id="payWithBtcBtn" type="button" class="btn btn-block" style="background:#f7931a;color:#fff;border-color:#f7931a;" ${dis}>${t('pos.payBtc')}</button>`;
-            }
-            html += `</div>`;
-            // Counter-to-kitchen: only when tabs enabled, no active table tab
+
+            // Counter-to-kitchen
             if (!currentTabState) {
                 const _feats = JSON.parse(localStorage.getItem('pos_features') || '{}');
                 if (_feats.tabs) {
                     html += `<button id="sendToKitchenBtn" type="button" class="btn btn-secondary btn-block" style="border-color:var(--amber);color:var(--amber);margin-top:.25rem;" ${dis}>🍳 ${t('pos.sendToKitchen')}</button>`;
                 }
             }
+
             // Cash section (change calculator)
             html += `<div id="cashPaymentSection" style="display:none;padding-top:0.75rem;">
                 <div class="form-group">
@@ -749,7 +759,8 @@
                 <div id="changeDueDisplay" style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;min-height:1.5em;"></div>
                 <button id="finishCashSaleBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
             </div>`;
-            // External payment section (card / bank transfer / check / other)
+
+            // External payment section (bank/check/other)
             html += `<div id="externalPaymentSection" style="display:none;padding-top:0.75rem;">
                 <div class="form-group" id="externalNotesGroup">
                     <label id="externalNotesLabel">${t('pos.paymentNotesLabel')}</label>
@@ -757,31 +768,44 @@
                 </div>
                 <button id="finishExternalSaleBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
             </div>`;
+
             cartFoot.insertAdjacentHTML('beforeend', html);
         }
+
+        // Dispatcher — routes plugin button taps to the right handler
+        async function handlePluginPayment(pluginId) {
+            const pluginCfgs = getPluginConfigs();
+            const cfg = pluginCfgs[pluginId] || {};
+            switch (pluginId) {
+                case 'hive':
+                    if (window._posShowKeychain) window._posShowKeychain();
+                    showQrInline();
+                    break;
+                case 'stripe':
+                    openStripeModal();
+                    break;
+                case 'lightning':
+                    handleLightningPayment(cfg);
+                    break;
+                default:
+                    if (window._posShowExternal) window._posShowExternal(pluginId);
+            }
+        }
+
         function setupPaymentButtons() {
             renderPaymentButtons();
-            const payWithCashBtn   = document.getElementById('payWithCashBtn');
-            const payWithHbdBtn    = document.getElementById('payWithHbdBtn');
-            const payWithBtcBtn    = document.getElementById('payWithBtcBtn');
-            const payWithCardBtn   = document.getElementById('payWithCardBtn');
-            const payWithBankBtn   = document.getElementById('payWithBankBtn');
-            const payWithCheckBtn  = document.getElementById('payWithCheckBtn');
-            const payWithOtherBtn  = document.getElementById('payWithOtherBtn');
-            const qrInline         = document.getElementById('qrInlineContainer');
-            const cashSection      = document.getElementById('cashPaymentSection');
-            const externalSection  = document.getElementById('externalPaymentSection');
-            const cashInput        = document.getElementById('cashGivenInput');
-            const changeDue        = document.getElementById('changeDueDisplay');
-            const finishBtn        = document.getElementById('finishCashSaleBtn');
-            const finishExtBtn     = document.getElementById('finishExternalSaleBtn');
-            const extNotesInput    = document.getElementById('externalNotesInput');
-            const extNotesLabel    = document.getElementById('externalNotesLabel');
+
+            const qrInline        = document.getElementById('qrInlineContainer');
+            const cashSection     = document.getElementById('cashPaymentSection');
+            const externalSection = document.getElementById('externalPaymentSection');
+            const cashInput       = document.getElementById('cashGivenInput');
+            const changeDue       = document.getElementById('changeDueDisplay');
+            const finishBtn       = document.getElementById('finishCashSaleBtn');
+            const finishExtBtn    = document.getElementById('finishExternalSaleBtn');
+            const extNotesInput   = document.getElementById('externalNotesInput');
+            const extNotesLabel   = document.getElementById('externalNotesLabel');
             let currentExternalMethod = '';
 
-            function getTotal() {
-                return calculateCartTotals().total;
-            }
             function hideAllSections() {
                 qrInline.classList.remove('open');
                 cashSection.style.display = 'none';
@@ -794,134 +818,59 @@
             function showCash() {
                 hideAllSections();
                 cashSection.style.display = 'block';
-                cashInput.value = '';
-                changeDue.textContent = '';
+                if (cashInput) { cashInput.value = ''; }
+                if (changeDue) { changeDue.textContent = ''; }
             }
             function showExternal(method) {
                 hideAllSections();
                 currentExternalMethod = method;
                 const isOther = method === 'other';
-                extNotesLabel.textContent = t('pos.paymentNotesLabel') + (isOther ? ' *' : '');
-                extNotesInput.value = '';
-                extNotesInput.placeholder = isOther ? t('pos.paymentNotesRequired') : t('pay.notesPlaceholder');
+                if (extNotesLabel) extNotesLabel.textContent = t('pos.paymentNotesLabel') + (isOther ? ' *' : '');
+                if (extNotesInput) { extNotesInput.value = ''; extNotesInput.placeholder = isOther ? t('pos.paymentNotesRequired') : t('pay.notesPlaceholder'); }
                 externalSection.style.display = 'block';
-                extNotesInput.focus();
+                if (extNotesInput) extNotesInput.focus();
             }
-            const saveTabBtn      = document.getElementById('saveTabBtn');
-            const backToTablesBtn = document.getElementById('backToTablesBtn');
-            const voidTabBtn_     = document.getElementById('voidTabBtn');
+
+            // Make these available to handlePluginPayment
+            window._posShowKeychain = showKeychain;
+            window._posShowExternal = showExternal;
+
+            const saveTabBtn       = document.getElementById('saveTabBtn');
+            const backToTablesBtn  = document.getElementById('backToTablesBtn');
+            const voidTabBtn_      = document.getElementById('voidTabBtn');
             const sendToKitchenBtn = document.getElementById('sendToKitchenBtn');
-            if (saveTabBtn) saveTabBtn.onclick = saveTab;
-            if (voidTabBtn_) voidTabBtn_.onclick = voidTab;
+            if (saveTabBtn)       saveTabBtn.onclick      = saveTab;
+            if (voidTabBtn_)      voidTabBtn_.onclick     = voidTab;
             if (sendToKitchenBtn) sendToKitchenBtn.onclick = sendToKitchen;
-            if (backToTablesBtn) backToTablesBtn.onclick = function() {
-                cart = [];
-                currentTabState = null;
-                renderTabBadge();
-                renderCart();
-                renderMenu();
-                showTablesPanel();
+            if (backToTablesBtn)  backToTablesBtn.onclick  = function() {
+                cart = []; currentTabState = null;
+                renderTabBadge(); renderCart(); renderMenu(); showTablesPanel();
             };
-            if (payWithCashBtn)  payWithCashBtn.onclick  = showCash;
-            const _stripePk = localStorage.getItem('pos_stripe_pk');
-            if (payWithCardBtn) payWithCardBtn.onclick = _stripePk
-                ? () => openStripeModal()
-                : () => showExternal('card');
-            if (payWithBankBtn)  payWithBankBtn.onclick  = () => showExternal('bank_transfer');
-            if (payWithCheckBtn) payWithCheckBtn.onclick = () => showExternal('check');
-            if (payWithOtherBtn) payWithOtherBtn.onclick = () => showExternal('other');
-            if (payWithHbdBtn) payWithHbdBtn.onclick = function() {
-                showKeychain();
-                showQrInline();
-            };
-            if (payWithBtcBtn) payWithBtcBtn.onclick = async function() {
-                // Get config
-                const settings = getStoreSettings();
-                const bl = settings.bitcoinLightningConfig;
-                if (!bl) {
-                    alert(t('pos.lightningMissing'));
-                    return;
-                }
-                // Calculate total in USD (or use POS currency logic if needed)
-                const total = calculateCartTotals().total;
-                if (!total || total <= 0) {
-                    alert(t('pos.cartEmpty'));
-                    return;
-                }
-                const currency = bl.currency || 'USD';
-                if (!isLightningAmountValid(total, currency)) {
-                    alert(t('pos.lightningMin'));
-                    return;
-                }
-                // --- Generate short memo BEFORE invoice creation ---
-                const shortMemo = `HivePOS-${Math.floor(Math.random()*9000+1000)}`; // 4 random digits for uniqueness
-                window.lastLightningMemo = shortMemo;
-                // Show modal and loading state
-                const modal = document.getElementById('btcLightningQrModal');
-                modal.style.display = 'flex';
-                document.getElementById('btcLightningQrAccount').textContent = t('pos.lightningReceiving', { account: bl.hive_accname || '' });
-                document.getElementById('btcLightningInvoice').textContent = t('pos.requestingInvoice');
-                const qrDiv = document.getElementById('btcLightningQrCode');
-                qrDiv.innerHTML = '';
-                // Build API call WITH message (memo) set
-                const params = new URLSearchParams({
-                    hive_accname: bl.hive_accname,
-                    amount: total.toFixed(2),
-                    currency: bl.currency,
-                    receive_currency: bl.receive_currency,
-                    usd_hbd: 'false',
-                    app_name: bl.app_name,
-                    expiry: bl.expiry,
-                    message: shortMemo,
-                    qr_code: bl.qr_code
-                });
-                const url = `https://api.v4v.app/v1/new_invoice_hive?${params.toString()}`;
-                try {
-                    const res = await fetch(url, { headers: { 'accept': 'application/json' } });
-                    if (!res.ok) throw new Error('API error: ' + res.status);
-                    const data = await res.json();
-                    if (data.payment_request) {
-                        document.getElementById('btcLightningInvoice').textContent = data.payment_request;
-                        qrDiv.innerHTML = '';
-                        if (window.QRCode) {
-                            new QRCode(qrDiv, {
-                                text: data.payment_request,
-                                width: 220,
-                                height: 220,
-                                colorDark: '#000',
-                                colorLight: '#fff',
-                                correctLevel: window.QRCode.CorrectLevel.H
-                            });
-                        } else {
-                            qrDiv.textContent = 'QR code library not loaded.';
-                        }
-                        // Start Lightning payment listener using the short memo
-                        startLightningPaymentListener(shortMemo);
-                    } else {
-                        document.getElementById('btcLightningInvoice').textContent = t('pos.noInvoice');
-                        qrDiv.innerHTML = '';
-                    }
-                } catch (err) {
-                    document.getElementById('btcLightningInvoice').textContent = 'Error: ' + err.message;
-                    qrDiv.innerHTML = '';
-                }
-            };
+
+            document.getElementById('payWithCashBtn')?.addEventListener('click', showCash);
+            document.getElementById('payWithBankBtn')?.addEventListener('click', () => showExternal('bank_transfer'));
+            document.getElementById('payWithCheckBtn')?.addEventListener('click', () => showExternal('check'));
+            document.getElementById('payWithOtherBtn')?.addEventListener('click', () => showExternal('other'));
+
+            // Attach plugin buttons
+            document.querySelectorAll('.plugin-pay-btn').forEach(btn => {
+                btn.addEventListener('click', () => handlePluginPayment(btn.dataset.plugin));
+            });
+
             if (cashInput) {
                 cashInput.oninput = function() {
-                    var given = parseFloat(cashInput.value);
-                    var total = getTotal();
+                    const given = parseFloat(cashInput.value);
+                    const total = calculateCartTotals().total;
                     if (isNaN(given)) { changeDue.textContent = ''; return; }
-                    var change = given - total;
-                    changeDue.textContent = (change >= 0) ? t('pos.changeDue', { amount: change.toFixed(2) }) : t('pos.notEnoughCash');
+                    const change = given - total;
+                    changeDue.textContent = change >= 0 ? t('pos.changeDue', { amount: change.toFixed(2) }) : t('pos.notEnoughCash');
                 };
             }
             if (finishBtn) {
                 finishBtn.onclick = function() {
                     const saleCart = cart.map(i => ({...i}));
                     const { subtotal: saleSub, taxAmount: saleTax, total: saleTotal } = calculateCartTotals();
-                    cart = [];
-                    renderCart();
-                    renderMenu();
+                    cart = []; renderCart(); renderMenu();
                     showPostSaleActions('cash', saleCart, saleTotal, null, null, '', saleSub, saleTax);
                 };
             }
@@ -935,13 +884,76 @@
                     const saleCart = cart.map(i => ({...i}));
                     const { subtotal: saleSub, taxAmount: saleTax, total: saleTotal } = calculateCartTotals();
                     const notes = extNotesInput.value.trim();
-                    cart = [];
-                    renderCart();
-                    renderMenu();
+                    cart = []; renderCart(); renderMenu();
                     showPostSaleActions(currentExternalMethod, saleCart, saleTotal, null, null, notes, saleSub, saleTax);
                 };
             }
-            // QR overlay stays hidden until the user clicks "Pay with HBD"
+        }
+
+        // Lightning handler
+        async function handleLightningPayment(cfg) {
+            if (!cfg) cfg = getPluginConfigs().lightning || {};
+            if (!cfg.hive_accname) {
+                alert(t('pos.lightningMissing'));
+                return;
+            }
+            const total = calculateCartTotals().total;
+            if (!total || total <= 0) {
+                alert(t('pos.cartEmpty'));
+                return;
+            }
+            if (!isLightningAmountValid(total, 'USD')) {
+                alert(t('pos.lightningMin'));
+                return;
+            }
+            const shortMemo = `HivePOS-${Math.floor(Math.random()*9000+1000)}`;
+            window.lastLightningMemo = shortMemo;
+            const modal = document.getElementById('btcLightningQrModal');
+            modal.style.display = 'flex';
+            document.getElementById('btcLightningQrAccount').textContent = t('pos.lightningReceiving', { account: cfg.hive_accname });
+            document.getElementById('btcLightningInvoice').textContent = t('pos.requestingInvoice');
+            const qrDiv = document.getElementById('btcLightningQrCode');
+            qrDiv.innerHTML = '';
+            const params = new URLSearchParams({
+                hive_accname: cfg.hive_accname,
+                amount: total.toFixed(2),
+                currency: 'USD',
+                receive_currency: cfg.receive_currency || 'hbd',
+                usd_hbd: 'false',
+                app_name: cfg.app_name || 'HivePOS',
+                expiry: cfg.expiry || '600',
+                message: shortMemo,
+                qr_code: cfg.qr_code !== undefined ? cfg.qr_code : 'true'
+            });
+            const url = `https://api.v4v.app/v1/new_invoice_hive?${params.toString()}`;
+            try {
+                const res = await fetch(url, { headers: { 'accept': 'application/json' } });
+                if (!res.ok) throw new Error('API error: ' + res.status);
+                const data = await res.json();
+                if (data.payment_request) {
+                    document.getElementById('btcLightningInvoice').textContent = data.payment_request;
+                    qrDiv.innerHTML = '';
+                    if (window.QRCode) {
+                        new QRCode(qrDiv, {
+                            text: data.payment_request,
+                            width: 220,
+                            height: 220,
+                            colorDark: '#000',
+                            colorLight: '#fff',
+                            correctLevel: window.QRCode.CorrectLevel.H
+                        });
+                    } else {
+                        qrDiv.textContent = 'QR code library not loaded.';
+                    }
+                    startLightningPaymentListener(shortMemo);
+                } else {
+                    document.getElementById('btcLightningInvoice').textContent = t('pos.noInvoice');
+                    qrDiv.innerHTML = '';
+                }
+            } catch (err) {
+                document.getElementById('btcLightningInvoice').textContent = 'Error: ' + err.message;
+                qrDiv.innerHTML = '';
+            }
         }
         // --- Initial Render ---
         // Always fetch fresh store data from the backend on load — backend is the single source of truth.
@@ -967,11 +979,7 @@
                         }));
                         localStorage.setItem('pos_features', JSON.stringify(store.features || {}));
                         localStorage.setItem('pos_tables', JSON.stringify(store.tables || []));
-                        if (store.stripePublishableKey) {
-                            localStorage.setItem('pos_stripe_pk', store.stripePublishableKey);
-                        } else {
-                            localStorage.removeItem('pos_stripe_pk');
-                        }
+                        localStorage.setItem('pos_plugin_configs', JSON.stringify(store.pluginConfigs || {}));
                     }
                 } catch (e) {
                     // Network error — fall back to whatever is in localStorage

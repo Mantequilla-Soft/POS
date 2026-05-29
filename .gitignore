@@ -25,3 +25,7 @@ backend/reset-password.js
 *.json.bak
 backup*.json
 hive-pos-backup-*.json
+
+# Internal planning — local only
+internal-docs/
+tasks/

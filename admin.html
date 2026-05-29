@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale Admin</title>
     <script src="i18n.js"></script>
+    <script src="payment-plugins.js"></script>
     <link rel="stylesheet" href="theme.css">
     <style>
         body { margin: 2rem; background: var(--bg); color: var(--text); }
@@ -241,47 +242,8 @@
                 <button type="button" id="addCategoryBtn" style="padding:0.5em 1em;">Add</button>
             </div>
         </label>
-        <!-- Hive / HBD Payments plugin toggle -->
-        <div style="margin-bottom:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);">
-            <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;margin-bottom:0;">
-                <input type="checkbox" id="enableHive" style="margin-top:3px;flex-shrink:0">
-                <span>
-                    <strong data-i18n="admin.enableHive">Hive / HBD Payments</strong><br>
-                    <span style="color:var(--text-3);font-size:.82em" data-i18n="admin.hiveHelp">Accept HBD (stable $1 crypto) at the POS via QR code. Customers scan with any Hive wallet.</span>
-                </span>
-            </label>
-            <div id="hiveAccountPanel" style="display:none;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border);">
-                <label><span data-i18n="admin.hivePayments">Hive Account to Receive Payments:</span>
-                    <div style="display:flex;gap:0.5em;align-items:center;">
-                        <input type="text" id="hiveAccount" placeholder="e.g. myhiveaccount" style="width:100%;margin-bottom:0.5rem;">
-                        <button type="button" id="updateHiveAccountBtn" style="padding:0.5em 1em;" data-i18n="common.update">Update</button>
-                    </div>
-                    <div id="currentHiveAccountDisplay" style="margin-top:0.5em;color:var(--text-2);font-size:1.05em;"></div>
-                </label>
-            </div>
-        </div>
-        
-        <!-- Stripe Card Payments plugin toggle -->
-        <div style="margin-bottom:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);">
-            <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;margin-bottom:0;">
-                <input type="checkbox" id="enableStripe" style="margin-top:3px;flex-shrink:0">
-                <span>
-                    <strong data-i18n="admin.enableStripe">Stripe Card Payments</strong><br>
-                    <span style="color:var(--text-3);font-size:.82em" data-i18n="admin.stripeHelp">Accept credit and debit cards at the POS. Requires your own Stripe account.</span>
-                </span>
-            </label>
-            <div id="stripePanel" style="display:none;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border);">
-                <label style="display:block;margin-bottom:.5rem">
-                    <span style="font-size:.88em;font-weight:600" data-i18n="admin.stripePublishableKey">Publishable Key</span>
-                    <input type="text" id="stripePublishableKey" placeholder="pk_live_..." style="width:100%;margin-top:.25rem;">
-                </label>
-                <label style="display:block;margin-bottom:.5rem">
-                    <span style="font-size:.88em;font-weight:600" data-i18n="admin.stripeSecretKey">Secret Key</span>
-                    <input type="password" id="stripeSecretKey" placeholder="sk_live_..." style="width:100%;margin-top:.25rem;">
-                    <span style="font-size:.76em;color:var(--text-3)" data-i18n="admin.stripeSecretHelp">Stored securely on the server — never shown to customers or cashiers.</span>
-                </label>
-            </div>
-        </div>
+        <!-- Payment Plugins — rendered dynamically from payment-plugins.js -->
+        <div id="paymentPluginsSection" style="margin-bottom:1rem"></div>
 
         <!-- API Server Config -->
         <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
@@ -430,40 +392,6 @@
             </label>
             <button type="button" id="saveTaxBtn" class="btn btn-primary" style="margin-top:0.5rem;" data-i18n="common.save">Save</button>
             <span id="taxSaveMsg" style="margin-left:0.75rem;font-size:.85em;"></span>
-        </form>
-    </div>
-
-    <!-- Bitcoin Lightning Settings Section -->
-    <div id="bitcoinLightningSettings" style="background:var(--amber-light);padding:1rem 1.5rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--amber-border);max-width:600px;">
-        <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
-            <input type="checkbox" id="enableBitcoinLightning">
-            <span data-i18n="admin.enableLightning">Accept Bitcoin Lightning as payment</span>
-        </label>
-        <form id="bitcoinLightningForm" style="display:none;margin-top:1em;">
-            <label>Hive Account Name:
-                <input type="text" id="bl_hiveAccname" placeholder="e.g. meno">
-            </label>
-            <label>Currency:
-                <input type="text" id="bl_currency" value="USD" readonly>
-            </label>
-            <label>Receive Currency:
-                <select id="bl_receiveCurrency">
-                    <option value="hbd">HBD</option>
-                    <option value="hive">HIVE</option>
-                    <option value="sats">KeepSats</option>
-                </select>
-            </label>
-            <label>App Name:
-                <input type="text" id="bl_appName" value="hivepos" readonly>
-            </label>
-            <label>Expiry (seconds):
-                <input type="number" id="bl_expiry" value="300" readonly>
-            </label>
-            <label>QR Code:
-                <input type="text" id="bl_qrCode" value="none" readonly>
-            </label>
-            <button type="button" id="saveBitcoinLightningBtn" style="margin-top:1.2em;background:var(--amber);color:#fff;" data-i18n="admin.saveLightning">Save Bitcoin Lightning Payment Settings</button>
-            <div id="bl_errorMsg" style="color:var(--red);margin-top:0.7em;font-size:1em;"></div>
         </form>
     </div>
 
@@ -958,6 +886,7 @@
                     items: currentData.items,
                     settings: currentData.settings,
                     features: currentData.features || {},
+                    pluginConfigs: currentData.pluginConfigs || {},
                     emailSettings: currentData.emailSettings || {},
                     language: i18n.getLocale(),
                     ownerEmail: currentData.ownerEmail || '',
@@ -1310,15 +1239,14 @@
                         bitcoinLightningEnabled: false,
                         bitcoinLightningConfig: undefined
                     };
-                    currentData.features = apiConfig.features || { memberships: false, bitcoinLightning: false };
+                    currentData.features = apiConfig.features || { memberships: false };
+                    currentData.pluginConfigs = apiConfig.pluginConfigs || {};
                     currentData.emailSettings = apiConfig.emailSettings || { reminderSubject: '', reminderBody: '' };
                     currentData.tax = apiConfig.tax || { enabled: false, rate: 0, name: 'Tax', inclusive: false };
                     currentData.ownerEmail = apiConfig.ownerEmail || '';
                     currentData.backupEmail = apiConfig.backupEmail !== false;
                     currentData.tables = apiConfig.tables || [];
                     currentData.hasKitchenPin = apiConfig.hasKitchenPin || false;
-                    currentData.stripePublishableKey = apiConfig.stripePublishableKey || '';
-                    currentData.stripeSecretSaved = !!apiConfig.stripePublishableKey;
                     
                     // Preserve store ID - it could be at root level or in settings
                     if (apiConfig._id) {
@@ -1367,10 +1295,8 @@
                 await renderCategoryOptions();
                 await renderItems();
                 await renderCurrentHiveAccount();
-                await loadBitcoinLightningSettings();
                 if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
-                if (typeof loadHiveFeature === 'function') loadHiveFeature();
-                if (typeof loadStripeFeature === 'function') loadStripeFeature();
+                if (typeof loadPluginSections === 'function') loadPluginSections();
                 if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
                 if (typeof loadEmailCampaignsFeature === 'function') loadEmailCampaignsFeature();
                 if (typeof loadTaxSettings === 'function') loadTaxSettings();
@@ -1603,6 +1529,7 @@
                     items: items,
                     settings: settings,
                     features: currentData.features || {},
+                    pluginConfigs: currentData.pluginConfigs || {},
                     emailSettings: currentData.emailSettings || {},
                     language: i18n.getLocale(),
                     published: true,
@@ -1751,61 +1678,101 @@
 
         loadMembershipFeature();
 
-        // --- Hive / HBD Payments Feature ---
-        const enableHive       = document.getElementById('enableHive');
-        const hiveAccountPanel = document.getElementById('hiveAccountPanel');
+        // --- Payment Plugins (generic, driven by payment-plugins.js manifest) ---
 
-        function loadHiveFeature() {
-            // Default to enabled if a hiveAccount was already configured (backward compat)
-            const enabled = currentData.features?.hive ?? !!currentData.settings?.hiveAccount;
-            enableHive.checked = enabled;
-            hiveAccountPanel.style.display = enabled ? '' : 'none';
+        function renderPluginField(plugin, field, cfg) {
+            const isRoot  = !!field.storeRoot;
+            const isSaved = !!(cfg[`${field.key}_saved`]);
+            const value   = isRoot
+                ? (currentData.settings?.hiveAccount || '')
+                : (field.serverOnly ? '' : (cfg[field.key] || ''));
+
+            if (field.type === 'select') {
+                const opts = (field.options || []).map(o =>
+                    `<option value="${o.value}"${value === o.value ? ' selected' : ''}>${o.label}</option>`
+                ).join('');
+                return `<label style="display:block;margin-bottom:.5rem">
+                    <span style="font-size:.88em;font-weight:600">${field.label}</span>
+                    <select class="plugin-field" data-plugin="${plugin.id}" data-key="${field.key}"${isRoot ? ' data-root' : ''}
+                        style="width:100%;margin-top:.25rem;padding:.4rem;border:1px solid var(--border);border-radius:var(--r)">
+                        ${opts}
+                    </select></label>`;
+            }
+            return `<label style="display:block;margin-bottom:.5rem">
+                <span style="font-size:.88em;font-weight:600">${field.label}</span>
+                <input type="${field.type || 'text'}" class="plugin-field"
+                    data-plugin="${plugin.id}" data-key="${field.key}"${isRoot ? ' data-root' : ''}${field.serverOnly ? ' data-secret' : ''}
+                    value="${value}"
+                    placeholder="${field.serverOnly && isSaved ? '••••••••••••••••' : (field.placeholder || '')}"
+                    style="width:100%;margin-top:.25rem;">
+                ${field.help ? `<span style="font-size:.76em;color:var(--text-3)">${field.help}</span>` : ''}
+            </label>`;
         }
 
-        enableHive.onchange = function() {
-            if (!currentData.features) currentData.features = {};
-            currentData.features.hive = this.checked;
-            hiveAccountPanel.style.display = this.checked ? '' : 'none';
-            markDirty();
-        };
-
-        loadHiveFeature();
-
-        // --- Stripe Card Payments Feature ---
-        const enableStripe  = document.getElementById('enableStripe');
-        const stripePanel   = document.getElementById('stripePanel');
-
-        function loadStripeFeature() {
-            const enabled = currentData.features?.stripe || false;
-            enableStripe.checked = enabled;
-            stripePanel.style.display = enabled ? '' : 'none';
-            document.getElementById('stripePublishableKey').value = currentData.stripePublishableKey || '';
-            // Secret key is never returned by the server — show placeholder if previously saved
-            document.getElementById('stripeSecretKey').placeholder = currentData.stripeSecretSaved ? '••••••••••••••••' : 'sk_live_...';
+        function renderPluginSection(plugin) {
+            const cfg     = (currentData.pluginConfigs || {})[plugin.id] || {};
+            const enabled = !!cfg.enabled;
+            return `<div style="margin-bottom:.75rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);">
+                <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;margin-bottom:0">
+                    <input type="checkbox" class="plugin-toggle" data-plugin="${plugin.id}"${enabled ? ' checked' : ''} style="margin-top:3px;flex-shrink:0">
+                    <span>
+                        <strong>${plugin.icon} ${plugin.name}</strong><br>
+                        <span style="color:var(--text-3);font-size:.82em">${plugin.description}</span>
+                    </span>
+                </label>
+                <div class="plugin-fields" data-plugin="${plugin.id}" style="display:${enabled ? '' : 'none'};margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">
+                    ${(plugin.configFields || []).map(f => renderPluginField(plugin, f, cfg)).join('')}
+                </div>
+            </div>`;
         }
 
-        enableStripe.onchange = function() {
-            if (!currentData.features) currentData.features = {};
-            currentData.features.stripe = this.checked;
-            stripePanel.style.display = this.checked ? '' : 'none';
-            markDirty();
-        };
+        function renderPluginSections() {
+            const container = document.getElementById('paymentPluginsSection');
+            if (!container || !window.PAYMENT_PLUGINS) return;
+            container.innerHTML = window.PAYMENT_PLUGINS.map(renderPluginSection).join('');
+            attachAllPluginListeners();
+        }
 
-        document.getElementById('stripePublishableKey').addEventListener('input', function() {
-            if (!currentData.settings) currentData.settings = {};
-            if (!currentData.settings.stripeConfig) currentData.settings.stripeConfig = {};
-            currentData.settings.stripeConfig.publishableKey = this.value.trim();
-            markDirty();
-        });
+        function attachAllPluginListeners() {
+            document.querySelectorAll('.plugin-toggle').forEach(el => {
+                el.onchange = function() {
+                    const id = this.dataset.plugin;
+                    if (!currentData.pluginConfigs) currentData.pluginConfigs = {};
+                    if (!currentData.pluginConfigs[id]) currentData.pluginConfigs[id] = {};
+                    currentData.pluginConfigs[id].enabled = this.checked;
+                    const fields = document.querySelector(`.plugin-fields[data-plugin="${id}"]`);
+                    if (fields) fields.style.display = this.checked ? '' : 'none';
+                    markDirty();
+                };
+            });
+            document.querySelectorAll('.plugin-field').forEach(el => {
+                el.addEventListener('input', function() {
+                    const id     = this.dataset.plugin;
+                    const key    = this.dataset.key;
+                    const isRoot = this.hasAttribute('data-root');
+                    const val    = this.value.trim();
+                    if (isRoot) {
+                        if (!currentData.settings) currentData.settings = {};
+                        currentData.settings.hiveAccount = val;
+                        currentData.hiveAccount = val;
+                    } else {
+                        if (!currentData.pluginConfigs) currentData.pluginConfigs = {};
+                        if (!currentData.pluginConfigs[id]) currentData.pluginConfigs[id] = {};
+                        // Don't clear a saved secret with an empty value — user just didn't re-enter it
+                        if (val || !this.hasAttribute('data-secret')) {
+                            currentData.pluginConfigs[id][key] = val;
+                        }
+                    }
+                    markDirty();
+                });
+            });
+        }
 
-        document.getElementById('stripeSecretKey').addEventListener('input', function() {
-            if (!currentData.settings) currentData.settings = {};
-            if (!currentData.settings.stripeConfig) currentData.settings.stripeConfig = {};
-            currentData.settings.stripeConfig.secretKey = this.value.trim();
-            markDirty();
-        });
+        function loadPluginSections() {
+            renderPluginSections();
+        }
 
-        loadStripeFeature();
+        loadPluginSections();
 
         // --- Email Reminders Settings Logic ---
         const enableEmailReminders   = document.getElementById('enableEmailReminders');
@@ -1942,66 +1909,6 @@
             if (val) localStorage.setItem('pos_api_base', val);
             else localStorage.removeItem('pos_api_base');
             alert(t('admin.apiSaved'));
-        };
-
-        // --- Bitcoin Lightning Settings Logic ---
-        const enableBL = document.getElementById('enableBitcoinLightning');
-        const blForm = document.getElementById('bitcoinLightningForm');
-        const blError = document.getElementById('bl_errorMsg');
-
-        // Load from store settings
-        async function loadBitcoinLightningSettings() {
-            const settings = await getStoreSettings();
-            if (settings.bitcoinLightningEnabled) {
-                enableBL.checked = true;
-                blForm.style.display = '';
-                if (settings.bitcoinLightningConfig) {
-                    document.getElementById('bl_hiveAccname').value = settings.bitcoinLightningConfig.hive_accname || '';
-                    document.getElementById('bl_receiveCurrency').value = settings.bitcoinLightningConfig.receive_currency || 'hbd';
-                }
-            } else {
-                enableBL.checked = false;
-                blForm.style.display = 'none';
-            }
-        }
-        enableBL.onchange = function() {
-            blForm.style.display = this.checked ? '' : 'none';
-        };
-        document.getElementById('saveBitcoinLightningBtn').onclick = async function() {
-            blError.textContent = '';
-            if (!enableBL.checked) {
-                // If not enabled, just save disabled
-                const settings = await getStoreSettings();
-                settings.bitcoinLightningEnabled = false;
-                settings.bitcoinLightningConfig = undefined;
-                await saveStoreSettings(settings);
-                alert(t('admin.lightningDisabled'));
-                return;
-            }
-            // Validate fields
-            const hive_accname = document.getElementById('bl_hiveAccname').value.trim();
-            const currency = document.getElementById('bl_currency').value;
-            const receive_currency = document.getElementById('bl_receiveCurrency').value;
-            const app_name = document.getElementById('bl_appName').value;
-            const expiry = document.getElementById('bl_expiry').value;
-            const qr_code = document.getElementById('bl_qrCode').value;
-            if (!hive_accname || !currency || !receive_currency || !app_name || !expiry || !qr_code) {
-                blError.textContent = t('admin.blFieldsRequired');
-                return;
-            }
-            // Save to store settings
-            const settings = await getStoreSettings();
-            settings.bitcoinLightningEnabled = true;
-            settings.bitcoinLightningConfig = {
-                hive_accname,
-                currency,
-                receive_currency,
-                app_name,
-                expiry,
-                qr_code
-            };
-            await saveStoreSettings(settings);
-            alert(t('admin.lightningSettingsSaved'));
         };
 
         // --- Restaurant Features (Tabs + Kitchen Display) ---
