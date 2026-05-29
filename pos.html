@@ -103,13 +103,16 @@
 
         /* Cart (right panel) */
         .pos-cart-panel {
-            width: 300px;
+            width: 320px;
             flex-shrink: 0;
             background: var(--surface);
             border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+        }
+        @media (min-width: 900px) {
+            .pos-cart-panel { width: 360px; }
         }
         .cart-head {
             padding: 1rem 1.25rem;
@@ -192,6 +195,16 @@
             font-size: 1.1rem;
             font-weight: 700;
             color: var(--text);
+        }
+        /* Secondary payment buttons — must never overflow their grid cell */
+        .pay-secondary {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.82rem;
+            padding-left: 0.4rem;
+            padding-right: 0.4rem;
         }
 
         /* QR / payment overlay */
@@ -734,10 +747,10 @@
             });
 
             // Static non-plugin payment methods
-            html += `<div style="display:flex;gap:0.5rem;">
-                <button id="payWithBankBtn"  type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payBankTransfer')}</button>
-                <button id="payWithCheckBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payCheck')}</button>
-                <button id="payWithOtherBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payOther')}</button>
+            html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;">
+                <button id="payWithBankBtn"  type="button" class="btn btn-secondary pay-secondary" ${dis}>${t('pos.payBankTransfer')}</button>
+                <button id="payWithCheckBtn" type="button" class="btn btn-secondary pay-secondary" ${dis}>${t('pos.payCheck')}</button>
+                <button id="payWithOtherBtn" type="button" class="btn btn-secondary pay-secondary" ${dis}>${t('pos.payOther')}</button>
             </div>`;
 
             html += `</div>`;
