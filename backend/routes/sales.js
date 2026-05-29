@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
-const { requireRole, authenticate } = require('../middleware/auth');
+const { requireRole, authenticate, requireActiveSubscription } = require('../middleware/auth');
 const Sale = require('../models/Sale');
 
 // All sales routes require auth + a storeId in the token
@@ -9,6 +9,7 @@ router.use((req, res, next) => {
   if (!req.user.storeId) return res.status(400).json({ error: 'No store found. Please create and publish your store first.' });
   next();
 });
+router.use(requireActiveSubscription);
 
 // POST /api/sales — record a completed (immediately paid) sale
 router.post('/', async (req, res) => {

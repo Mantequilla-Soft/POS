@@ -501,6 +501,7 @@
                             </button>
                             <span id="reminderStatus" style="font-size:.82em"></span>
                         </div>
+                        <div id="subscriptionBanner" style="display:none;margin-top:1rem"></div>
                     </div>
                 </div>
             `;
@@ -895,6 +896,211 @@
             }
         }
 
+        // ── Subscription widget ────────────────────────────────────────────────
+
+        let _subData = null;
+
+        async function loadSubscription() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/subscription`, { headers: getAuthHeaders() });
+                if (!res.ok) return; // billing disabled or no sub yet
+                _subData = await res.json();
+                renderSubscriptionBanner(_subData);
+            } catch {}
+        }
+
+        function renderSubscriptionBanner(sub) {
+            const banner = document.getElementById('subscriptionBanner');
+            if (!banner) return;
+
+            const colors = {
+                trial:     { bg: '#e8f4fd', border: '#3498db', text: '#1a5276' },
+                active:    { bg: '#eafaf1', border: '#27ae60', text: '#1e8449' },
+                overdue:   { bg: '#fef9e7', border: '#f39c12', text: '#7d6608' },
+                comped:    { bg: '#f4ecf7', border: '#8e44ad', text: '#6c3483' },
+                suspended: { bg: '#fdedec', border: '#e74c3c', text: '#922b21' },
+            };
+            const c = colors[sub.status] || colors.active;
+
+            const dueDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '—';
+            const statusLabel = {
+                trial: t('billing.statusTrial'), active: t('billing.statusActive'),
+                overdue: t('billing.statusOverdue'), comped: t('billing.statusComped'),
+                suspended: t('billing.statusSuspended'),
+            }[sub.status] || sub.status;
+
+            const payBtns = (sub.status === 'overdue' || sub.status === 'trial')
+                ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
+                    ${sub.billingHiveAccount ? `<button onclick="openHbdPayModal()" style="background:#e74c3c;color:#fff;border:none;border-radius:var(--r);padding:.35rem .9rem;cursor:pointer;font-size:.82em;font-weight:600">${t('billing.payHbd')}</button>` : ''}
+                    <button onclick="openStripePayModal()" style="background:#635bff;color:#fff;border:none;border-radius:var(--r);padding:.35rem .9rem;cursor:pointer;font-size:.82em;font-weight:600">${t('billing.payCard')}</button>
+                   </div>`
+                : '';
+
+            banner.style.display = 'block';
+            banner.innerHTML = `
+                <div style="border:1.5px solid ${c.border};background:${c.bg};color:${c.text};border-radius:var(--r);padding:.65rem 1rem;font-size:.85em;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                    <div style="flex:1;min-width:160px">
+                        <strong>${t('billing.widgetTitle')}</strong>
+                        <span style="margin-left:.5rem;background:${c.border};color:#fff;border-radius:999px;padding:.1rem .55rem;font-size:.78em">${statusLabel}</span>
+                        <div style="margin-top:.25rem">${t('billing.widgetDue')}: <strong>${dueDate}</strong> &nbsp;·&nbsp; ${sub.planPrice} ${sub.planCurrency}/${t('billing.perMonth')}</div>
+                    </div>
+                    ${payBtns}
+                </div>`;
+        }
+
+        // HBD payment modal
+        function openHbdPayModal() {
+            if (!_subData) return;
+            const memo = _subData.billingMemo || '';
+            const to   = _subData.billingHiveAccount || '';
+            const price = `${_subData.planPrice} ${_subData.planCurrency}`;
+            const qrVal = `hive:${to}?amount=${_subData.planPrice}&currency=${_subData.planCurrency}&memo=${encodeURIComponent(memo)}`;
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center';
+            modal.innerHTML = `
+                <div style="background:var(--surface,#fff);border-radius:var(--r);padding:1.5rem 2rem;max-width:360px;width:90%;text-align:center">
+                    <h3 style="margin:0 0 .5rem">${t('billing.payHbdTitle')}</h3>
+                    <p style="font-size:.88em;color:var(--muted)">${t('billing.payHbdInstr')}</p>
+                    <div style="background:#f5f5f5;border-radius:6px;padding:.75rem;margin:.75rem 0;font-size:.82em;word-break:break-all">
+                        <strong>${t('billing.sendTo')}:</strong> @${to}<br>
+                        <strong>${t('billing.amount')}:</strong> ${price}<br>
+                        <strong>${t('billing.memo')}:</strong> <code>${memo}</code>
+                    </div>
+                    <div id="hbdQrDiv" style="margin:.5rem auto;width:180px;height:180px"></div>
+                    <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center">
+                        <input id="hbdTxInput" placeholder="${t('billing.txIdPlaceholder')}" style="border:1px solid #ccc;border-radius:var(--r);padding:.4rem .7rem;font-size:.85em;flex:1;min-width:140px">
+                        <button onclick="submitHbdTx()" style="background:var(--green,#27ae60);color:#fff;border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-weight:600">${t('billing.confirmTx')}</button>
+                    </div>
+                    <div id="hbdTxStatus" style="font-size:.82em;margin-top:.4rem"></div>
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="margin-top:.75rem;background:transparent;border:1px solid #ccc;border-radius:var(--r);padding:.35rem .9rem;cursor:pointer;font-size:.82em">${t('common.close')}</button>
+                </div>`;
+            document.body.appendChild(modal);
+
+            // Generate QR via qrcodejs CDN (loaded lazily)
+            if (window.QRCode) {
+                new QRCode(document.getElementById('hbdQrDiv'), { text: qrVal, width: 180, height: 180 });
+            } else {
+                const s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+                s.onload = () => new QRCode(document.getElementById('hbdQrDiv'), { text: qrVal, width: 180, height: 180 });
+                document.head.appendChild(s);
+            }
+        }
+
+        async function submitHbdTx() {
+            const txId = document.getElementById('hbdTxInput')?.value?.trim();
+            const statusEl = document.getElementById('hbdTxStatus');
+            if (!txId) { if (statusEl) statusEl.textContent = t('billing.txIdRequired'); return; }
+            if (statusEl) statusEl.textContent = t('billing.verifying');
+            try {
+                const res = await fetch(`${API_BASE_URL}/subscription/pay/hbd`, {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ txId }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (statusEl) { statusEl.style.color = 'var(--green)'; statusEl.textContent = t('billing.paymentRecorded'); }
+                    loadSubscription();
+                } else {
+                    if (statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = data.error || t('billing.paymentFailed'); }
+                }
+            } catch {
+                if (statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = t('billing.paymentFailed'); }
+            }
+        }
+
+        // Stripe card payment modal
+        async function openStripePayModal() {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center';
+            modal.innerHTML = `
+                <div style="background:var(--surface,#fff);border-radius:var(--r);padding:1.5rem 2rem;max-width:380px;width:90%">
+                    <h3 style="margin:0 0 .75rem">${t('billing.payCardTitle')}</h3>
+                    <div id="stripeCardMount" style="border:1px solid #ccc;border-radius:var(--r);padding:.65rem .75rem;min-height:40px"></div>
+                    <div id="stripeCardError" style="color:var(--red);font-size:.82em;margin-top:.35rem"></div>
+                    <div style="display:flex;gap:.5rem;margin-top:.85rem;justify-content:flex-end">
+                        <button onclick="this.closest('[style*=fixed]').remove()" style="background:transparent;border:1px solid #ccc;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em">${t('common.cancel')}</button>
+                        <button id="stripePayBtn" onclick="confirmStripePayment()" style="background:#635bff;color:#fff;border:none;border-radius:var(--r);padding:.4rem 1rem;cursor:pointer;font-weight:600">${t('billing.payNow')}</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+
+            // Create intent first
+            let clientSecret, publishableKey;
+            try {
+                const res = await fetch(`${API_BASE_URL}/subscription/pay/stripe/intent`, {
+                    method: 'POST', headers: getAuthHeaders(),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    modal.querySelector('#stripeCardError').textContent = data.error || t('billing.stripeNotConfigured');
+                    return;
+                }
+                clientSecret = data.clientSecret;
+                publishableKey = data.publishableKey;
+            } catch {
+                modal.querySelector('#stripeCardError').textContent = t('billing.paymentFailed');
+                return;
+            }
+
+            // Load Stripe.js lazily
+            if (!window.Stripe) {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://js.stripe.com/v3/';
+                    s.onload = resolve; s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            }
+            const stripe = Stripe(publishableKey);
+            const elements = stripe.elements();
+            const card = elements.create('card', { style: { base: { fontSize: '15px' } } });
+            card.mount('#stripeCardMount');
+
+            modal._stripeState = { stripe, card, clientSecret };
+        }
+
+        async function confirmStripePayment() {
+            const modal = document.querySelector('[style*="position:fixed"][style*="z-index:9000"]');
+            if (!modal?._stripeState) return;
+            const { stripe, card, clientSecret } = modal._stripeState;
+            const btn = document.getElementById('stripePayBtn');
+            const errEl = document.getElementById('stripeCardError');
+            btn.disabled = true; btn.textContent = t('billing.processing');
+
+            const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: { card },
+            });
+            if (error) {
+                errEl.textContent = error.message;
+                btn.disabled = false; btn.textContent = t('billing.payNow');
+                return;
+            }
+
+            // Tell our server to record it
+            try {
+                const res = await fetch(`${API_BASE_URL}/subscription/pay/stripe/confirm`, {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    modal.remove();
+                    loadSubscription();
+                    showToast(t('billing.paymentRecorded'), 'success');
+                } else {
+                    errEl.textContent = data.error || t('billing.paymentFailed');
+                    btn.disabled = false; btn.textContent = t('billing.payNow');
+                }
+            } catch {
+                errEl.textContent = t('billing.paymentFailed');
+                btn.disabled = false; btn.textContent = t('billing.payNow');
+            }
+        }
+
         // Authentication check and dashboard initialization
         async function initializeDashboard() {
             // Check authentication
@@ -909,7 +1115,7 @@
             // Load data — store must render first so metric card elements exist in DOM
             try {
                 await Promise.all([loadUserStore(), loadCashiers()]);
-                await Promise.all([loadOverdueMembers(), loadTodayRevenue()]);
+                await Promise.all([loadOverdueMembers(), loadTodayRevenue(), loadSubscription()]);
             } catch (error) {
                 console.error('Failed to initialize dashboard:', error);
                 showToast('Failed to load dashboard data', 'error');

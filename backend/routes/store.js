@@ -3,6 +3,7 @@ const jwt    = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { authenticate, requireRole, roleOnly } = require('../middleware/auth');
 const Store = require('../models/Store');
+const Subscription = require('../models/Subscription');
 
 function freshToken(user, storeId) {
   return jwt.sign(
@@ -104,6 +105,19 @@ router.post('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
     }
 
     const store = await Store.create(data);
+
+    // Auto-create subscription in trial if billing is enabled
+    if (process.env.BILLING_ENABLED !== 'false') {
+      const trialDays = parseInt(process.env.BILLING_TRIAL_DAYS || '30');
+      await Subscription.create({
+        storeId: store._id,
+        status: 'trial',
+        planPrice: parseFloat(process.env.BILLING_PLAN_PRICE || '5'),
+        trialEndsAt: new Date(Date.now() + trialDays * 86400000),
+        currentPeriodEnd: new Date(Date.now() + trialDays * 86400000),
+      });
+    }
+
     // Return a refreshed token with the new storeId so the frontend
     // doesn't need to log out/in before using cashiers, sales, etc.
     const token = freshToken(req.user, store._id);

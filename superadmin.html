@@ -81,6 +81,39 @@
       </table>
     </div>
   </div>
+
+  <!-- Subscriptions / Billing -->
+  <div class="card" id="billingCard">
+    <div class="card-header">
+      <h2 data-i18n="superadmin.billingTitle">Subscriptions &amp; Billing</h2>
+      <button class="btn" onclick="loadSubscriptions()" style="font-size:.8em;padding:.3rem .7rem" data-i18n="common.refresh">Refresh</button>
+    </div>
+    <div class="card-body table-wrap" style="padding:0">
+      <table>
+        <thead><tr>
+          <th data-i18n="superadmin.business">Business</th>
+          <th data-i18n="common.status">Status</th>
+          <th data-i18n="billing.price">Price</th>
+          <th data-i18n="billing.widgetDue">Due</th>
+          <th data-i18n="billing.notes">Notes</th>
+          <th data-i18n="common.actions">Actions</th>
+        </tr></thead>
+        <tbody id="subsBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Billing action modal -->
+<div id="billingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:var(--surface,#fff);border-radius:var(--r);padding:1.5rem 2rem;max-width:420px;width:90%">
+    <h3 id="billingModalTitle" style="margin:0 0 1rem"></h3>
+    <div id="billingModalBody"></div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem">
+      <button onclick="closeBillingModal()" style="background:transparent;border:1px solid #ccc;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer" data-i18n="common.cancel">Cancel</button>
+      <button id="billingModalOk" style="background:var(--green,#27ae60);color:#fff;border:none;border-radius:var(--r);padding:.4rem 1rem;cursor:pointer;font-weight:600" data-i18n="common.save">Save</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -191,6 +224,162 @@
 
   loadPending();
   loadStores();
+  loadSubscriptions();
+
+  // ── Billing management ─────────────────────────────────────────────────────
+
+  const SUB_STATUS_COLORS = {
+    trial:     '#3498db', active: '#27ae60', overdue: '#f39c12',
+    comped:    '#8e44ad', suspended: '#e74c3c',
+  };
+
+  async function loadSubscriptions() {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/subscriptions`, { headers: authHeaders() });
+      if (!res.ok) {
+        document.getElementById('subsBody').innerHTML = `<tr><td colspan="6" class="empty">Billing not available (${res.status})</td></tr>`;
+        return;
+      }
+      const subs = await res.json();
+      if (!subs.length) {
+        document.getElementById('subsBody').innerHTML = `<tr><td colspan="6" class="empty">${t('superadmin.noSubs')}</td></tr>`;
+        return;
+      }
+      document.getElementById('subsBody').innerHTML = subs.map(s => {
+        const color = SUB_STATUS_COLORS[s.status] || '#999';
+        const due = s.currentPeriodEnd ? fmtDate(s.currentPeriodEnd) : '—';
+        return `<tr>
+          <td><strong>${s.businessName || '(unnamed)'}</strong></td>
+          <td><span style="background:${color};color:#fff;border-radius:999px;padding:.1rem .55rem;font-size:.78em">${s.status}</span></td>
+          <td>${s.planPrice} ${s.planCurrency}/mo</td>
+          <td>${due}</td>
+          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(s.notes||'').replace(/"/g,'&quot;')}">${s.notes || '—'}</td>
+          <td>
+            <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+              ${s.status === 'suspended'
+                ? `<button class="btn btn-success" style="font-size:.75em;padding:.2rem .5rem" onclick="setSubStatus('${s.storeId}','active')">${t('billing.unsuspend')}</button>`
+                : `<button class="btn btn-danger"  style="font-size:.75em;padding:.2rem .5rem" onclick="setSubStatus('${s.storeId}','suspended')">${t('billing.suspend')}</button>`}
+              <button class="btn" style="font-size:.75em;padding:.2rem .5rem;background:var(--amber,#f59e0b);color:#fff;border:none" onclick="openCompModal('${s.storeId}')">${t('billing.grantMonths')}</button>
+              <button class="btn" style="font-size:.75em;padding:.2rem .5rem;background:#555;color:#fff;border:none" onclick="openManualPayModal('${s.storeId}')">${t('billing.recordPayment')}</button>
+              <button class="btn" style="font-size:.75em;padding:.2rem .5rem" onclick="openNotesModal('${s.storeId}','${(s.notes||'').replace(/'/g,"\\'")}')">${t('billing.editNotes')}</button>
+              <button class="btn" style="font-size:.75em;padding:.2rem .5rem" onclick="viewPayHistory('${s.storeId}','${s.businessName||''}')">${t('billing.history')}</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch (err) {
+      document.getElementById('subsBody').innerHTML = `<tr><td colspan="6" class="empty">${err.message}</td></tr>`;
+    }
+  }
+
+  async function setSubStatus(storeId, status) {
+    const label = status === 'suspended' ? t('billing.suspend') : t('billing.unsuspend');
+    if (!confirm(`${label} this store?`)) return;
+    const res = await fetch(`${API_BASE}/api/admin/subscriptions/${storeId}/status`, {
+      method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status }),
+    });
+    if (res.ok) { toast(t('billing.statusUpdated')); loadSubscriptions(); }
+    else { const d = await res.json(); toast(d.error || t('billing.updateFailed'), false); }
+  }
+
+  function openCompModal(storeId) {
+    showBillingModal(
+      t('billing.grantMonthsTitle'),
+      `<label style="display:block;margin-bottom:.5rem">${t('billing.monthsLabel')}</label>
+       <input id="bmMonths" type="number" min="1" max="24" value="1" style="width:80px;padding:.4rem;border:1px solid #ccc;border-radius:var(--r)">
+       <label style="display:block;margin:.75rem 0 .3rem">${t('billing.notesLabel')}</label>
+       <input id="bmNotes" placeholder="${t('billing.notesPlaceholder')}" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:var(--r);box-sizing:border-box">`,
+      async () => {
+        const months = parseInt(document.getElementById('bmMonths').value) || 1;
+        const notes  = document.getElementById('bmNotes').value.trim();
+        const res = await fetch(`${API_BASE}/api/admin/subscriptions/${storeId}/comp`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ months, notes }),
+        });
+        if (res.ok) { toast(t('billing.compGranted')); loadSubscriptions(); closeBillingModal(); }
+        else { const d = await res.json(); toast(d.error || t('billing.updateFailed'), false); }
+      }
+    );
+  }
+
+  function openManualPayModal(storeId) {
+    showBillingModal(
+      t('billing.recordPayTitle'),
+      `<label style="display:block;margin-bottom:.3rem">${t('billing.amountLabel')}</label>
+       <input id="bmAmount" type="number" min="0" step="0.01" placeholder="5" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:var(--r);box-sizing:border-box;margin-bottom:.65rem">
+       <label style="display:block;margin-bottom:.3rem">${t('billing.notesLabel')}</label>
+       <input id="bmNotes" placeholder="e.g. cash, bank transfer…" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:var(--r);box-sizing:border-box">`,
+      async () => {
+        const amount = parseFloat(document.getElementById('bmAmount').value);
+        const notes  = document.getElementById('bmNotes').value.trim();
+        if (!amount) { toast(t('billing.amountRequired'), false); return; }
+        const res = await fetch(`${API_BASE}/api/admin/subscriptions/${storeId}/payment`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ amount, notes }),
+        });
+        if (res.ok) { toast(t('billing.paymentRecorded')); loadSubscriptions(); closeBillingModal(); }
+        else { const d = await res.json(); toast(d.error || t('billing.updateFailed'), false); }
+      }
+    );
+  }
+
+  function openNotesModal(storeId, currentNotes) {
+    showBillingModal(
+      t('billing.editNotesTitle'),
+      `<textarea id="bmNotes" rows="4" style="width:100%;padding:.5rem;border:1px solid #ccc;border-radius:var(--r);box-sizing:border-box;font-family:inherit;font-size:.9em">${currentNotes}</textarea>`,
+      async () => {
+        const notes = document.getElementById('bmNotes').value;
+        const res = await fetch(`${API_BASE}/api/admin/subscriptions/${storeId}/notes`, {
+          method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ notes }),
+        });
+        if (res.ok) { toast(t('billing.notesSaved')); loadSubscriptions(); closeBillingModal(); }
+        else { const d = await res.json(); toast(d.error || t('billing.updateFailed'), false); }
+      }
+    );
+  }
+
+  async function viewPayHistory(storeId, businessName) {
+    const res = await fetch(`${API_BASE}/api/admin/subscriptions/${storeId}/payments`, { headers: authHeaders() });
+    const payments = await res.json();
+    const rows = payments.length
+      ? payments.map(p => `<tr>
+          <td>${fmtDate(p.paidAt)}</td>
+          <td>${p.amount} ${p.currency}</td>
+          <td>${p.method}</td>
+          <td style="font-size:.78em;color:#888">${p.recordedBy}</td>
+          <td style="font-size:.78em">${fmtDate(p.periodStart)} → ${fmtDate(p.periodEnd)}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="5" class="empty">${t('billing.noPayments')}</td></tr>`;
+    showBillingModal(
+      `${t('billing.historyTitle')}: ${businessName}`,
+      `<div style="overflow-x:auto"><table style="width:100%;font-size:.82em;border-collapse:collapse">
+        <thead style="background:#f5f5f5"><tr>
+          <th style="padding:.3rem .5rem;text-align:left">${t('billing.paidAt')}</th>
+          <th style="padding:.3rem .5rem;text-align:left">${t('billing.amount')}</th>
+          <th style="padding:.3rem .5rem;text-align:left">${t('billing.method')}</th>
+          <th style="padding:.3rem .5rem;text-align:left">${t('billing.recordedBy')}</th>
+          <th style="padding:.3rem .5rem;text-align:left">${t('billing.period')}</th>
+        </tr></thead><tbody>${rows}</tbody>
+      </table></div>`,
+      null
+    );
+  }
+
+  let _billingOkCb = null;
+  function showBillingModal(title, bodyHtml, okCb) {
+    document.getElementById('billingModalTitle').textContent = title;
+    document.getElementById('billingModalBody').innerHTML = bodyHtml;
+    _billingOkCb = okCb;
+    const okBtn = document.getElementById('billingModalOk');
+    okBtn.style.display = okCb ? '' : 'none';
+    document.getElementById('billingModal').style.display = 'flex';
+  }
+  function closeBillingModal() {
+    document.getElementById('billingModal').style.display = 'none';
+    _billingOkCb = null;
+  }
+  document.getElementById('billingModalOk').onclick = () => _billingOkCb?.();
+  document.getElementById('billingModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('billingModal')) closeBillingModal();
+  });
 </script>
 </body>
 </html>

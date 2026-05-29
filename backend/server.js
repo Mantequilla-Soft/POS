@@ -38,7 +38,9 @@ app.use('/api/upload',    require('./routes/upload'));
 app.use('/api/reminders', require('./routes/reminders'));
 app.use('/api/reports',   require('./routes/reports'));
 app.use('/api/campaigns', require('./routes/campaigns'));
-app.use('/api/kitchen',   require('./routes/kitchen'));
+app.use('/api/kitchen',      require('./routes/kitchen'));
+app.use('/api/subscription', require('./routes/subscriptions'));
+app.use('/api/admin/subscriptions', require('./routes/adminSubscriptions'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date() }));
 
@@ -51,6 +53,7 @@ if (require.main === module) {
       app.listen(port, () => console.log(`POSHIVE backend running on port ${port}`));
       require('./services/reminderJob').startReminderJob();
       require('./services/backupJob').startBackupJob();
+      require('./services/billingJob').startBillingJob();
     })
     .catch((err) => {
       console.error('MongoDB connection error:', err.message);
