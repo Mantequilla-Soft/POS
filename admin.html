@@ -2141,7 +2141,8 @@
                     + (feats.emailCampaigns? (cfg.addons?.emailCampaigns || 0) : 0)
                     + (feats.discountCodes ? (cfg.addons?.discountCodes  || 0) : 0);
                 const infoEl = document.getElementById('tierCostInfo');
-                document.getElementById('tierCostText').textContent = `Your plan: ${parts.join(' + ')} = ${total} ${cfg.currency}/mo`;
+                const sym = (cfg.currency === 'HBD' || !cfg.currency) ? '$' : cfg.currency + ' ';
+                document.getElementById('tierCostText').textContent = `Your plan: ${parts.join(' + ')} = ${sym}${total}/mo`;
                 infoEl.style.display = '';
             } catch {}
         }

@@ -298,7 +298,7 @@
         return `<tr>
           <td><strong>${s.businessName || '(unnamed)'}</strong></td>
           <td><span style="background:${color};color:#fff;border-radius:999px;padding:.1rem .55rem;font-size:.78em">${s.status}</span></td>
-          <td>${s.planPrice} ${s.planCurrency}/mo</td>
+          <td>${s.planCurrency === 'HBD' || !s.planCurrency ? '$' : s.planCurrency + ' '}${s.planPrice}/mo</td>
           <td>${due}</td>
           <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(s.notes||'').replace(/"/g,'&quot;')}">${s.notes || '—'}</td>
           <td>
@@ -389,7 +389,7 @@
     const rows = payments.length
       ? payments.map(p => `<tr>
           <td>${fmtDate(p.paidAt)}</td>
-          <td>${p.amount} ${p.currency}</td>
+          <td>${p.currency === 'HBD' || !p.currency ? '$' : p.currency + ' '}${p.amount}</td>
           <td>${p.method}</td>
           <td style="font-size:.78em;color:#888">${p.recordedBy}</td>
           <td style="font-size:.78em">${fmtDate(p.periodStart)} → ${fmtDate(p.periodEnd)}</td>
@@ -458,7 +458,7 @@
     if (d) parts.push(`+ Discount Codes ${d}`);
     const max = base + r + m + e + d;
     document.getElementById('pricingPreview').textContent =
-      `Preview: ${parts.join(' ')} = up to ${max} ${currency}/mo`;
+      `Preview: ${parts.join(' ')} = up to ${currency === 'HBD' || !currency ? '$' : currency + ' '}${max}/mo`;
   }
 
   ['pcBase','pcCurrency','pcRestaurant','pcMemberships','pcEmailCampaigns','pcDiscountCodes'].forEach(id => {

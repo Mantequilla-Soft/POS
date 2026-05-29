@@ -943,7 +943,7 @@
                     <div style="flex:1;min-width:160px">
                         <strong>${t('billing.widgetTitle')}</strong>
                         <span style="margin-left:.5rem;background:${c.border};color:#fff;border-radius:999px;padding:.1rem .55rem;font-size:.78em">${statusLabel}</span>
-                        <div style="margin-top:.25rem">${t('billing.widgetDue')}: <strong>${dueDate}</strong> &nbsp;·&nbsp; ${sub.planPrice} ${sub.planCurrency}/${t('billing.perMonth')}</div>
+                        <div style="margin-top:.25rem">${t('billing.widgetDue')}: <strong>${dueDate}</strong> &nbsp;·&nbsp; ${sub.planCurrency === 'HBD' || !sub.planCurrency ? '$' : sub.planCurrency + ' '}${sub.planPrice}/${t('billing.perMonth')}</div>
                     </div>
                     ${payBtns}
                 </div>`;
@@ -954,7 +954,7 @@
             if (!_subData) return;
             const memo = _subData.billingMemo || '';
             const to   = _subData.billingHiveAccount || '';
-            const price = `${_subData.planPrice} ${_subData.planCurrency}`;
+            const price = `${_subData.planCurrency === 'HBD' || !_subData.planCurrency ? '$' : _subData.planCurrency + ' '}${_subData.planPrice}`;
             const qrVal = `hive:${to}?amount=${_subData.planPrice}&currency=${_subData.planCurrency}&memo=${encodeURIComponent(memo)}`;
 
             const modal = document.createElement('div');
