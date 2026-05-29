@@ -519,6 +519,39 @@
         let cart = [];
         let currentTabState = null; // { tabId, tableId, tableLabel } when in table mode, else null
         let openTabsByTable = {};   // tableId → open Sale document
+
+        // ── Kitchen status polling ────────────────────────────────────────────
+        let _kitchenPollTimer = null;
+        function startKitchenPoll() {
+            stopKitchenPoll();
+            if (!currentTabState?.tabId) return;
+            _kitchenPollTimer = setInterval(pollKitchenStatus, 6000);
+        }
+        function stopKitchenPoll() {
+            if (_kitchenPollTimer) { clearInterval(_kitchenPollTimer); _kitchenPollTimer = null; }
+        }
+        async function pollKitchenStatus() {
+            if (!currentTabState?.tabId) { stopKitchenPoll(); return; }
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            try {
+                const res = await fetch(`${apiBase}/sales/${currentTabState.tabId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const tab = await res.json();
+                // Only patch kitchenStatus — never touch qty/notes/anything the cashier is editing
+                let changed = false;
+                tab.items.forEach(serverItem => {
+                    const cartItem = cart.find(i => i.id === serverItem.id);
+                    if (cartItem && cartItem.kitchenStatus !== serverItem.kitchenStatus) {
+                        cartItem.kitchenStatus = serverItem.kitchenStatus;
+                        changed = true;
+                    }
+                });
+                if (changed) renderCart();
+            } catch (_) { /* silent — kitchen poll is best-effort */ }
+        }
         function addToCart(item) {
             // Check if item already in cart
             const found = cart.find(ci => ci.id === item.id);
@@ -541,9 +574,14 @@
                     const noteDisplay = (!item.isPass && item.notes)
                         ? `<span style="font-size:.7rem;color:var(--amber);display:block;margin-top:.1rem;">${posEscHtml(item.notes)}</span>`
                         : '';
+                    const kitchenDot = currentTabState
+                        ? (item.kitchenStatus === 'ready'
+                            ? `<span title="${t('pos.kitchenReady') || 'Ready'}" style="color:#27ae60;font-size:.65rem;margin-right:.3rem;vertical-align:middle;">●</span>`
+                            : `<span title="${t('pos.kitchenPending') || 'Pending'}" style="color:var(--text-3);font-size:.65rem;margin-right:.3rem;vertical-align:middle;">○</span>`)
+                        : '';
                     const nameHtml = item.isPass
-                        ? `<span class="cart-item-name">${item.name}<br><span style="font-size:.75em;color:var(--amber);font-weight:600">👤 ${item.passContact?.name || ''}</span></span>`
-                        : `<span class="cart-item-name">${item.name}${noteDisplay}<button onclick="editItemNote(${idx})" title="${t('pos.addNote')}" style="background:none;border:none;cursor:pointer;font-size:.7rem;color:var(--text-3);padding:0 .15rem;vertical-align:middle;">📝</button></span>`;
+                        ? `<span class="cart-item-name">${kitchenDot}${item.name}<br><span style="font-size:.75em;color:var(--amber);font-weight:600">👤 ${item.passContact?.name || ''}</span></span>`
+                        : `<span class="cart-item-name">${kitchenDot}${item.name}${noteDisplay}<button onclick="editItemNote(${idx})" title="${t('pos.addNote')}" style="background:none;border:none;cursor:pointer;font-size:.7rem;color:var(--text-3);padding:0 .15rem;vertical-align:middle;">📝</button></span>`;
                     const qtyHtml = item.isPass
                         ? `<span class="cart-item-qty"><button class="remove-btn" onclick="removeFromCart(${idx})">✕</button></span>`
                         : `<span class="cart-item-qty">
@@ -1214,6 +1252,7 @@
                     if (saleRes.ok) {
                         savedToBackend = true;
                         if (isTabClose) {
+                            stopKitchenPoll();
                             delete openTabsByTable[currentTabState.tableId];
                             currentTabState = null;
                             renderTabBadge();
@@ -1360,6 +1399,7 @@
 
         function selectTable(table, existingTab) {
             hideTablesPanel();
+            stopKitchenPoll();
             if (!table) {
                 currentTabState = null;
                 cart = [];
@@ -1374,6 +1414,7 @@
             renderMenu();
             renderTabBadge();
             setupPaymentButtons();
+            startKitchenPoll(); // begin polling only when on a saved tab
         }
 
         async function saveTab() {
@@ -1415,6 +1456,7 @@
                 alert('Could not save tab: ' + e.message);
                 return;
             }
+            stopKitchenPoll();
             cart = [];
             currentTabState = null;
             renderTabBadge();
@@ -1426,6 +1468,7 @@
         async function voidTab() {
             if (!currentTabState?.tabId) {
                 if (!confirm(t('pos.voidTabUnsaved'))) return;
+                stopKitchenPoll();
                 cart = [];
                 currentTabState = null;
                 renderTabBadge();
@@ -1443,6 +1486,7 @@
                 });
                 if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Error');
                 if (currentTabState.tableId) delete openTabsByTable[currentTabState.tableId];
+                stopKitchenPoll();
                 cart = [];
                 currentTabState = null;
                 renderTabBadge();

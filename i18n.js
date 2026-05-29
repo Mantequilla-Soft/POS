@@ -706,6 +706,8 @@ const i18n = (() => {
 
       // ── Counter-to-kitchen ────────────────────────────────────────────────
       'pos.sendToKitchen':       'Send to Kitchen',
+      'pos.kitchenReady':        'Ready',
+      'pos.kitchenPending':      'Pending',
       'pos.counterLabel':        'Counter',
     },
 
@@ -1415,6 +1417,8 @@ const i18n = (() => {
 
       // ── Counter-to-kitchen ────────────────────────────────────────────────
       'pos.sendToKitchen':       'Enviar a Cocina',
+      'pos.kitchenReady':        'Listo',
+      'pos.kitchenPending':      'Pendiente',
       'pos.counterLabel':        'Mostrador',
     }
   };
