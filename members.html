@@ -78,6 +78,11 @@
       <option value="suspended" data-i18n="common.suspended">Suspended</option>
       <option value="expired" data-i18n="common.expired">Expired</option>
     </select>
+    <select class="filter-select" id="passFilter" onchange="loadMembers()">
+      <option value="" data-i18n="pass.filterAll">All</option>
+      <option value="members" data-i18n="pass.filterMembers">Members only</option>
+      <option value="passes" data-i18n="pass.filterPasses">Passes only</option>
+    </select>
     <button class="btn btn-primary" onclick="openAddModal()" data-i18n="members.addBtn">+ Add Member</button>
   </div>
 
@@ -305,9 +310,12 @@ function debounceLoad() {
 async function loadMembers(page = currentPage) {
   const search = document.getElementById('searchInput').value.trim();
   const status = document.getElementById('statusFilter').value;
+  const passFilter = document.getElementById('passFilter').value;
   const params = new URLSearchParams({ page, limit: PAGE_SIZE });
   if (search) params.set('search', search);
   if (status) params.set('status', status);
+  if (passFilter === 'passes')  params.set('isPass', 'true');
+  if (passFilter === 'members') params.set('isPass', 'false');
 
   const res = await fetch(`${API_BASE}/api/members?${params}`, { headers: authHeaders() });
   if (res.status === 401) { window.location.href = 'login.html'; return; }
@@ -337,14 +345,18 @@ async function loadMembers(page = currentPage) {
         <strong>${esc(m.name)}</strong>
         ${m.hiveAccount ? `<br><small style="color:var(--text-2)">@${esc(m.hiveAccount)}</small>` : ''}
       </td>
-      <td>${esc(m.membershipTypeId?.name || '—')}<br>
+      <td>
+        ${m.isPass ? `<span style="background:var(--amber);color:#fff;font-size:.68rem;font-weight:700;padding:.1em .4em;border-radius:3px;margin-right:.3em;vertical-align:middle">${t('pass.badge')}</span>` : ''}
+        ${esc(m.membershipTypeId?.name || '—')}<br>
         <small style="color:var(--text-2)">${m.membershipTypeId ? fmtMoney(m.membershipTypeId.price, m.membershipTypeId.currency) : ''}</small>
       </td>
       <td>${m.status === 'pending' ? `<span style="color:var(--text-3);font-size:.8rem">${t('members.awaitingPayment')}</span>` : fmtDate(m.nextDueDate)}</td>
       <td><span class="badge badge-${m.status}">${t('members.status_' + m.status) || m.status}</span></td>
       <td>
         <div class="actions">
-          <button class="btn btn-success btn-sm" onclick="openPayment('${m._id}', '${esc(m.name)}', ${m.membershipTypeId?.price || 0}, '${m.membershipTypeId?.currency || 'HBD'}')">${t('members.payBtn')}</button>
+          ${m.isPass
+            ? `<button class="btn btn-secondary btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="openConvertModal('${m._id}','${esc(m.name)}','${esc(m.email||'')}','${esc(m.phone||'')}')">${t('pass.convertBtn')}</button>`
+            : `<button class="btn btn-success btn-sm" onclick="openPayment('${m._id}', '${esc(m.name)}', ${m.membershipTypeId?.price || 0}, '${m.membershipTypeId?.currency || 'HBD'}')">${t('members.payBtn')}</button>`}
           <button class="btn btn-outline btn-sm" onclick="openHistory('${m._id}', '${esc(m.name)}')">${t('members.historyBtn')}</button>
           <button class="btn btn-secondary btn-sm" onclick="openEditModal('${m._id}')">${t('common.edit')}</button>
           ${isCashier ? '' : `<button class="btn btn-danger btn-sm" onclick="deleteMember('${m._id}', '${esc(m.name)}')">${t('members.delBtn')}</button>`}
@@ -367,11 +379,12 @@ function renderPagination(page, pages, total) {
   bar.innerHTML = `${prev}<span>Page ${page} of ${pages}</span>${next}`;
 }
 
-async function loadMembershipTypes() {
+async function loadMembershipTypes({ excludePasses = false } = {}) {
   const res = await fetch(`${API_BASE}/api/membership-types`, { headers: authHeaders() });
   membershipTypes = await res.json();
   const sel = document.getElementById('fMembershipType');
-  sel.innerHTML = membershipTypes.filter(mt => mt.active).map(mt =>
+  const filtered = membershipTypes.filter(mt => mt.active && (!excludePasses || !mt.isPass));
+  sel.innerHTML = filtered.map(mt =>
     `<option value="${mt._id}">${esc(mt.name)} — ${fmtMoney(mt.price, mt.currency)} / ${mt.durationDays}d</option>`
   ).join('') || `<option value="">${t('members.noPlanConfig')}</option>`;
 }
@@ -386,6 +399,20 @@ function openAddModal() {
   document.getElementById('fGender').value = 'unspecified';
   document.getElementById('fAgeGroup').value = 'unspecified';
   loadMembershipTypes();
+  openModal('memberModal');
+}
+
+async function openConvertModal(id, name, email, phone) {
+  editingMemberId = null; // creates a NEW member (pass holder stays in history)
+  document.getElementById('modalTitle').textContent = t('pass.convertTitle');
+  document.getElementById('fName').value = name;
+  document.getElementById('fEmail').value = email || '';
+  document.getElementById('fPhone').value = phone || '';
+  document.getElementById('fHive').value = '';
+  document.getElementById('fGender').value = 'unspecified';
+  document.getElementById('fAgeGroup').value = 'unspecified';
+  document.getElementById('fNotes').value = '';
+  await loadMembershipTypes({ excludePasses: true });
   openModal('memberModal');
 }
 

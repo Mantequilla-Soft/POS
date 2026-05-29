@@ -381,7 +381,70 @@
                 div.onclick = () => addToCart(item);
                 menu.appendChild(div);
             });
+
+            // Pass types section
+            const passes = window.passTypes || [];
+            if (passes.length && currentCategory === 'all') {
+                const divider = document.createElement('div');
+                divider.style.cssText = 'width:100%;grid-column:1/-1;display:flex;align-items:center;gap:.75rem;margin:.5rem 0 .25rem;font-size:.78rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em';
+                divider.innerHTML = `<span>${t('pass.section')}</span><span style="flex:1;height:1px;background:var(--border)"></span>`;
+                menu.appendChild(divider);
+                passes.forEach(pt => {
+                    const div = document.createElement('div');
+                    div.className = 'product-card';
+                    div.style.cssText = 'border-color:var(--amber);position:relative';
+                    div.innerHTML = `
+                        <div style="position:absolute;top:.35rem;right:.35rem;background:var(--amber);color:#fff;font-size:.62rem;font-weight:700;padding:.1em .4em;border-radius:3px">${t('pass.badge')}</div>
+                        <div class="product-thumb" style="background:var(--amber-light)">
+                            <span class="product-initial" style="color:var(--amber)">🎫</span>
+                        </div>
+                        <div class="product-info">
+                            <div class="product-name">${pt.name}</div>
+                            <div class="product-price">$${parseFloat(pt.price).toFixed(2)}</div>
+                        </div>
+                    `;
+                    div.onclick = () => openPassModal(pt);
+                    menu.appendChild(div);
+                });
+            }
         }
+        // Pass contact modal
+        let _pendingPassType = null;
+        function openPassModal(passType) {
+            _pendingPassType = passType;
+            document.getElementById('passModalTitle').textContent = passType.name + ' — ' + t('pass.contactTitle');
+            document.getElementById('passNameLabel').textContent = t('pass.nameLabel');
+            document.getElementById('passName').value = '';
+            document.getElementById('passEmail').value = '';
+            document.getElementById('passPhone').value = '';
+            document.getElementById('passError').textContent = '';
+            document.getElementById('passName').placeholder = t('pass.namePlaceholder');
+            document.getElementById('passEmail').placeholder = t('pass.emailPlaceholder');
+            document.getElementById('passPhone').placeholder = t('pass.phonePlaceholder');
+            document.getElementById('passAddBtn').textContent = t('pass.addToCart');
+            document.getElementById('passContactModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('passName').focus(), 50);
+        }
+        document.getElementById('passAddBtn').onclick = function() {
+            const name = document.getElementById('passName').value.trim();
+            if (!name) { document.getElementById('passError').textContent = t('pass.nameLabel').replace(' *','') + ' is required'; return; }
+            const contact = { name, email: document.getElementById('passEmail').value.trim(), phone: document.getElementById('passPhone').value.trim() };
+            document.getElementById('passContactModal').style.display = 'none';
+            addPassToCart(_pendingPassType, contact);
+        };
+        function addPassToCart(passType, contact) {
+            cart.push({
+                id: 'pass_' + passType._id + '_' + Date.now(),
+                name: passType.name,
+                price: passType.price,
+                qty: 1,
+                isPass: true,
+                membershipTypeId: passType._id,
+                passContact: contact,
+            });
+            renderCart();
+        }
+
         // Cart logic
         let cart = [];
         function addToCart(item) {
@@ -403,16 +466,18 @@
                 cart.forEach((item, idx) => {
                     const lineTotal = item.price * item.qty;
                     const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span class="cart-item-name">${item.name}</span>
-                        <span class="cart-item-qty">
+                    const nameHtml = item.isPass
+                        ? `<span class="cart-item-name">${item.name}<br><span style="font-size:.75em;color:var(--amber);font-weight:600">👤 ${item.passContact?.name || ''}</span></span>`
+                        : `<span class="cart-item-name">${item.name}</span>`;
+                    const qtyHtml = item.isPass
+                        ? `<span class="cart-item-qty"><button class="remove-btn" onclick="removeFromCart(${idx})">✕</button></span>`
+                        : `<span class="cart-item-qty">
                             <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
                             <span class="qty-num">${item.qty}</span>
                             <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
                             <button class="remove-btn" onclick="removeFromCart(${idx})">✕</button>
-                        </span>
-                        <span class="cart-item-price">$${lineTotal.toFixed(2)}</span>
-                    `;
+                           </span>`;
+                    li.innerHTML = `${nameHtml}${qtyHtml}<span class="cart-item-price">$${lineTotal.toFixed(2)}</span>`;
                     list.appendChild(li);
                 });
             }
@@ -808,6 +873,19 @@
                     // Network error — fall back to whatever is in localStorage
                 }
             }
+            // Load pass types if memberships enabled
+            const feats = JSON.parse(localStorage.getItem('pos_features') || '{}');
+            if (feats.memberships) {
+                const tok = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+                const apiB = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+                try {
+                    const ptRes = await fetch(`${apiB}/membership-types`, { headers: { Authorization: 'Bearer ' + tok } });
+                    if (ptRes.ok) {
+                        const all = await ptRes.json();
+                        window.passTypes = all.filter(mt => mt.isPass && mt.active !== false);
+                    }
+                } catch (e) { window.passTypes = []; }
+            }
             renderMenu();
             renderCart();
             renderHiveAccount();
@@ -908,6 +986,26 @@
                     });
                     if (saleRes.ok) {
                         savedToBackend = true;
+                        // Register pass holders (non-blocking — sale is already saved)
+                        const passSales = saleCart.filter(i => i.isPass);
+                        for (const pi of passSales) {
+                            try {
+                                await fetch(`${apiBase}/members/pass-sale`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                    body: JSON.stringify({
+                                        membershipTypeId: pi.membershipTypeId,
+                                        name:  pi.passContact?.name  || '',
+                                        email: pi.passContact?.email || '',
+                                        phone: pi.passContact?.phone || '',
+                                        paymentMethod: paymentType.toLowerCase(),
+                                        paymentNotes: paymentNotes || '',
+                                        hiveFrom: hiveFrom || '',
+                                        amount: pi.price,
+                                    }),
+                                });
+                            } catch (e) { console.warn('Pass registration failed:', e); }
+                        }
                     } else {
                         const errBody = await saleRes.json().catch(() => ({}));
                         console.error('Sale not saved:', saleRes.status, errBody);
@@ -1079,5 +1177,29 @@
         };
     }
     </script>
+
+<!-- Pass Contact Modal -->
+<div id="passContactModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r-lg);padding:1.5rem;width:min(360px,92vw);box-shadow:var(--sh-lg)">
+    <h3 style="margin:0 0 1rem;font-size:1rem" id="passModalTitle">Pass Holder Info</h3>
+    <div style="display:flex;flex-direction:column;gap:.65rem">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:.25rem" id="passNameLabel">Name *</label>
+        <input id="passName" type="text" class="form-control" style="width:100%">
+      </div>
+      <div>
+        <input id="passEmail" type="email" class="form-control" style="width:100%" placeholder="Email (optional)">
+      </div>
+      <div>
+        <input id="passPhone" type="tel" class="form-control" style="width:100%" placeholder="Phone (optional)">
+      </div>
+      <div id="passError" style="color:var(--red);font-size:.82rem"></div>
+      <div style="display:flex;gap:.5rem;margin-top:.25rem">
+        <button class="btn btn-primary" style="flex:1" id="passAddBtn">Add to Cart</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('passContactModal').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -484,6 +484,24 @@ const i18n = (() => {
       'reports.noData':          'No data for this period.',
       'reports.loadError':       'Failed to load report data.',
       'reports.navLink':         '📊 Reports',
+
+      // ── Passes ──────────────────────────────────────────────────────────
+      'pass.isPassLabel':        'Day/Week Pass (sold at POS)',
+      'pass.badge':              'PASS',
+      'pass.section':            'Passes',
+      'pass.contactTitle':       'Pass Holder Info',
+      'pass.nameLabel':          'Name *',
+      'pass.namePlaceholder':    'Full name',
+      'pass.emailPlaceholder':   'Email (optional)',
+      'pass.phonePlaceholder':   'Phone (optional)',
+      'pass.addToCart':          'Add to Cart',
+      'pass.convertBtn':         'Convert to Member',
+      'pass.filterAll':          'All',
+      'pass.filterMembers':      'Members only',
+      'pass.filterPasses':       'Passes only',
+      'pass.registered':         'Pass holder registered!',
+      'pass.registerError':      'Could not register pass holder.',
+      'pass.convertTitle':       'Convert Pass to Membership',
     },
 
     es: {
@@ -970,6 +988,24 @@ const i18n = (() => {
       'reports.noData':          'Sin datos para este período.',
       'reports.loadError':       'Error al cargar el reporte.',
       'reports.navLink':         '📊 Reportes',
+
+      // ── Passes ──────────────────────────────────────────────────────────
+      'pass.isPassLabel':        'Pase de día/semana (vendido en POS)',
+      'pass.badge':              'PASE',
+      'pass.section':            'Pases',
+      'pass.contactTitle':       'Info del titular del pase',
+      'pass.nameLabel':          'Nombre *',
+      'pass.namePlaceholder':    'Nombre completo',
+      'pass.emailPlaceholder':   'Correo (opcional)',
+      'pass.phonePlaceholder':   'Teléfono (opcional)',
+      'pass.addToCart':          'Agregar al carrito',
+      'pass.convertBtn':         'Convertir a miembro',
+      'pass.filterAll':          'Todos',
+      'pass.filterMembers':      'Solo miembros',
+      'pass.filterPasses':       'Solo pases',
+      'pass.registered':         '¡Titular de pase registrado!',
+      'pass.registerError':      'No se pudo registrar el titular del pase.',
+      'pass.convertTitle':       'Convertir pase a membresía',
     }
   };
 

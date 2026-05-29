@@ -15,6 +15,7 @@ async function sendRemindersForStore(storeId) {
   const members = await Member.find({
     storeId: store._id,
     status: 'overdue',
+    isPass: { $ne: true },
     email: { $exists: true, $ne: '' },
     $or: [
       { lastReminderSent: null },
@@ -51,14 +52,21 @@ async function sendRemindersForStore(storeId) {
 // Mark active members overdue when their nextDueDate has passed
 async function markOverdueMembers() {
   const now = new Date();
-  const result = await Member.updateMany(
-    { status: 'active', nextDueDate: { $lt: now } },
+  // Regular members → overdue
+  const overdue = await Member.updateMany(
+    { status: 'active', isPass: { $ne: true }, nextDueDate: { $lt: now } },
     { $set: { status: 'overdue' } }
   );
-  if (result.modifiedCount > 0) {
-    console.log(`[overdue] Marked ${result.modifiedCount} member(s) as overdue`);
+  // Pass holders → expired (passes don't go overdue)
+  const expired = await Member.updateMany(
+    { status: 'active', isPass: true, nextDueDate: { $lt: now } },
+    { $set: { status: 'expired' } }
+  );
+  const total = (overdue.modifiedCount || 0) + (expired.modifiedCount || 0);
+  if (total > 0) {
+    console.log(`[overdue] Marked ${overdue.modifiedCount} overdue, ${expired.modifiedCount} pass(es) expired`);
   }
-  return result.modifiedCount;
+  return total;
 }
 
 async function runAllStores() {

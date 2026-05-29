@@ -13,11 +13,18 @@ router.use((req, res, next) => {
   next();
 });
 
-// Mark members as overdue if nextDueDate has passed
+// Mark members as overdue/expired if nextDueDate has passed
 async function syncOverdueStatus(storeId) {
+  const now = new Date();
+  // Regular members → overdue
   await Member.updateMany(
-    { storeId, status: 'active', nextDueDate: { $lt: new Date(), $ne: null } },
+    { storeId, status: 'active', isPass: { $ne: true }, nextDueDate: { $lt: now, $ne: null } },
     { $set: { status: 'overdue' } }
+  );
+  // Pass holders → expired (no overdue state for passes)
+  await Member.updateMany(
+    { storeId, status: 'active', isPass: true, nextDueDate: { $lt: now, $ne: null } },
+    { $set: { status: 'expired' } }
   );
 }
 
@@ -26,6 +33,8 @@ router.get('/', async (req, res) => {
     await syncOverdueStatus(req.user.storeId);
     const filter = { storeId: req.user.storeId };
     if (req.query.status) filter.status = req.query.status;
+    if (req.query.isPass === 'true')  filter.isPass = true;
+    if (req.query.isPass === 'false') filter.isPass = { $ne: true };
     if (req.query.search) {
       filter.$or = [
         { name: { $regex: req.query.search, $options: 'i' } },
@@ -39,7 +48,7 @@ router.get('/', async (req, res) => {
 
     const [members, total] = await Promise.all([
       Member.find(filter)
-        .populate('membershipTypeId', 'name price currency durationDays')
+        .populate('membershipTypeId', 'name price currency durationDays isPass')
         .sort({ name: 1 })
         .skip((page - 1) * limit)
         .limit(limit),
@@ -69,10 +78,58 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Create a pass holder + activate immediately — called from POS after sale completes
+router.post('/pass-sale', async (req, res) => {
+  try {
+    const { membershipTypeId, name, email, phone, paymentMethod, paymentNotes, amount, hiveFrom, hiveTransactionMemo } = req.body;
+    if (!name || !membershipTypeId) return res.status(400).json({ error: 'name and membershipTypeId are required' });
+
+    const membershipType = await MembershipType.findOne({ _id: membershipTypeId, storeId: req.user.storeId, isPass: true });
+    if (!membershipType) return res.status(404).json({ error: 'Pass type not found' });
+
+    const paidDate = new Date();
+    const periodEnd = new Date(paidDate);
+    periodEnd.setDate(periodEnd.getDate() + membershipType.durationDays);
+
+    const member = await Member.create({
+      storeId: req.user.storeId,
+      name: name.trim(),
+      phone:  phone  || '',
+      email:  email  || '',
+      membershipTypeId,
+      isPass: true,
+      startDate:   paidDate,
+      nextDueDate: periodEnd,
+      status: 'active',
+      createdBy: req.user.username || '',
+    });
+
+    await MemberPayment.create({
+      memberId: member._id,
+      storeId:  req.user.storeId,
+      membershipTypeId,
+      amount:   amount ?? membershipType.price,
+      currency: membershipType.currency,
+      method:   paymentMethod || 'cash',
+      paymentNotes: paymentNotes || '',
+      hiveFrom:           hiveFrom           || '',
+      hiveTransactionMemo: hiveTransactionMemo || '',
+      paidDate,
+      periodStart: paidDate,
+      periodEnd,
+      recordedBy: req.user.username || '',
+    });
+
+    res.status(201).json(member);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const member = await Member.findOne({ _id: req.params.id, storeId: req.user.storeId })
-      .populate('membershipTypeId', 'name price currency durationDays');
+      .populate('membershipTypeId', 'name price currency durationDays isPass');
     if (!member) return res.status(404).json({ error: 'Member not found' });
     res.json(member);
   } catch (err) {
@@ -86,7 +143,7 @@ router.put('/:id', async (req, res) => {
       { _id: req.params.id, storeId: req.user.storeId },
       { $set: req.body },
       { new: true }
-    ).populate('membershipTypeId', 'name price currency durationDays');
+    ).populate('membershipTypeId', 'name price currency durationDays isPass');
     if (!member) return res.status(404).json({ error: 'Member not found' });
     res.json(member);
   } catch (err) {

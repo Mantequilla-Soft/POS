@@ -304,6 +304,10 @@
                 </div>
                 <label style="font-size:.82em;font-weight:600" data-i18n="admin.planDescription">Description</label><br>
                 <input type="text" id="mtDesc" data-i18n-placeholder="admin.planDescPlaceholder" placeholder="Optional description" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;margin-bottom:.75rem">
+                <label style="display:flex;align-items:center;gap:.5em;font-size:.85em;margin-bottom:.75rem;cursor:pointer">
+                  <input type="checkbox" id="mtIsPass">
+                  <span data-i18n="pass.isPassLabel">Day/Week Pass (sold at POS)</span>
+                </label>
                 <div style="display:flex;gap:.5rem">
                     <button type="button" id="saveMtBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.45rem 1rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="admin.savePlan">Save Plan</button>
                     <button type="button" onclick="closeMtForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.45rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="common.cancel">Cancel</button>
@@ -1539,9 +1543,12 @@
             }
             list.innerHTML = types.map(t => `
                 <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--green-border);border-radius:var(--r);padding:.5rem .85rem;font-size:.88em">
-                    <span><strong>${t.name}</strong> — ${t.currency === 'HBD' ? '$' : t.currency + ' '}${parseFloat(t.price).toFixed(2)} / ${t.durationDays}d${t.description ? ' · ' + t.description : ''}</span>
+                    <span>
+                      ${t.isPass ? `<span style="background:var(--amber);color:#fff;font-size:.7em;font-weight:700;padding:.15em .45em;border-radius:3px;margin-right:.4em;vertical-align:middle">PASS</span>` : ''}
+                      <strong>${t.name}</strong> — ${t.currency === 'HBD' ? '$' : t.currency + ' '}${parseFloat(t.price).toFixed(2)} / ${t.durationDays}d${t.description ? ' · ' + t.description : ''}
+                    </span>
                     <div style="display:flex;gap:.4rem">
-                        <button onclick="editMt('${t._id}','${t.name.replace(/'/g,"\\'")}',${t.price},'${t.currency}',${t.durationDays},'${(t.description||'').replace(/'/g,"\\'")}')}" style="background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.78em">Edit</button>
+                        <button onclick="editMt('${t._id}','${t.name.replace(/'/g,"\\'")}',${t.price},'${t.currency}',${t.durationDays},'${(t.description||'').replace(/'/g,"\\'")}',${!!t.isPass})" style="background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.78em">Edit</button>
                         <button onclick="deleteMt('${t._id}')" style="background:var(--red);color:#fff;border:none;border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.78em">Del</button>
                     </div>
                 </div>`).join('');
@@ -1554,17 +1561,19 @@
             document.getElementById('mtPrice').value = '';
             document.getElementById('mtCurrency').value = 'HBD';
             document.getElementById('mtDesc').value = '';
+            document.getElementById('mtIsPass').checked = false;
             document.getElementById('mtError').textContent = '';
             document.getElementById('mtForm').style.display = '';
         };
 
-        function editMt(id, name, price, currency, days, desc) {
+        function editMt(id, name, price, currency, days, desc, isPass) {
             document.getElementById('mtId').value = id;
             document.getElementById('mtName').value = name;
             document.getElementById('mtDays').value = days;
             document.getElementById('mtPrice').value = price;
             document.getElementById('mtCurrency').value = currency;
             document.getElementById('mtDesc').value = desc;
+            document.getElementById('mtIsPass').checked = !!isPass;
             document.getElementById('mtError').textContent = '';
             document.getElementById('mtForm').style.display = '';
         }
@@ -1580,6 +1589,7 @@
             const currency = document.getElementById('mtCurrency').value.trim() || 'HBD';
             const durationDays = parseInt(document.getElementById('mtDays').value);
             const description = document.getElementById('mtDesc').value.trim();
+            const isPass = document.getElementById('mtIsPass').checked;
             const errEl = document.getElementById('mtError');
             if (!name || !price || !durationDays) { errEl.textContent = t('admin.planRequired'); return; }
             const token = localStorage.getItem('pos_admin_token');
@@ -1587,7 +1597,7 @@
             const res = await fetch(url, {
                 method: id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify({ name, price, currency, durationDays, description })
+                body: JSON.stringify({ name, price, currency, durationDays, description, isPass })
             });
             if (res.ok) { closeMtForm(); loadMembershipTypes(); }
             else { const e = await res.json(); errEl.textContent = e.error || 'Save failed'; }

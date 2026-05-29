@@ -15,6 +15,7 @@ const memberSchema = new mongoose.Schema({
   createdBy: { type: String, default: '' },
   notes: { type: String, default: '' },
   lastReminderSent: { type: Date, default: null },
+  isPass: { type: Boolean, default: false },
 }, { timestamps: true });
 
 memberSchema.index({ storeId: 1, status: 1 });
