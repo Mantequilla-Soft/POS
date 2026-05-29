@@ -83,6 +83,51 @@
     </div>
   </div>
 
+  <!-- Pricing Tiers -->
+  <div class="card" id="pricingCard">
+    <div class="card-header">
+      <h2 data-i18n="superadmin.pricingTitle">Pricing Tiers</h2>
+    </div>
+    <div class="card-body" style="padding:1.25rem">
+      <p style="font-size:.85em;color:var(--text-2);margin:0 0 1rem">Set the monthly subscription cost. Feature add-ons are charged on top of the base price when a store enables them.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:1rem">
+        <div>
+          <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="superadmin.pricingBase">Base Price</label>
+          <div style="display:flex;align-items:center;gap:.4rem">
+            <input type="number" id="pcBase" step="0.01" min="0" value="5" style="width:80px;padding:.4rem;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+            <select id="pcCurrency" style="padding:.4rem;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
+              <option value="HBD">HBD</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:.8em;font-weight:600;color:var(--text-2);margin:.5rem 0 .6rem" data-i18n="superadmin.pricingAddons">Feature Add-ons (0 = included free)</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.6rem;margin-bottom:1.25rem">
+        <div>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">🍽️ Restaurant Features</label>
+          <input type="number" id="pcRestaurant" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+        </div>
+        <div>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">🏋️ Memberships</label>
+          <input type="number" id="pcMemberships" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+        </div>
+        <div>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">📧 Email Campaigns</label>
+          <input type="number" id="pcEmailCampaigns" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+        </div>
+        <div>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">🏷️ Discount Codes</label>
+          <input type="number" id="pcDiscountCodes" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+        </div>
+      </div>
+      <div id="pricingPreview" style="font-size:.85em;color:var(--text-2);margin-bottom:.75rem;min-height:1.2em"></div>
+      <button onclick="savePricing()" style="background:var(--ink,#334155);color:var(--ink-text,#fff);border:none;border-radius:var(--r);padding:.5rem 1.25rem;cursor:pointer;font-weight:600;font-size:.9em" data-i18n="superadmin.savePricing">Save Pricing</button>
+      <span id="pricingSaveMsg" style="margin-left:.75rem;font-size:.85em"></span>
+    </div>
+  </div>
+
   <!-- Subscriptions / Billing -->
   <div class="card" id="billingCard">
     <div class="card-header">
@@ -226,6 +271,7 @@
   loadPending();
   loadStores();
   loadSubscriptions();
+  loadPricingConfig();
 
   // ── Billing management ─────────────────────────────────────────────────────
 
@@ -381,6 +427,74 @@
   document.getElementById('billingModal').addEventListener('click', e => {
     if (e.target === document.getElementById('billingModal')) closeBillingModal();
   });
+
+  // ── Pricing config ────────────────────────────────────────────────────────────
+  async function loadPricingConfig() {
+    try {
+      const r = await fetch(`${API_BASE}/api/pricing`);
+      if (!r.ok) return;
+      const cfg = await r.json();
+      document.getElementById('pcBase').value         = cfg.basePrice ?? 5;
+      document.getElementById('pcCurrency').value     = cfg.currency  ?? 'HBD';
+      document.getElementById('pcRestaurant').value   = cfg.addons?.restaurantFeatures ?? 0;
+      document.getElementById('pcMemberships').value  = cfg.addons?.memberships        ?? 0;
+      document.getElementById('pcEmailCampaigns').value = cfg.addons?.emailCampaigns   ?? 0;
+      document.getElementById('pcDiscountCodes').value  = cfg.addons?.discountCodes    ?? 0;
+      updatePricingPreview();
+    } catch {}
+  }
+
+  function updatePricingPreview() {
+    const base     = parseFloat(document.getElementById('pcBase').value) || 0;
+    const currency = document.getElementById('pcCurrency').value || 'HBD';
+    const r        = parseFloat(document.getElementById('pcRestaurant').value) || 0;
+    const m        = parseFloat(document.getElementById('pcMemberships').value) || 0;
+    const e        = parseFloat(document.getElementById('pcEmailCampaigns').value) || 0;
+    const d        = parseFloat(document.getElementById('pcDiscountCodes').value) || 0;
+    const parts    = [`Base ${base}`];
+    if (r) parts.push(`+ Restaurant ${r}`);
+    if (m) parts.push(`+ Memberships ${m}`);
+    if (e) parts.push(`+ Email ${e}`);
+    if (d) parts.push(`+ Discount Codes ${d}`);
+    const max = base + r + m + e + d;
+    document.getElementById('pricingPreview').textContent =
+      `Preview: ${parts.join(' ')} = up to ${max} ${currency}/mo`;
+  }
+
+  ['pcBase','pcCurrency','pcRestaurant','pcMemberships','pcEmailCampaigns','pcDiscountCodes'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updatePricingPreview);
+  });
+
+  async function savePricing() {
+    const body = {
+      basePrice: parseFloat(document.getElementById('pcBase').value) || 0,
+      currency:  document.getElementById('pcCurrency').value,
+      addons: {
+        restaurantFeatures: parseFloat(document.getElementById('pcRestaurant').value)     || 0,
+        memberships:        parseFloat(document.getElementById('pcMemberships').value)    || 0,
+        emailCampaigns:     parseFloat(document.getElementById('pcEmailCampaigns').value) || 0,
+        discountCodes:      parseFloat(document.getElementById('pcDiscountCodes').value)  || 0,
+      },
+    };
+    const msgEl = document.getElementById('pricingSaveMsg');
+    try {
+      const r = await fetch(`${API_BASE}/api/pricing`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (r.ok) {
+        msgEl.textContent = t('superadmin.pricingSaved');
+        msgEl.style.color = 'var(--green)';
+        loadSubscriptions();
+      } else {
+        const err = await r.json();
+        msgEl.textContent = err.error || 'Error';
+        msgEl.style.color = 'var(--red)';
+      }
+    } catch { msgEl.textContent = 'Network error'; msgEl.style.color = 'var(--red)'; }
+    setTimeout(() => { msgEl.textContent = ''; }, 3000);
+  }
 </script>
 </body>
 </html>

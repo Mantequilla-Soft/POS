@@ -10,6 +10,7 @@ const subscriptionSchema = new mongoose.Schema({
   compedUntil:      { type: Date, default: null },
   stripeCustomerId: { type: String, default: '' },
   notes:            { type: String, default: '' },
+  priceOverride:    { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

@@ -23,6 +23,7 @@ const storeSchema = new mongoose.Schema({
     emailCampaigns: { type: Boolean, default: false },
     tabs:           { type: Boolean, default: false },
     kitchenDisplay: { type: Boolean, default: false },
+    discountCodes:  { type: Boolean, default: false },
   },
 
   // Generic payment plugin storage.

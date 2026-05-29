@@ -86,14 +86,14 @@ router.post('/:storeId/payment', async (req, res) => {
   }
 });
 
-// PATCH /api/admin/subscriptions/:storeId/price — set custom plan price
+// PATCH /api/admin/subscriptions/:storeId/price — set custom plan price (locks the store from global reprice)
 router.patch('/:storeId/price', async (req, res) => {
   try {
     const { planPrice, planCurrency } = req.body;
     if (!planPrice) return res.status(400).json({ error: 'planPrice required' });
     const sub = await Subscription.findOneAndUpdate(
       { storeId: req.params.storeId },
-      { $set: { planPrice, ...(planCurrency && { planCurrency }) } },
+      { $set: { planPrice, priceOverride: true, ...(planCurrency && { planCurrency }) } },
       { new: true }
     );
     if (!sub) return res.status(404).json({ error: 'Subscription not found' });

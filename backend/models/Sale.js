@@ -27,6 +27,8 @@ const saleSchema = new mongoose.Schema({
   tableLabel:       { type: String, default: '' },
   openedAt:         Date,
   closedAt:         Date,
+  discountCode:     { type: String, default: '' },
+  discountAmount:   { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Sale', saleSchema);

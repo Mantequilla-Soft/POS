@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const { requireRole, authenticate, requireActiveSubscription } = require('../middleware/auth');
 const Sale = require('../models/Sale');
 const Store = require('../models/Store');
+const DiscountCode = require('../models/DiscountCode');
+const { validateCode } = require('./discountCodes');
 
 // All sales routes require auth + a storeId in the token
 router.use(authenticate);
@@ -15,11 +17,24 @@ router.use(requireActiveSubscription);
 // POST /api/sales — record a completed (immediately paid) sale
 router.post('/', async (req, res) => {
   try {
-    const { items, total, subtotal, taxAmount, currency, paymentMethod, paymentNotes, hiveFrom, hiveTransactionId } = req.body;
+    const { items, total, subtotal, taxAmount, currency, paymentMethod, paymentNotes,
+            hiveFrom, hiveTransactionId, discountCode, discountAmount } = req.body;
     const cashier = req.user.username || '';
     if (!items?.length || total == null || !paymentMethod) {
       return res.status(400).json({ error: 'items, total, and paymentMethod are required' });
     }
+
+    let resolvedDiscountCode   = '';
+    let resolvedDiscountAmount = 0;
+    if (discountCode) {
+      const validation = await validateCode(req.user.storeId, discountCode, parseFloat(subtotal ?? total) || 0);
+      if (validation.valid) {
+        resolvedDiscountCode   = validation.code.code;
+        resolvedDiscountAmount = discountAmount ?? validation.discountAmount;
+        await DiscountCode.updateOne({ _id: validation.code._id }, { $inc: { usedCount: 1 } });
+      }
+    }
+
     const sale = await Sale.create({
       storeId: req.user.storeId,
       items,
@@ -34,6 +49,8 @@ router.post('/', async (req, res) => {
       cashier,
       status: 'closed',
       closedAt: new Date(),
+      discountCode:   resolvedDiscountCode,
+      discountAmount: resolvedDiscountAmount,
     });
     res.status(201).json(sale);
   } catch (err) {
@@ -183,7 +200,8 @@ router.patch('/:id/items', async (req, res) => {
 // PATCH /api/sales/:id/close — close a tab with payment
 router.patch('/:id/close', async (req, res) => {
   try {
-    const { paymentMethod, paymentNotes, hiveFrom, hiveTransactionId, subtotal, taxAmount, total } = req.body;
+    const { paymentMethod, paymentNotes, hiveFrom, hiveTransactionId,
+            subtotal, taxAmount, total, discountCode, discountAmount } = req.body;
     if (!paymentMethod) return res.status(400).json({ error: 'paymentMethod is required' });
     const updates = {
       status: 'closed',
@@ -193,9 +211,19 @@ router.patch('/:id/close', async (req, res) => {
       hiveFrom: hiveFrom || null,
       hiveTransactionId: hiveTransactionId || null,
     };
-    if (subtotal != null) updates.subtotal = subtotal;
+    if (subtotal  != null) updates.subtotal  = subtotal;
     if (taxAmount != null) updates.taxAmount = taxAmount;
-    if (total != null) updates.total = total;
+    if (total     != null) updates.total     = total;
+
+    if (discountCode) {
+      const validation = await validateCode(req.user.storeId, discountCode, parseFloat(subtotal ?? total) || 0);
+      if (validation.valid) {
+        updates.discountCode   = validation.code.code;
+        updates.discountAmount = discountAmount ?? validation.discountAmount;
+        await DiscountCode.updateOne({ _id: validation.code._id }, { $inc: { usedCount: 1 } });
+      }
+    }
+
     const tab = await Sale.findOneAndUpdate(
       { _id: req.params.id, storeId: req.user.storeId, status: 'open' },
       { $set: updates },

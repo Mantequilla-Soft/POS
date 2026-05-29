@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const { authenticate, requireRole, roleOnly } = require('../middleware/auth');
 const Store        = require('../models/Store');
 const Subscription = require('../models/Subscription');
+const { getOrCreateConfig } = require('./pricing');
+const { computePlanPrice }  = require('../utils/pricing');
 
 function freshToken(user, storeId) {
   return jwt.sign(
@@ -185,6 +187,19 @@ router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
       { $set: update },
       { new: true, upsert: true }
     );
+
+    // Reprice subscription when features change
+    if (features) {
+      try {
+        const cfg = await getOrCreateConfig();
+        const newPrice = computePlanPrice(store.features || {}, cfg);
+        await Subscription.updateOne(
+          { storeId: store._id, priceOverride: { $ne: true } },
+          { $set: { planPrice: newPrice } }
+        );
+      } catch (_) {}
+    }
+
     const payload = { store };
     if (!req.user.storeId) payload.token = freshToken(req.user, store._id);
     res.json(payload);
