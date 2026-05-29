@@ -268,6 +268,31 @@
     <!-- QR / payment overlay -->
     <div id="qrInlineContainer"></div>
 </div>
+
+<!-- Pass Contact Modal -->
+<div id="passContactModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r-lg);padding:1.5rem;width:min(360px,92vw);box-shadow:var(--sh-lg)">
+    <h3 style="margin:0 0 1rem;font-size:1rem" id="passModalTitle">Pass Holder Info</h3>
+    <div style="display:flex;flex-direction:column;gap:.65rem">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:.25rem" id="passNameLabel">Name *</label>
+        <input id="passName" type="text" class="form-control" style="width:100%">
+      </div>
+      <div>
+        <input id="passEmail" type="email" class="form-control" style="width:100%" placeholder="Email (optional)">
+      </div>
+      <div>
+        <input id="passPhone" type="tel" class="form-control" style="width:100%" placeholder="Phone (optional)">
+      </div>
+      <div id="passError" style="color:var(--red);font-size:.82rem"></div>
+      <div style="display:flex;gap:.5rem;margin-top:.25rem">
+        <button class="btn btn-primary" style="flex:1" id="passAddBtn">Add to Cart</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('passContactModal').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
     <!-- Add QR code library if not already present -->
     <script>
     if (!window.QRCode) {
@@ -1178,28 +1203,6 @@
     }
     </script>
 
-<!-- Pass Contact Modal -->
-<div id="passContactModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border-radius:var(--r-lg);padding:1.5rem;width:min(360px,92vw);box-shadow:var(--sh-lg)">
-    <h3 style="margin:0 0 1rem;font-size:1rem" id="passModalTitle">Pass Holder Info</h3>
-    <div style="display:flex;flex-direction:column;gap:.65rem">
-      <div>
-        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:.25rem" id="passNameLabel">Name *</label>
-        <input id="passName" type="text" class="form-control" style="width:100%">
-      </div>
-      <div>
-        <input id="passEmail" type="email" class="form-control" style="width:100%" placeholder="Email (optional)">
-      </div>
-      <div>
-        <input id="passPhone" type="tel" class="form-control" style="width:100%" placeholder="Phone (optional)">
-      </div>
-      <div id="passError" style="color:var(--red);font-size:.82rem"></div>
-      <div style="display:flex;gap:.5rem;margin-top:.25rem">
-        <button class="btn btn-primary" style="flex:1" id="passAddBtn">Add to Cart</button>
-        <button class="btn btn-secondary" onclick="document.getElementById('passContactModal').style.display='none'">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
+
 </body>
 </html>
