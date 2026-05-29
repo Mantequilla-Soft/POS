@@ -136,23 +136,23 @@
 </head>
 <body>
     <div class="page-header">
-        <button class="back-btn" onclick="history.back()">← Back</button>
-        <h1>Sales Reports</h1>
+        <button class="back-btn" onclick="history.back()" data-i18n="sales.back">← Back</button>
+        <h1 data-i18n="sales.pageTitle">Sales Reports</h1>
         <span id="langToggleContainer" style="margin-left:auto"></span>
     </div>
 
     <div class="page-body">
         <!-- Filter bar -->
         <div class="filter-bar">
-            <label>From
+            <label><span data-i18n="sales.filterFrom">From</span>
                 <input type="date" id="filterFrom">
             </label>
-            <label>To
+            <label><span data-i18n="sales.filterTo">To</span>
                 <input type="date" id="filterTo">
             </label>
-            <label>Payment
+            <label><span data-i18n="sales.filterPayment">Payment</span>
                 <select id="filterMethod">
-                    <option value="" data-i18n="members.allStatuses">All methods</option>
+                    <option value="" data-i18n="sales.allMethods">All methods</option>
                     <option value="hbd"           data-i18n="pay.method_hbd">HBD (Hive)</option>
                     <option value="cash"          data-i18n="pay.method_cash">Cash</option>
                     <option value="bank_transfer" data-i18n="pay.method_bank_transfer">Bank Transfer</option>
@@ -164,17 +164,17 @@
                 </select>
             </label>
             <div class="filter-actions">
-                <button class="btn btn-primary" id="applyFilterBtn">Apply</button>
-                <button class="btn" id="todayBtn">Today</button>
-                <button class="btn" id="thisMonthBtn">This Month</button>
+                <button class="btn btn-primary" id="applyFilterBtn" data-i18n="sales.apply">Apply</button>
+                <button class="btn" id="todayBtn" data-i18n="sales.today">Today</button>
+                <button class="btn" id="thisMonthBtn" data-i18n="sales.thisMonth">This Month</button>
             </div>
         </div>
 
         <!-- Summary -->
         <div class="summary-grid" id="summaryGrid">
-            <div class="summary-card"><div class="summary-value" id="sumRevenue">—</div><div class="summary-label">Total Revenue</div></div>
-            <div class="summary-card"><div class="summary-value" id="sumCount">—</div><div class="summary-label">Transactions</div></div>
-            <div class="summary-card"><div class="summary-value" id="sumAvg">—</div><div class="summary-label">Avg Sale</div></div>
+            <div class="summary-card"><div class="summary-value" id="sumRevenue">—</div><div class="summary-label" data-i18n="sales.totalRevenue">Total Revenue</div></div>
+            <div class="summary-card"><div class="summary-value" id="sumCount">—</div><div class="summary-label" data-i18n="sales.transactions">Transactions</div></div>
+            <div class="summary-card"><div class="summary-value" id="sumAvg">—</div><div class="summary-label" data-i18n="sales.avgSale">Avg Sale</div></div>
         </div>
         <div class="method-row" id="methodRow"></div>
 
@@ -183,15 +183,15 @@
             <table id="salesTable">
                 <thead>
                     <tr>
-                        <th>Date &amp; Time</th>
-                        <th>Method</th>
-                        <th>Items</th>
-                        <th>From</th>
-                        <th style="text-align:right">Total</th>
+                        <th data-i18n="sales.colDate">Date &amp; Time</th>
+                        <th data-i18n="sales.colMethod">Method</th>
+                        <th data-i18n="sales.colItems">Items</th>
+                        <th data-i18n="sales.colFrom">From</th>
+                        <th style="text-align:right" data-i18n="sales.colTotal">Total</th>
                     </tr>
                 </thead>
                 <tbody id="salesBody">
-                    <tr><td colspan="5" class="state-msg">Select a date range and press Apply</td></tr>
+                    <tr><td colspan="5" class="state-msg" data-i18n="sales.selectRange">Select a date range and press Apply.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -286,7 +286,7 @@
             currentPage = page;
         } catch (err) {
             document.getElementById('salesBody').innerHTML =
-                `<tr><td colspan="5" class="state-msg">Failed to load: ${err.message}</td></tr>`;
+                `<tr><td colspan="5" class="state-msg">${t('sales.loadFailed')}</td></tr>`;
         }
     }
 
@@ -299,7 +299,7 @@
         const methodRow = document.getElementById('methodRow');
         methodRow.innerHTML = (s.byMethod || []).map(m =>
             `<div class="method-chip">
-                <span class="chip-label">${m._id.toUpperCase()}</span>
+                <span class="chip-label">${t('pay.method_' + m._id) || m._id.replace(/_/g,' ').toUpperCase()}</span>
                 <span class="chip-val">$${m.revenue.toFixed(2)}</span>
                 <span class="chip-label">(${m.count})</span>
             </div>`
@@ -309,7 +309,7 @@
     function renderTable(sales) {
         const tbody = document.getElementById('salesBody');
         if (!sales.length) {
-            tbody.innerHTML = `<tr><td colspan="5" class="state-msg">No sales found for this period.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="state-msg">${t('sales.noSales')}</td></tr>`;
             return;
         }
         tbody.innerHTML = sales.map((s, idx) => {
