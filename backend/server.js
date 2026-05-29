@@ -36,6 +36,7 @@ app.use('/api/membership-types', require('./routes/membershipTypes'));
 app.use('/api/sales',     require('./routes/sales'));
 app.use('/api/upload',    require('./routes/upload'));
 app.use('/api/reminders', require('./routes/reminders'));
+app.use('/api/reports',  require('./routes/reports'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date() }));
 
