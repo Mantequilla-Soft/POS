@@ -1053,12 +1053,6 @@
             settings.bannerUrl = this.value;
             await saveStoreSettings(settings);
         });
-        document.getElementById('hiveAccount').addEventListener('input', async function() {
-            const settings = await getStoreSettings();
-            settings.hiveAccount = this.value;
-            await saveStoreSettings(settings);
-        });
-
         // Add button logic for category add
         const addCategoryBtn = document.getElementById('addCategoryBtn');
         const categoryInput = document.getElementById('categoryInput');
