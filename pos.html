@@ -704,8 +704,8 @@
             let html = '';
             if (currentTabState) {
                 html += `<div id="tabSaveRow" style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-                    <button id="saveTabBtn" type="button" class="btn btn-secondary btn-sm" style="flex:1;" ${dis}>💾 Save Tab</button>
-                    <button id="backToTablesBtn" type="button" class="btn btn-ghost btn-sm" style="flex-shrink:0;">🪑 Tables</button>
+                    <button id="saveTabBtn" type="button" class="btn btn-secondary btn-sm" style="flex:1;" ${dis}>${t('pos.saveTab')}</button>
+                    <button id="backToTablesBtn" type="button" class="btn btn-ghost btn-sm" style="flex-shrink:0;">${t('pos.backToTables')}</button>
                     <button id="voidTabBtn" type="button" class="btn btn-ghost btn-sm" style="color:var(--red,#e74c3c);flex-shrink:0;" title="${t('pos.voidTab')}">🗑</button>
                 </div>`;
             }
