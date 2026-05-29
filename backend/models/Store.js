@@ -23,6 +23,11 @@ const storeSchema = new mongoose.Schema({
     hive:             { type: Boolean, default: false },
     tabs:             { type: Boolean, default: false },
     kitchenDisplay:   { type: Boolean, default: false },
+    stripe:           { type: Boolean, default: false },
+  },
+  stripeConfig: {
+    secretKey:      { type: String, default: '' },
+    publishableKey: { type: String, default: '' },
   },
   kitchenPin: { type: String, default: '' },
   tables: {

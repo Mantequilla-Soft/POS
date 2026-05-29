@@ -261,6 +261,28 @@
             </div>
         </div>
         
+        <!-- Stripe Card Payments plugin toggle -->
+        <div style="margin-bottom:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);">
+            <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;margin-bottom:0;">
+                <input type="checkbox" id="enableStripe" style="margin-top:3px;flex-shrink:0">
+                <span>
+                    <strong data-i18n="admin.enableStripe">Stripe Card Payments</strong><br>
+                    <span style="color:var(--text-3);font-size:.82em" data-i18n="admin.stripeHelp">Accept credit and debit cards at the POS. Requires your own Stripe account.</span>
+                </span>
+            </label>
+            <div id="stripePanel" style="display:none;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border);">
+                <label style="display:block;margin-bottom:.5rem">
+                    <span style="font-size:.88em;font-weight:600" data-i18n="admin.stripePublishableKey">Publishable Key</span>
+                    <input type="text" id="stripePublishableKey" placeholder="pk_live_..." style="width:100%;margin-top:.25rem;">
+                </label>
+                <label style="display:block;margin-bottom:.5rem">
+                    <span style="font-size:.88em;font-weight:600" data-i18n="admin.stripeSecretKey">Secret Key</span>
+                    <input type="password" id="stripeSecretKey" placeholder="sk_live_..." style="width:100%;margin-top:.25rem;">
+                    <span style="font-size:.76em;color:var(--text-3)" data-i18n="admin.stripeSecretHelp">Stored securely on the server — never shown to customers or cashiers.</span>
+                </label>
+            </div>
+        </div>
+
         <!-- API Server Config -->
         <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
             <label style="font-size:.9em;font-weight:600"><span data-i18n="admin.apiServer">API Server URL:</span>
@@ -1295,6 +1317,8 @@
                     currentData.backupEmail = apiConfig.backupEmail !== false;
                     currentData.tables = apiConfig.tables || [];
                     currentData.hasKitchenPin = apiConfig.hasKitchenPin || false;
+                    currentData.stripePublishableKey = apiConfig.stripePublishableKey || '';
+                    currentData.stripeSecretSaved = !!apiConfig.stripePublishableKey;
                     
                     // Preserve store ID - it could be at root level or in settings
                     if (apiConfig._id) {
@@ -1346,6 +1370,7 @@
                 await loadBitcoinLightningSettings();
                 if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                 if (typeof loadHiveFeature === 'function') loadHiveFeature();
+                if (typeof loadStripeFeature === 'function') loadStripeFeature();
                 if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
                 if (typeof loadEmailCampaignsFeature === 'function') loadEmailCampaignsFeature();
                 if (typeof loadTaxSettings === 'function') loadTaxSettings();
@@ -1745,6 +1770,42 @@
         };
 
         loadHiveFeature();
+
+        // --- Stripe Card Payments Feature ---
+        const enableStripe  = document.getElementById('enableStripe');
+        const stripePanel   = document.getElementById('stripePanel');
+
+        function loadStripeFeature() {
+            const enabled = currentData.features?.stripe || false;
+            enableStripe.checked = enabled;
+            stripePanel.style.display = enabled ? '' : 'none';
+            document.getElementById('stripePublishableKey').value = currentData.stripePublishableKey || '';
+            // Secret key is never returned by the server — show placeholder if previously saved
+            document.getElementById('stripeSecretKey').placeholder = currentData.stripeSecretSaved ? '••••••••••••••••' : 'sk_live_...';
+        }
+
+        enableStripe.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.stripe = this.checked;
+            stripePanel.style.display = this.checked ? '' : 'none';
+            markDirty();
+        };
+
+        document.getElementById('stripePublishableKey').addEventListener('input', function() {
+            if (!currentData.settings) currentData.settings = {};
+            if (!currentData.settings.stripeConfig) currentData.settings.stripeConfig = {};
+            currentData.settings.stripeConfig.publishableKey = this.value.trim();
+            markDirty();
+        });
+
+        document.getElementById('stripeSecretKey').addEventListener('input', function() {
+            if (!currentData.settings) currentData.settings = {};
+            if (!currentData.settings.stripeConfig) currentData.settings.stripeConfig = {};
+            currentData.settings.stripeConfig.secretKey = this.value.trim();
+            markDirty();
+        });
+
+        loadStripeFeature();
 
         // --- Email Reminders Settings Logic ---
         const enableEmailReminders   = document.getElementById('enableEmailReminders');

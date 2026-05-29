@@ -71,6 +71,7 @@ router.get('/config', async (req, res) => {
       tax: store.tax,
       tables: store.tables || [],
       hasKitchenPin: !!store.kitchenPin,
+      stripePublishableKey: store.stripeConfig?.publishableKey || '',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -154,6 +155,9 @@ router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
       }
       if (settings.bitcoinLightningConfig !== undefined) {
         update.bitcoinLightningConfig = settings.bitcoinLightningConfig;
+      }
+      if (settings.stripeConfig !== undefined) {
+        update.stripeConfig = settings.stripeConfig;
       }
     }
 

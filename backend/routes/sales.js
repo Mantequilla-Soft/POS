@@ -2,6 +2,7 @@ const router = require('express').Router();
 const mongoose = require('mongoose');
 const { requireRole, authenticate, requireActiveSubscription } = require('../middleware/auth');
 const Sale = require('../models/Sale');
+const Store = require('../models/Store');
 
 // All sales routes require auth + a storeId in the token
 router.use(authenticate);
@@ -202,6 +203,67 @@ router.patch('/:id/close', async (req, res) => {
     );
     if (!tab) return res.status(404).json({ error: 'Open tab not found' });
     res.json(tab);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/sales/stripe/intent — create a PaymentIntent using the store's own Stripe keys
+router.post('/stripe/intent', async (req, res) => {
+  try {
+    const store = await Store.findById(req.user.storeId);
+    if (!store?.stripeConfig?.secretKey) {
+      return res.status(400).json({ error: 'Stripe is not configured for this store' });
+    }
+    const { total } = req.body;
+    if (!total || total <= 0) return res.status(400).json({ error: 'Invalid total' });
+
+    const stripe = require('stripe')(store.stripeConfig.secretKey);
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(total * 100),
+      currency: 'usd',
+      metadata: { storeId: req.user.storeId.toString() },
+    });
+    res.json({ clientSecret: intent.client_secret, publishableKey: store.stripeConfig.publishableKey });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/sales/stripe/confirm — verify PaymentIntent and record the sale
+router.post('/stripe/confirm', async (req, res) => {
+  try {
+    const { paymentIntentId, items, total, subtotal, taxAmount, currency, cashier } = req.body;
+    if (!paymentIntentId) return res.status(400).json({ error: 'paymentIntentId required' });
+
+    const store = await Store.findById(req.user.storeId);
+    if (!store?.stripeConfig?.secretKey) {
+      return res.status(400).json({ error: 'Stripe is not configured for this store' });
+    }
+
+    const stripe = require('stripe')(store.stripeConfig.secretKey);
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (intent.status !== 'succeeded') {
+      return res.status(400).json({ error: 'Payment has not succeeded' });
+    }
+    if (intent.metadata.storeId !== req.user.storeId.toString()) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const sale = await Sale.create({
+      storeId: req.user.storeId,
+      items: items || [],
+      total: total || 0,
+      subtotal: subtotal || total || 0,
+      taxAmount: taxAmount || 0,
+      currency: currency || store.currency || 'USD',
+      paymentMethod: 'card',
+      paymentNotes: `Stripe ${paymentIntentId}`,
+      cashier: cashier || '',
+      status: 'closed',
+      closedAt: new Date(),
+    });
+    res.json(sale);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

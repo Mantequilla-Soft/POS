@@ -823,7 +823,10 @@
                 showTablesPanel();
             };
             if (payWithCashBtn)  payWithCashBtn.onclick  = showCash;
-            if (payWithCardBtn)  payWithCardBtn.onclick  = () => showExternal('card');
+            const _stripePk = localStorage.getItem('pos_stripe_pk');
+            if (payWithCardBtn) payWithCardBtn.onclick = _stripePk
+                ? () => openStripeModal()
+                : () => showExternal('card');
             if (payWithBankBtn)  payWithBankBtn.onclick  = () => showExternal('bank_transfer');
             if (payWithCheckBtn) payWithCheckBtn.onclick = () => showExternal('check');
             if (payWithOtherBtn) payWithOtherBtn.onclick = () => showExternal('other');
@@ -964,6 +967,11 @@
                         }));
                         localStorage.setItem('pos_features', JSON.stringify(store.features || {}));
                         localStorage.setItem('pos_tables', JSON.stringify(store.tables || []));
+                        if (store.stripePublishableKey) {
+                            localStorage.setItem('pos_stripe_pk', store.stripePublishableKey);
+                        } else {
+                            localStorage.removeItem('pos_stripe_pk');
+                        }
                     }
                 } catch (e) {
                     // Network error — fall back to whatever is in localStorage
@@ -1054,6 +1062,93 @@
                 }
             };
         }
+        // --- Stripe Card Payment Modal ---
+        async function openStripeModal() {
+            const totals   = calculateCartTotals();
+            const total    = totals.total;
+            const stripePk = localStorage.getItem('pos_stripe_pk');
+            if (!stripePk) { showExternal('card'); return; }
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center';
+            modal.innerHTML = `
+                <div style="background:var(--surface,#fff);border-radius:var(--r);padding:1.5rem 1.75rem;max-width:380px;width:90%">
+                    <h3 style="margin:0 0 .25rem">${t('pos.stripeModalTitle')}</h3>
+                    <p style="margin:0 0 .85rem;font-size:.85em;color:var(--text-2)">${t('pos.stripeModalTotal')}: <strong>${total.toFixed(2)}</strong></p>
+                    <div id="stripeCardEl" style="border:1px solid var(--border);border-radius:var(--r);padding:.65rem .75rem;min-height:42px;background:#fff"></div>
+                    <div id="stripeCardErr" style="color:var(--red,#e74c3c);font-size:.82em;margin-top:.35rem;min-height:1.1em"></div>
+                    <div style="display:flex;gap:.5rem;margin-top:.9rem;justify-content:flex-end">
+                        <button id="stripeCancelBtn" style="background:transparent;border:1px solid var(--border);border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em">${t('common.cancel')}</button>
+                        <button id="stripeChargeBtn" style="background:#635bff;color:#fff;border:none;border-radius:var(--r);padding:.4rem 1.1rem;cursor:pointer;font-weight:600">${t('pos.stripeCharge')} ${total.toFixed(2)}</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            document.getElementById('stripeCancelBtn').onclick = () => modal.remove();
+
+            // Load Stripe.js lazily
+            if (!window.Stripe) {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://js.stripe.com/v3/';
+                    s.onload = resolve; s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            }
+            const stripe   = Stripe(stripePk);
+            const elements = stripe.elements();
+            const card     = elements.create('card', { style: { base: { fontSize: '15px', fontFamily: 'inherit' } } });
+            card.mount('#stripeCardEl');
+
+            document.getElementById('stripeChargeBtn').onclick = async function() {
+                const btn    = this;
+                const errEl  = document.getElementById('stripeCardErr');
+                btn.disabled = true;
+                btn.textContent = t('pos.stripeProcessing');
+                errEl.textContent = '';
+
+                const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+                const token   = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+                const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+
+                // 1. Create PaymentIntent
+                let clientSecret;
+                try {
+                    const r = await fetch(`${apiBase}/sales/stripe/intent`, {
+                        method: 'POST', headers, body: JSON.stringify({ total }),
+                    });
+                    const d = await r.json();
+                    if (!r.ok) { errEl.textContent = d.error || t('pos.stripeError'); btn.disabled = false; btn.textContent = t('pos.stripeCharge') + ' ' + total.toFixed(2); return; }
+                    clientSecret = d.clientSecret;
+                } catch { errEl.textContent = t('pos.stripeError'); btn.disabled = false; btn.textContent = t('pos.stripeCharge') + ' ' + total.toFixed(2); return; }
+
+                // 2. Confirm card payment
+                const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, { payment_method: { card } });
+                if (error) { errEl.textContent = error.message; btn.disabled = false; btn.textContent = t('pos.stripeCharge') + ' ' + total.toFixed(2); return; }
+
+                // 3. Record the sale
+                try {
+                    const cashierUser = JSON.parse(localStorage.getItem('pos_cashier_user') || 'null');
+                    const { subtotal, taxAmount } = calculateCartTotals();
+                    const currency = (JSON.parse(localStorage.getItem('pos_settings') || '{}')).currency || 'USD';
+                    const r = await fetch(`${apiBase}/sales/stripe/confirm`, {
+                        method: 'POST', headers,
+                        body: JSON.stringify({
+                            paymentIntentId: paymentIntent.id,
+                            items: cart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty, notes: i.notes || '' })),
+                            total, subtotal, taxAmount, currency,
+                            cashier: cashierUser?.username || '',
+                        }),
+                    });
+                    const sale = await r.json();
+                    if (!r.ok) { errEl.textContent = sale.error || t('pos.stripeError'); btn.disabled = false; btn.textContent = t('pos.stripeCharge') + ' ' + total.toFixed(2); return; }
+                    modal.remove();
+                    const saleCart = [...cart];
+                    cart = [];
+                    showPostSaleActions('card', saleCart, total, null, null, `Stripe ${paymentIntent.id}`, subtotal, taxAmount);
+                } catch { errEl.textContent = t('pos.stripeError'); btn.disabled = false; btn.textContent = t('pos.stripeCharge') + ' ' + total.toFixed(2); }
+            };
+        }
+
         // --- Post-Sale Actions ---
         async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId, paymentNotes, subtotal, taxAmount) {
             document.getElementById('qrInlineContainer').classList.remove('open');

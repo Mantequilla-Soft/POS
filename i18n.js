@@ -680,8 +680,18 @@ const i18n = (() => {
       'kitchen.invalidPin':      'Invalid PIN',
 
       // ── Hive plugin ──────────────────────────────────────────────────────
-      'admin.enableHive':        'Hive / HBD Payments',
-      'admin.hiveHelp':          'Accept HBD (stable $1 crypto) at the POS via QR code. Customers scan with any Hive wallet.',
+      'admin.enableHive':           'Hive / HBD Payments',
+      'admin.hiveHelp':             'Accept HBD (stable $1 crypto) at the POS via QR code. Customers scan with any Hive wallet.',
+      'admin.enableStripe':         'Stripe Card Payments',
+      'admin.stripeHelp':           'Accept credit and debit cards at the POS. Requires your own Stripe account.',
+      'admin.stripePublishableKey': 'Publishable Key (pk_live_…)',
+      'admin.stripeSecretKey':      'Secret Key (sk_live_…)',
+      'admin.stripeSecretHelp':     'Stored securely on the server — never shown to customers or cashiers.',
+      'pos.stripeModalTitle':       'Pay by Card',
+      'pos.stripeModalTotal':       'Total',
+      'pos.stripeCharge':           'Charge',
+      'pos.stripeProcessing':       'Processing…',
+      'pos.stripeError':            'Card payment failed. Please try again.',
 
       // ── Void tab ──────────────────────────────────────────────────────────
       'pos.voidTab':             'Void Tab',
@@ -1379,8 +1389,18 @@ const i18n = (() => {
       'kitchen.invalidPin':      'PIN inválido',
 
       // ── Hive plugin ──────────────────────────────────────────────────────
-      'admin.enableHive':        'Pagos Hive / HBD',
-      'admin.hiveHelp':          'Acepta HBD (cripto estable $1) en el POS mediante código QR. Los clientes escanean con cualquier billetera Hive.',
+      'admin.enableHive':           'Pagos Hive / HBD',
+      'admin.hiveHelp':             'Acepta HBD (cripto estable $1) en el POS mediante código QR. Los clientes escanean con cualquier billetera Hive.',
+      'admin.enableStripe':         'Pagos con tarjeta (Stripe)',
+      'admin.stripeHelp':           'Acepta tarjetas de crédito y débito en el POS. Requiere tu propia cuenta de Stripe.',
+      'admin.stripePublishableKey': 'Clave publicable (pk_live_…)',
+      'admin.stripeSecretKey':      'Clave secreta (sk_live_…)',
+      'admin.stripeSecretHelp':     'Almacenada de forma segura en el servidor — nunca visible para clientes ni cajeros.',
+      'pos.stripeModalTitle':       'Pagar con tarjeta',
+      'pos.stripeModalTotal':       'Total',
+      'pos.stripeCharge':           'Cobrar',
+      'pos.stripeProcessing':       'Procesando…',
+      'pos.stripeError':            'El pago con tarjeta falló. Por favor intenta de nuevo.',
 
       // ── Void tab ──────────────────────────────────────────────────────────
       'pos.voidTab':             'Anular Cuenta',
