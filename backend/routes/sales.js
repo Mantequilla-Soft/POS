@@ -10,7 +10,7 @@ router.use((req, res, next) => {
   next();
 });
 
-// POST /api/sales — record a completed sale (store_owner or superadmin)
+// POST /api/sales — record a completed (immediately paid) sale
 router.post('/', async (req, res) => {
   try {
     const { items, total, subtotal, taxAmount, currency, paymentMethod, paymentNotes, hiveFrom, hiveTransactionId } = req.body;
@@ -30,6 +30,8 @@ router.post('/', async (req, res) => {
       hiveFrom,
       hiveTransactionId,
       cashier,
+      status: 'closed',
+      closedAt: new Date(),
     });
     res.status(201).json(sale);
   } catch (err) {
@@ -37,11 +39,45 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/sales — list sales with filters (store_owner only)
+// POST /api/sales/open — create an open tab (no payment yet)
+router.post('/open', async (req, res) => {
+  try {
+    const { items, tableId, tableLabel, subtotal, taxAmount, total, currency } = req.body;
+    if (!items?.length) return res.status(400).json({ error: 'items are required' });
+    const tab = await Sale.create({
+      storeId: req.user.storeId,
+      items,
+      subtotal: subtotal ?? total ?? 0,
+      taxAmount: taxAmount ?? 0,
+      total: total ?? 0,
+      currency: currency || 'USD',
+      status: 'open',
+      tableId: tableId || '',
+      tableLabel: tableLabel || '',
+      openedAt: new Date(),
+      cashier: req.user.username || '',
+    });
+    res.status(201).json(tab);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/sales/open — list open tabs (specific path MUST come before /:id)
+router.get('/open', async (req, res) => {
+  try {
+    const tabs = await Sale.find({ storeId: req.user.storeId, status: 'open' }).sort({ openedAt: -1 });
+    res.json(tabs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/sales — list closed sales with filters (store_owner only)
 router.get('/', requireRole('store_owner', 'superadmin'), async (req, res) => {
   try {
     const { from, to, method, page = 1, limit = 50 } = req.query;
-    const filter = { storeId: req.user.storeId };
+    const filter = { storeId: req.user.storeId, status: { $ne: 'open' } };
     if (from || to) {
       filter.createdAt = {};
       if (from) filter.createdAt.$gte = new Date(from);
@@ -67,7 +103,7 @@ router.get('/summary', requireRole('store_owner', 'superadmin'), async (req, res
   try {
     const { from, to } = req.query;
     // Aggregate $match does not coerce types — must use ObjectId explicitly
-    const match = { storeId: new mongoose.Types.ObjectId(req.user.storeId) };
+    const match = { storeId: new mongoose.Types.ObjectId(req.user.storeId), status: { $ne: 'open' } };
     if (from || to) {
       match.createdAt = {};
       if (from) match.createdAt.$gte = new Date(from);
@@ -104,6 +140,62 @@ router.get('/summary', requireRole('store_owner', 'superadmin'), async (req, res
       byMethod,
       byDay,
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/sales/:id — get one sale or tab (must come AFTER all specific GET paths)
+router.get('/:id', async (req, res) => {
+  try {
+    const sale = await Sale.findOne({ _id: req.params.id, storeId: req.user.storeId });
+    if (!sale) return res.status(404).json({ error: 'Not found' });
+    res.json(sale);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/sales/:id/items — replace items on an open tab
+router.patch('/:id/items', async (req, res) => {
+  try {
+    const { items, subtotal, taxAmount, total } = req.body;
+    if (!items?.length) return res.status(400).json({ error: 'items are required' });
+    const tab = await Sale.findOneAndUpdate(
+      { _id: req.params.id, storeId: req.user.storeId, status: 'open' },
+      { $set: { items, subtotal: subtotal ?? total ?? 0, taxAmount: taxAmount ?? 0, total: total ?? 0 } },
+      { new: true }
+    );
+    if (!tab) return res.status(404).json({ error: 'Open tab not found' });
+    res.json(tab);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/sales/:id/close — close a tab with payment
+router.patch('/:id/close', async (req, res) => {
+  try {
+    const { paymentMethod, paymentNotes, hiveFrom, hiveTransactionId, subtotal, taxAmount, total } = req.body;
+    if (!paymentMethod) return res.status(400).json({ error: 'paymentMethod is required' });
+    const updates = {
+      status: 'closed',
+      closedAt: new Date(),
+      paymentMethod,
+      paymentNotes: paymentNotes || '',
+      hiveFrom: hiveFrom || null,
+      hiveTransactionId: hiveTransactionId || null,
+    };
+    if (subtotal != null) updates.subtotal = subtotal;
+    if (taxAmount != null) updates.taxAmount = taxAmount;
+    if (total != null) updates.total = total;
+    const tab = await Sale.findOneAndUpdate(
+      { _id: req.params.id, storeId: req.user.storeId, status: 'open' },
+      { $set: updates },
+      { new: true }
+    );
+    if (!tab) return res.status(404).json({ error: 'Open tab not found' });
+    res.json(tab);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

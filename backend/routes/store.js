@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const jwt    = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { authenticate, requireRole, roleOnly } = require('../middleware/auth');
 const Store = require('../models/Store');
 
@@ -63,6 +64,8 @@ router.get('/config', async (req, res) => {
       backupEmail: store.backupEmail,
       language: store.language,
       tax: store.tax,
+      tables: store.tables || [],
+      hasKitchenPin: !!store.kitchenPin,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -109,12 +112,18 @@ router.post('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
 // Update store
 router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
   try {
-    const { settings, items, published, features, ...rest } = req.body;
+    const { settings, items, published, features, kitchenPin: rawPin, tables, ...rest } = req.body;
 
     const update = { ...rest };
     if (published !== undefined) update.published = published;
     if (features) update.features = features;
     if (items) update.items = items;
+    if (tables !== undefined) update.tables = tables;
+
+    // Hash kitchen PIN if provided
+    if (rawPin) {
+      update.kitchenPin = await bcrypt.hash(String(rawPin), 10);
+    }
 
     // Flatten legacy settings shape from existing frontend
     if (settings) {

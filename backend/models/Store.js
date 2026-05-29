@@ -20,6 +20,18 @@ const storeSchema = new mongoose.Schema({
     bitcoinLightning: { type: Boolean, default: false },
     emailReminders:   { type: Boolean, default: false },
     emailCampaigns:   { type: Boolean, default: false },
+    tabs:             { type: Boolean, default: false },
+    kitchenDisplay:   { type: Boolean, default: false },
+  },
+  kitchenPin: { type: String, default: '' },
+  tables: {
+    type: [{
+      _id: false,
+      id:     { type: String, required: true },
+      label:  { type: String, required: true },
+      active: { type: Boolean, default: true },
+    }],
+    default: [],
   },
   tax: {
     enabled:   { type: Boolean, default: false },

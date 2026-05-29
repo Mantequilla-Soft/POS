@@ -433,6 +433,60 @@
         </form>
     </div>
 
+    <!-- Restaurant Features Section -->
+    <div id="restaurantSettings" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);max-width:600px;">
+        <h3 style="margin:0 0 .75rem;font-size:1.05rem">🍽️ Restaurant Features</h3>
+
+        <!-- Open Tabs / Tables -->
+        <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+            <input type="checkbox" id="enableTabs">
+            <span><strong>Open Tabs &amp; Table Management</strong></span>
+        </label>
+        <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em">Cashiers assign orders to tables, save tabs, and close them when the customer pays.</p>
+
+        <div id="tablesPanel" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+                <strong style="font-size:.92em">Tables</strong>
+                <button type="button" id="addTableBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.35rem .8rem;cursor:pointer;font-size:.82em;margin-top:0">+ Add Table</button>
+            </div>
+            <div id="tablesList" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.5rem"></div>
+            <div id="tableForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem;margin-top:.5rem">
+                <input type="hidden" id="tableEditIdx" value="-1">
+                <div style="display:flex;gap:.5rem;align-items:flex-end">
+                    <div style="flex:1">
+                        <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem">Label *</label>
+                        <input type="text" id="tableLabelInput" placeholder="Table 1" style="width:100%;box-sizing:border-box;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+                    </div>
+                    <button type="button" id="saveTableBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0;white-space:nowrap">Save</button>
+                    <button type="button" onclick="closeTableForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.4rem .75rem;cursor:pointer;font-size:.85em;margin:0;white-space:nowrap">Cancel</button>
+                </div>
+                <div id="tableFormError" style="color:var(--red);font-size:.8em;margin-top:.35rem"></div>
+            </div>
+        </div>
+
+        <!-- Kitchen Display -->
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+                <input type="checkbox" id="enableKitchenDisplay">
+                <span><strong>Kitchen Display</strong></span>
+            </label>
+            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em">A PIN-protected screen shows open orders in the kitchen. <a href="kitchen.html" target="_blank" style="color:var(--primary)">Open Kitchen Display →</a></p>
+            <div id="kitchenPinPanel" style="display:none">
+                <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.2rem">Kitchen PIN <span style="font-weight:400;color:var(--text-2)">(4–10 digits, leave blank to keep current)</span></label>
+                <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+                    <input type="password" id="kitchenPinInput" placeholder="••••" maxlength="10" inputmode="numeric" style="width:130px;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+                    <button type="button" id="saveKitchenPinBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0">Set PIN</button>
+                    <span id="kitchenPinStatus" style="font-size:.82em;color:var(--green)"></span>
+                </div>
+                <div id="kitchenUrlRow" style="margin-top:.75rem;font-size:.82em;display:none">
+                    <strong>Kitchen URL:</strong><br>
+                    <code id="kitchenUrl" style="background:var(--bg);padding:.2em .5em;border-radius:4px;user-select:all;word-break:break-all;font-size:.95em"></code>
+                    <button type="button" onclick="copyKitchenUrl()" style="margin:.3rem 0 0;padding:.2rem .5rem;font-size:.8em;background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r-sm);cursor:pointer;display:block">Copy URL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Debug Window -->
     <div class="debug-window" id="debugWindow">
         <div class="debug-header">
@@ -874,6 +928,7 @@
                     language: i18n.getLocale(),
                     ownerEmail: currentData.ownerEmail || '',
                     backupEmail: currentData.backupEmail !== false,
+                    tables: currentData.tables || [],
                 };
 
                 // Save to API as draft using the correct endpoint
@@ -1226,6 +1281,8 @@
                     currentData.tax = apiConfig.tax || { enabled: false, rate: 0, name: 'Tax', inclusive: false };
                     currentData.ownerEmail = apiConfig.ownerEmail || '';
                     currentData.backupEmail = apiConfig.backupEmail !== false;
+                    currentData.tables = apiConfig.tables || [];
+                    currentData.hasKitchenPin = apiConfig.hasKitchenPin || false;
                     
                     // Preserve store ID - it could be at root level or in settings
                     if (apiConfig._id) {
@@ -1510,6 +1567,7 @@
                     published: true,
                     ownerEmail: currentData.ownerEmail || '',
                     backupEmail: currentData.backupEmail !== false,
+                    tables: currentData.tables || [],
                 };
 
                 // Save to API using the correct endpoint based on store existence
@@ -1848,6 +1906,147 @@
             await saveStoreSettings(settings);
             alert(t('admin.lightningSettingsSaved'));
         };
+
+        // --- Restaurant Features (Tabs + Kitchen Display) ---
+        const enableTabsChk      = document.getElementById('enableTabs');
+        const tablesPanel        = document.getElementById('tablesPanel');
+        const enableKitchenChk   = document.getElementById('enableKitchenDisplay');
+        const kitchenPinPanel    = document.getElementById('kitchenPinPanel');
+
+        function loadRestaurantSettings() {
+            enableTabsChk.checked     = currentData.features?.tabs || false;
+            tablesPanel.style.display = enableTabsChk.checked ? '' : 'none';
+            enableKitchenChk.checked  = currentData.features?.kitchenDisplay || false;
+            kitchenPinPanel.style.display = enableKitchenChk.checked ? '' : 'none';
+            renderTablesList();
+            updateKitchenUrl();
+        }
+
+        enableTabsChk.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.tabs = this.checked;
+            tablesPanel.style.display = this.checked ? '' : 'none';
+            markDirty();
+        };
+
+        enableKitchenChk.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.kitchenDisplay = this.checked;
+            kitchenPinPanel.style.display = this.checked ? '' : 'none';
+            updateKitchenUrl();
+            markDirty();
+        };
+
+        function renderTablesList() {
+            const list = document.getElementById('tablesList');
+            const tables = currentData.tables || [];
+            if (!tables.length) {
+                list.innerHTML = '<div style="font-size:.82em;color:var(--text-3);padding:.3rem 0">No tables yet. Click + Add Table to create one.</div>';
+                return;
+            }
+            list.innerHTML = tables.map((t, i) => `
+                <div style="display:flex;align-items:center;gap:.5rem;background:var(--bg);padding:.4rem .6rem;border-radius:var(--r-sm);border:1px solid var(--border)">
+                    <span style="flex:1;font-size:.9em;font-weight:600">${adminEscHtml(t.label)}</span>
+                    <span style="font-size:.75em;color:${t.active!==false?'var(--green)':'var(--text-3)'}">${t.active!==false?'Active':'Inactive'}</span>
+                    <button onclick="editTable(${i})" style="background:none;border:1px solid var(--border);border-radius:var(--r-sm);padding:.2rem .5rem;cursor:pointer;font-size:.78em;color:var(--text-2);margin:0">Edit</button>
+                    <button onclick="deleteTable(${i})" style="background:none;border:1px solid var(--red);border-radius:var(--r-sm);padding:.2rem .5rem;cursor:pointer;font-size:.78em;color:var(--red);margin:0">✕</button>
+                </div>`).join('');
+        }
+
+        document.getElementById('addTableBtn').onclick = function() {
+            document.getElementById('tableEditIdx').value = '-1';
+            document.getElementById('tableLabelInput').value = '';
+            document.getElementById('tableFormError').textContent = '';
+            document.getElementById('tableForm').style.display = '';
+            document.getElementById('tableLabelInput').focus();
+        };
+
+        document.getElementById('saveTableBtn').onclick = function() {
+            const label = document.getElementById('tableLabelInput').value.trim();
+            if (!label) { document.getElementById('tableFormError').textContent = 'Label is required.'; return; }
+            if (!currentData.tables) currentData.tables = [];
+            const idx = parseInt(document.getElementById('tableEditIdx').value, 10);
+            const id = label.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+            if (idx >= 0) {
+                currentData.tables[idx].label = label;
+            } else {
+                currentData.tables.push({ id, label, active: true });
+            }
+            closeTableForm();
+            renderTablesList();
+            markDirty();
+        };
+
+        window.editTable = function(idx) {
+            const t = (currentData.tables || [])[idx];
+            if (!t) return;
+            document.getElementById('tableEditIdx').value = idx;
+            document.getElementById('tableLabelInput').value = t.label;
+            document.getElementById('tableFormError').textContent = '';
+            document.getElementById('tableForm').style.display = '';
+            document.getElementById('tableLabelInput').focus();
+        };
+
+        window.deleteTable = function(idx) {
+            if (!confirm('Delete this table?')) return;
+            currentData.tables.splice(idx, 1);
+            renderTablesList();
+            markDirty();
+        };
+
+        window.closeTableForm = function() {
+            document.getElementById('tableForm').style.display = 'none';
+        };
+
+        // Kitchen PIN — saved immediately to backend, not queued in the store draft
+        document.getElementById('saveKitchenPinBtn').onclick = async function() {
+            const pin = document.getElementById('kitchenPinInput').value.trim();
+            const statusEl = document.getElementById('kitchenPinStatus');
+            if (!pin) { statusEl.textContent = 'Enter a PIN first.'; return; }
+            if (!/^\d{4,10}$/.test(pin)) { statusEl.textContent = '4–10 digits only.'; return; }
+            const token = localStorage.getItem('pos_admin_token');
+            const API_BASE_URL = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            this.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE_URL}/store`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ kitchenPin: pin }),
+                });
+                if (!res.ok) throw new Error();
+                currentData.hasKitchenPin = true;
+                statusEl.textContent = '✓ PIN saved';
+                statusEl.style.color = 'var(--green)';
+                document.getElementById('kitchenPinInput').value = '';
+                updateKitchenUrl();
+            } catch {
+                statusEl.textContent = 'Error saving PIN.';
+                statusEl.style.color = 'var(--red)';
+            }
+            this.disabled = false;
+            setTimeout(() => { statusEl.textContent = ''; }, 3000);
+        };
+
+        function updateKitchenUrl() {
+            const storeId = currentData._id;
+            const row = document.getElementById('kitchenUrlRow');
+            if (!storeId || !enableKitchenChk.checked) { row.style.display = 'none'; return; }
+            const apiBase = encodeURIComponent((localStorage.getItem('pos_api_base') || window.location.origin));
+            const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '');
+            document.getElementById('kitchenUrl').textContent = `${base}/kitchen.html?storeId=${storeId}&apiBase=${apiBase}`;
+            row.style.display = '';
+        }
+
+        window.copyKitchenUrl = function() {
+            const url = document.getElementById('kitchenUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => alert('Kitchen URL copied!')).catch(() => prompt('Copy this URL:', url));
+        };
+
+        function adminEscHtml(s) {
+            return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        loadRestaurantSettings();
     </script>
 </body>
 </html>

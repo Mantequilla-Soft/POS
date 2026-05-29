@@ -224,6 +224,19 @@
             .pos-catalog { padding: 1rem; }
             .product-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.625rem; }
         }
+        /* ── Tables / Tabs feature ── */
+        #tablesBtn { display:none; }
+        #tablesOverlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:500; align-items:center; justify-content:center; padding:1rem; }
+        #tablesOverlay.open { display:flex; }
+        .tables-panel { background:var(--surface); border-radius:var(--r-lg); padding:1.5rem; max-width:520px; width:100%; box-shadow:var(--sh-lg); max-height:80vh; overflow-y:auto; }
+        .tables-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:.75rem; margin-top:1rem; }
+        .table-tile { padding:.9rem .5rem; border-radius:var(--r); border:2px solid var(--border); background:var(--bg); cursor:pointer; text-align:center; transition:var(--ease); user-select:none; }
+        .table-tile:hover { border-color:var(--primary); }
+        .table-tile.has-tab { border-color:var(--amber); background:var(--amber-light,#fff8ed); }
+        .tile-label { font-weight:700; font-size:1rem; }
+        .tile-sub { font-size:.72rem; color:var(--text-2); margin-top:.15rem; }
+        .tile-sub.open { color:var(--amber); font-weight:600; }
+        #tabBadge { display:none; font-size:.78rem; font-weight:600; color:var(--amber); background:var(--amber-light,#fff8ed); border:1px solid var(--amber); border-radius:30px; padding:.15em .65em; flex:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     </style>
   <script src="pwa.js"></script>
 </head>
@@ -239,6 +252,7 @@
             <div id="hiveAccountDisplay" class="pos-hive-badge" style="display:none;"></div>
             <div id="cashierBadge" style="display:none;font-size:0.8rem;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-full);padding:0.2rem 0.7rem;"></div>
             <a href="members.html" id="membersLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none">👥 Members</a>
+            <button id="tablesBtn" class="btn btn-secondary btn-sm" onclick="showTablesPanel()">🪑 Tables</button>
         </div>
     </header>
 
@@ -254,6 +268,7 @@
         <aside class="pos-cart-panel">
             <div class="cart-head">
                 <h2>Cart</h2>
+                <span id="tabBadge"></span>
                 <button id="clearCartBtn" class="btn btn-ghost btn-sm" title="Clear Cart">🗑</button>
             </div>
             <div class="cart-body" id="cart">
@@ -267,6 +282,19 @@
 
     <!-- QR / payment overlay -->
     <div id="qrInlineContainer"></div>
+</div>
+
+<!-- Tables Overlay -->
+<div id="tablesOverlay">
+  <div class="tables-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem">
+      <h3 style="margin:0;font-size:1.05rem">Select Table</h3>
+      <button onclick="hideTablesPanel()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-2);line-height:1;">×</button>
+    </div>
+    <p style="margin:0 0 .5rem;font-size:.82rem;color:var(--text-2)">Tap a table to open or resume its tab.</p>
+    <div class="tables-grid" id="tilesGrid"></div>
+    <button onclick="selectTable(null)" class="btn btn-secondary btn-block" style="margin-top:1rem;width:100%;">⚡ Quick Sale (No Table)</button>
+  </div>
 </div>
 
 <!-- Pass Contact Modal -->
@@ -353,6 +381,8 @@
             if (features.memberships) {
                 document.getElementById('membersLinkBtn').style.display = '';
             }
+            const tablesBtn = document.getElementById('tablesBtn');
+            if (tablesBtn) tablesBtn.style.display = features.tabs ? '' : 'none';
         }
         // --- Category Tabs Logic (updated to use store settings) ---
         function getCategories(items) {
@@ -472,6 +502,8 @@
 
         // Cart logic
         let cart = [];
+        let currentTabState = null; // { tabId, tableId, tableLabel } when in table mode, else null
+        let openTabsByTable = {};   // tableId → open Sale document
         function addToCart(item) {
             // Check if item already in cart
             const found = cart.find(ci => ci.id === item.id);
@@ -659,13 +691,20 @@
         }
         function renderPaymentButtons() {
             const cartFoot = document.getElementById('cartFoot');
-            ['paymentButtonsRow', 'cashPaymentSection', 'externalPaymentSection'].forEach(id => {
+            ['paymentButtonsRow', 'cashPaymentSection', 'externalPaymentSection', 'tabSaveRow'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.remove();
             });
             const cartHasItems = getCartHasItems();
             const dis = cartHasItems ? '' : 'disabled';
-            let html = `<div id="paymentButtonsRow" style="display:flex;flex-direction:column;gap:0.5rem;">`;
+            let html = '';
+            if (currentTabState) {
+                html += `<div id="tabSaveRow" style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+                    <button id="saveTabBtn" type="button" class="btn btn-secondary btn-sm" style="flex:1;" ${dis}>💾 Save Tab</button>
+                    <button id="backToTablesBtn" type="button" class="btn btn-ghost btn-sm" style="flex-shrink:0;">🪑 Tables</button>
+                </div>`;
+            }
+            html += `<div id="paymentButtonsRow" style="display:flex;flex-direction:column;gap:0.5rem;">`;
             // Primary row: HBD + Cash
             html += `<div style="display:flex;gap:0.5rem;">`;
             html += `<button id="payWithHbdBtn" type="button" class="btn btn-success" style="flex:1;" ${dis}>${t('pos.payHbd')}</button>`;
@@ -752,6 +791,17 @@
                 externalSection.style.display = 'block';
                 extNotesInput.focus();
             }
+            const saveTabBtn     = document.getElementById('saveTabBtn');
+            const backToTablesBtn = document.getElementById('backToTablesBtn');
+            if (saveTabBtn) saveTabBtn.onclick = saveTab;
+            if (backToTablesBtn) backToTablesBtn.onclick = function() {
+                cart = [];
+                currentTabState = null;
+                renderTabBadge();
+                renderCart();
+                renderMenu();
+                showTablesPanel();
+            };
             if (payWithCashBtn)  payWithCashBtn.onclick  = showCash;
             if (payWithCardBtn)  payWithCardBtn.onclick  = () => showExternal('card');
             if (payWithBankBtn)  payWithBankBtn.onclick  = () => showExternal('bank_transfer');
@@ -893,6 +943,7 @@
                             tax: store.tax || { enabled: false, rate: 0, name: 'Tax', inclusive: false },
                         }));
                         localStorage.setItem('pos_features', JSON.stringify(store.features || {}));
+                        localStorage.setItem('pos_tables', JSON.stringify(store.tables || []));
                     }
                 } catch (e) {
                     // Network error — fall back to whatever is in localStorage
@@ -993,10 +1044,21 @@
             let savedToBackend = false;
             if (token) {
                 try {
-                    const saleRes = await fetch(`${apiBase}/sales`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({
+                    const isTabClose = !!(currentTabState?.tabId);
+                    const fetchUrl = isTabClose
+                        ? `${apiBase}/sales/${currentTabState.tabId}/close`
+                        : `${apiBase}/sales`;
+                    const fetchBody = isTabClose
+                        ? {
+                            paymentMethod: paymentType.toLowerCase(),
+                            paymentNotes: paymentNotes || '',
+                            hiveFrom: hiveFrom || null,
+                            hiveTransactionId: txId || null,
+                            subtotal: subtotal ?? saleTotal,
+                            taxAmount: taxAmount ?? 0,
+                            total: saleTotal,
+                          }
+                        : {
                             items: saleCart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty })),
                             subtotal: subtotal ?? saleTotal,
                             taxAmount: taxAmount ?? 0,
@@ -1007,10 +1069,19 @@
                             hiveFrom: hiveFrom || null,
                             hiveTransactionId: txId || null,
                             cashier: JSON.parse(localStorage.getItem('pos_cashier_user') || 'null')?.username || null,
-                        }),
+                          };
+                    const saleRes = await fetch(fetchUrl, {
+                        method: isTabClose ? 'PATCH' : 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(fetchBody),
                     });
                     if (saleRes.ok) {
                         savedToBackend = true;
+                        if (isTabClose) {
+                            delete openTabsByTable[currentTabState.tableId];
+                            currentTabState = null;
+                            renderTabBadge();
+                        }
                         // Register pass holders (non-blocking — sale is already saved)
                         const passSales = saleCart.filter(i => i.isPass);
                         for (const pi of passSales) {
@@ -1085,6 +1156,126 @@
                 renderMenu();
             };
         }
+
+        // ── Tables / Tabs feature ──────────────────────────────────────────
+        function posEscHtml(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function renderTabBadge() {
+            const badge = document.getElementById('tabBadge');
+            if (!badge) return;
+            if (currentTabState) {
+                badge.textContent = '🪑 ' + currentTabState.tableLabel;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        async function loadOpenTabs() {
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            if (!token) return {};
+            const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            try {
+                const res = await fetch(`${apiBase}/sales/open`, { headers: { Authorization: `Bearer ${token}` } });
+                if (!res.ok) return {};
+                const tabs = await res.json();
+                const byTable = {};
+                tabs.forEach(tab => { if (tab.tableId) byTable[tab.tableId] = tab; });
+                return byTable;
+            } catch (e) { return {}; }
+        }
+
+        async function showTablesPanel() {
+            const tables = JSON.parse(localStorage.getItem('pos_tables') || '[]');
+            if (!tables.length) {
+                alert('No tables configured. Add tables in the Admin → Tables section.');
+                return;
+            }
+            openTabsByTable = await loadOpenTabs();
+            const grid = document.getElementById('tilesGrid');
+            grid.innerHTML = '';
+            tables.filter(t => t.active !== false).forEach(table => {
+                const tab = openTabsByTable[table.id];
+                const div = document.createElement('div');
+                div.className = 'table-tile' + (tab ? ' has-tab' : '');
+                div.innerHTML = `<div class="tile-label">${posEscHtml(table.label)}</div>
+                    <div class="tile-sub${tab ? ' open' : ''}">${tab ? `${tab.items.length} item${tab.items.length===1?'':'s'}` : 'Available'}</div>`;
+                div.onclick = () => selectTable(table, tab);
+                grid.appendChild(div);
+            });
+            document.getElementById('tablesOverlay').classList.add('open');
+        }
+
+        function hideTablesPanel() {
+            document.getElementById('tablesOverlay').classList.remove('open');
+        }
+
+        function selectTable(table, existingTab) {
+            hideTablesPanel();
+            if (!table) {
+                currentTabState = null;
+                renderTabBadge();
+                setupPaymentButtons();
+                return;
+            }
+            currentTabState = { tabId: existingTab?._id || null, tableId: table.id, tableLabel: table.label };
+            if (existingTab) {
+                cart = existingTab.items.map(i => ({ ...i }));
+            }
+            renderCart();
+            renderMenu();
+            renderTabBadge();
+        }
+
+        async function saveTab() {
+            if (!cart.length) { alert('Add items before saving the tab.'); return; }
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            const { subtotal, taxAmount, total } = calculateCartTotals();
+            const items = cart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty, notes: i.notes || '' }));
+            try {
+                let savedTab;
+                if (currentTabState?.tabId) {
+                    const res = await fetch(`${apiBase}/sales/${currentTabState.tabId}/items`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ items, subtotal, taxAmount, total }),
+                    });
+                    if (!res.ok) throw new Error(await res.text());
+                    savedTab = await res.json();
+                } else {
+                    const res = await fetch(`${apiBase}/sales/open`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                            items,
+                            subtotal,
+                            taxAmount,
+                            total,
+                            currency: getStoreSettings().currency || 'HBD',
+                            tableId: currentTabState?.tableId || '',
+                            tableLabel: currentTabState?.tableLabel || '',
+                        }),
+                    });
+                    if (!res.ok) throw new Error(await res.text());
+                    savedTab = await res.json();
+                    if (currentTabState) currentTabState.tabId = savedTab._id;
+                }
+                if (currentTabState) openTabsByTable[currentTabState.tableId] = savedTab;
+            } catch (e) {
+                alert('Could not save tab: ' + e.message);
+                return;
+            }
+            cart = [];
+            currentTabState = null;
+            renderTabBadge();
+            renderCart();
+            renderMenu();
+            showTablesPanel();
+        }
+        // ─────────────────────────────────────────────────────────────────
 
         // Add ability to X out of the Lightning QR modal
         function showLightningQrModal(invoice) {

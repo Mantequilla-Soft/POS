@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kitchen Display — POSHIVE</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    body { background: #1a1a1a; color: #f0f0f0; font-family: sans-serif; margin: 0; min-height: 100vh; }
+    #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
+    #loginScreen .card { background: #2a2a2a; border-radius: 12px; padding: 2rem; width: 100%; max-width: 360px; box-shadow: 0 4px 24px #0006; }
+    #loginScreen h2 { margin: 0 0 1.5rem; text-align: center; color: var(--primary, #e07b27); }
+    #loginScreen label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; color: #bbb; }
+    #loginScreen input { width: 100%; box-sizing: border-box; padding: 0.65rem 0.8rem; border-radius: 7px; border: 1px solid #444; background: #333; color: #f0f0f0; font-size: 1rem; margin-bottom: 1rem; }
+    #loginScreen .btn { width: 100%; padding: 0.75rem; border-radius: 8px; border: none; background: var(--primary, #e07b27); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    #loginScreen .btn:hover { opacity: 0.9; }
+    #loginScreen .err { color: #e74c3c; font-size: 0.85rem; margin-bottom: 0.75rem; min-height: 1.2em; text-align: center; }
+
+    #kitchenScreen { display: none; padding: 0.75rem; min-height: 100vh; }
+    #kitchenHeader { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem 1rem; border-bottom: 1px solid #333; margin-bottom: 1rem; }
+    #kitchenHeader h1 { margin: 0; font-size: 1.3rem; color: var(--primary, #e07b27); }
+    #kitchenHeader .meta { font-size: 0.8rem; color: #888; }
+    #logoutBtn { background: #333; border: 1px solid #555; color: #ccc; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    #logoutBtn:hover { background: #444; }
+
+    #ordersGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .order-card { background: #2a2a2a; border-radius: 10px; padding: 1rem; border: 2px solid #444; position: relative; }
+    .order-card.all-ready { border-color: #27ae60; opacity: 0.7; }
+    .order-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .table-badge { background: var(--primary, #e07b27); color: #fff; font-weight: 700; font-size: 1rem; padding: 0.2rem 0.75rem; border-radius: 20px; }
+    .order-time { font-size: 0.75rem; color: #888; }
+    .order-items { list-style: none; margin: 0; padding: 0; }
+    .order-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid #333; }
+    .order-item:last-child { border-bottom: none; }
+    .order-item .qty { background: #444; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.85rem; font-weight: 600; min-width: 1.8em; text-align: center; }
+    .order-item .item-name { flex: 1; font-size: 0.95rem; }
+    .order-item .item-notes { font-size: 0.78rem; color: #f0a500; font-style: italic; display: block; margin-top: 0.1rem; }
+    .order-item.done .item-name { text-decoration: line-through; color: #888; }
+    .ready-btn { background: none; border: 1px solid #555; color: #aaa; padding: 0.25rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+    .ready-btn.is-ready { background: #27ae60; border-color: #27ae60; color: #fff; }
+    .ready-btn:hover { opacity: 0.8; }
+
+    #emptyState { text-align: center; color: #555; padding: 4rem 1rem; font-size: 1.1rem; }
+    #pollStatus { font-size: 0.72rem; color: #555; }
+    #storeNameLabel { font-weight: 600; color: #ccc; }
+  </style>
+</head>
+<body>
+
+<!-- Login / PIN screen -->
+<div id="loginScreen">
+  <div class="card">
+    <h2>🍳 Kitchen Display</h2>
+    <div id="loginErr" class="err"></div>
+    <label>API Base URL</label>
+    <input type="url" id="apiBaseInput" placeholder="http://localhost:3001" autocomplete="off">
+    <label>Store ID</label>
+    <input type="text" id="storeIdInput" placeholder="Paste your Store ID" autocomplete="off">
+    <label>Kitchen PIN</label>
+    <input type="password" id="pinInput" placeholder="••••" maxlength="10" inputmode="numeric" autocomplete="off">
+    <button class="btn" id="loginBtn">Enter Kitchen</button>
+  </div>
+</div>
+
+<!-- Kitchen display screen -->
+<div id="kitchenScreen">
+  <div id="kitchenHeader">
+    <div>
+      <h1>Kitchen Display</h1>
+      <div class="meta"><span id="storeNameLabel"></span> &nbsp;·&nbsp; <span id="pollStatus">Loading…</span></div>
+    </div>
+    <button id="logoutBtn">Sign Out</button>
+  </div>
+  <div id="ordersGrid"></div>
+  <div id="emptyState" style="display:none">No open orders right now. 🎉</div>
+</div>
+
+<script>
+const API_BASE_KEY  = 'kitchen_api_base';
+const STORE_ID_KEY  = 'kitchen_store_id';
+const TOKEN_KEY     = 'kitchen_token';
+const STORE_NAME_KEY = 'kitchen_store_name';
+
+let apiBase = localStorage.getItem(API_BASE_KEY) || '';
+let storeId = localStorage.getItem(STORE_ID_KEY) || '';
+let kitchenToken = localStorage.getItem(TOKEN_KEY) || '';
+let pollTimer = null;
+
+const loginScreen  = document.getElementById('loginScreen');
+const kitchenScreen = document.getElementById('kitchenScreen');
+const loginErr     = document.getElementById('loginErr');
+const apiBaseInput = document.getElementById('apiBaseInput');
+const storeIdInput = document.getElementById('storeIdInput');
+const pinInput     = document.getElementById('pinInput');
+const loginBtn     = document.getElementById('loginBtn');
+const ordersGrid   = document.getElementById('ordersGrid');
+const emptyState   = document.getElementById('emptyState');
+const pollStatus   = document.getElementById('pollStatus');
+const storeNameLabel = document.getElementById('storeNameLabel');
+
+function getApi() { return (localStorage.getItem(API_BASE_KEY) || window.location.origin).replace(/\/$/, '') + '/api'; }
+
+// Try token from URL param (for shared kitchen URL from admin)
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('storeId') && !storeId) {
+  storeId = urlParams.get('storeId');
+  localStorage.setItem(STORE_ID_KEY, storeId);
+}
+if (urlParams.get('apiBase') && !apiBase) {
+  apiBase = decodeURIComponent(urlParams.get('apiBase'));
+  localStorage.setItem(API_BASE_KEY, apiBase);
+}
+
+function init() {
+  apiBaseInput.value = apiBase || window.location.origin;
+  storeIdInput.value = storeId || '';
+  if (kitchenToken) {
+    showKitchen();
+  } else {
+    loginScreen.style.display = 'flex';
+    kitchenScreen.style.display = 'none';
+  }
+}
+
+loginBtn.onclick = async () => {
+  loginErr.textContent = '';
+  const base = apiBaseInput.value.trim().replace(/\/$/, '');
+  const sid  = storeIdInput.value.trim();
+  const pin  = pinInput.value.trim();
+  if (!base || !sid || !pin) { loginErr.textContent = 'All fields are required.'; return; }
+  loginBtn.disabled = true;
+  try {
+    const res = await fetch(`${base}/api/kitchen/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin, storeId: sid }),
+    });
+    const data = await res.json();
+    if (!res.ok) { loginErr.textContent = data.error || 'Invalid PIN'; return; }
+    localStorage.setItem(API_BASE_KEY, base);
+    localStorage.setItem(STORE_ID_KEY, sid);
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(STORE_NAME_KEY, data.storeName || '');
+    kitchenToken = data.token;
+    apiBase = base;
+    storeId = sid;
+    showKitchen();
+  } catch (e) {
+    loginErr.textContent = 'Could not connect to server.';
+  } finally {
+    loginBtn.disabled = false;
+  }
+};
+
+pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
+
+document.getElementById('logoutBtn').onclick = () => {
+  clearInterval(pollTimer);
+  localStorage.removeItem(TOKEN_KEY);
+  kitchenToken = '';
+  kitchenScreen.style.display = 'none';
+  loginScreen.style.display = 'flex';
+  pinInput.value = '';
+};
+
+function showKitchen() {
+  loginScreen.style.display = 'none';
+  kitchenScreen.style.display = 'block';
+  storeNameLabel.textContent = localStorage.getItem(STORE_NAME_KEY) || '';
+  fetchOrders();
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(fetchOrders, 8000);
+}
+
+async function fetchOrders() {
+  try {
+    const res = await fetch(`${getApi()}/kitchen/orders`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+    });
+    if (res.status === 401) {
+      clearInterval(pollTimer);
+      localStorage.removeItem(TOKEN_KEY);
+      kitchenToken = '';
+      kitchenScreen.style.display = 'none';
+      loginScreen.style.display = 'flex';
+      loginErr.textContent = 'Session expired. Please sign in again.';
+      return;
+    }
+    const orders = await res.json();
+    renderOrders(orders);
+    const now = new Date().toLocaleTimeString();
+    pollStatus.textContent = `Updated ${now}`;
+  } catch (e) {
+    pollStatus.textContent = 'Connection error — retrying…';
+  }
+}
+
+function renderOrders(orders) {
+  ordersGrid.innerHTML = '';
+  if (!orders.length) {
+    emptyState.style.display = 'block';
+    return;
+  }
+  emptyState.style.display = 'none';
+  orders.forEach(order => {
+    const allReady = order.items.every(i => i.kitchenStatus === 'ready');
+    const card = document.createElement('div');
+    card.className = 'order-card' + (allReady ? ' all-ready' : '');
+    const opened = new Date(order.openedAt || order.createdAt);
+    const timeStr = opened.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const tableLabel = order.tableLabel || (order.tableId ? `Table ${order.tableId}` : 'Counter');
+    card.innerHTML = `
+      <div class="order-card-header">
+        <span class="table-badge">${escHtml(tableLabel)}</span>
+        <span class="order-time">${timeStr}</span>
+      </div>
+      <ul class="order-items" id="items-${order._id}">
+        ${order.items.map((item, idx) => renderItem(order._id, item, idx)).join('')}
+      </ul>`;
+    ordersGrid.appendChild(card);
+  });
+}
+
+function renderItem(orderId, item, idx) {
+  const done = item.kitchenStatus === 'ready';
+  return `<li class="order-item${done ? ' done' : ''}" id="item-${orderId}-${idx}">
+    <span class="qty">${item.qty}×</span>
+    <span class="item-name">
+      ${escHtml(item.name)}
+      ${item.notes ? `<span class="item-notes">${escHtml(item.notes)}</span>` : ''}
+    </span>
+    <button class="ready-btn${done ? ' is-ready' : ''}" onclick="toggleItem('${orderId}',${idx},'${done ? 'pending' : 'ready'}')">
+      ${done ? '✓ Ready' : 'Mark Ready'}
+    </button>
+  </li>`;
+}
+
+async function toggleItem(orderId, idx, newStatus) {
+  try {
+    const res = await fetch(`${getApi()}/kitchen/orders/${orderId}/items/${idx}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+      body: JSON.stringify({ kitchenStatus: newStatus }),
+    });
+    if (!res.ok) return;
+    const updated = await res.json();
+    // Re-render just this order's items
+    const listEl = document.getElementById(`items-${orderId}`);
+    if (listEl) {
+      listEl.innerHTML = updated.items.map((item, i) => renderItem(orderId, item, i)).join('');
+      const allReady = updated.items.every(i => i.kitchenStatus === 'ready');
+      const card = listEl.closest('.order-card');
+      if (card) card.className = 'order-card' + (allReady ? ' all-ready' : '');
+    }
+  } catch (e) {
+    console.error('toggleItem error', e);
+  }
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
