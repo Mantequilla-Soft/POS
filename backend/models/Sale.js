@@ -11,6 +11,8 @@ const saleItemSchema = new mongoose.Schema({
 const saleSchema = new mongoose.Schema({
   storeId:          { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true, index: true },
   items:            [saleItemSchema],
+  subtotal:         { type: Number, default: 0 },
+  taxAmount:        { type: Number, default: 0 },
   total:            { type: Number, required: true },
   currency:         { type: String, default: 'USD' },
   paymentMethod:    { type: String, enum: ['hbd', 'hive', 'cash', 'lightning', 'bank_transfer', 'card', 'check', 'other'], required: true },

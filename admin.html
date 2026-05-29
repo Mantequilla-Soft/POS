@@ -339,6 +339,35 @@
         </div>
     </div>
 
+    <!-- Tax Settings Section -->
+    <div id="taxSettings" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);max-width:600px;">
+        <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
+            <input type="checkbox" id="enableTax">
+            <span data-i18n="tax.enableTax">Enable Sales Tax</span>
+        </label>
+        <form id="taxForm" style="display:none;margin-top:1em;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+                <div>
+                    <label style="display:block;font-size:.85em;margin-bottom:.25rem" data-i18n="tax.taxName">Tax Name</label>
+                    <input type="text" id="taxName" data-i18n-placeholder="tax.taxNamePlaceholder" placeholder="e.g. IVA, Sales Tax, VAT" style="width:100%;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:.85em;margin-bottom:.25rem" data-i18n="tax.taxRate">Rate (%)</label>
+                    <input type="number" id="taxRate" min="0" max="100" step="0.01" placeholder="13" style="width:100%;box-sizing:border-box;">
+                </div>
+            </div>
+            <label style="display:flex;align-items:flex-start;gap:0.6em;margin-bottom:0.5rem;cursor:pointer;">
+                <input type="checkbox" id="taxInclusive" style="margin-top:3px;flex-shrink:0;">
+                <span>
+                    <strong data-i18n="tax.inclusive">Tax-inclusive pricing</strong><br>
+                    <span id="taxHelpText" style="font-size:.8em;color:var(--text-2)" data-i18n="tax.exclusiveHelp">Tax is added on top of prices at checkout.</span>
+                </span>
+            </label>
+            <button type="button" id="saveTaxBtn" class="btn btn-primary" style="margin-top:0.5rem;" data-i18n="common.save">Save</button>
+            <span id="taxSaveMsg" style="margin-left:0.75rem;font-size:.85em;"></span>
+        </form>
+    </div>
+
     <!-- Bitcoin Lightning Settings Section -->
     <div id="bitcoinLightningSettings" style="background:var(--amber-light);padding:1rem 1.5rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--amber-border);max-width:600px;">
         <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
@@ -1161,6 +1190,7 @@
                     };
                     currentData.features = apiConfig.features || { memberships: false, bitcoinLightning: false };
                     currentData.emailSettings = apiConfig.emailSettings || { reminderSubject: '', reminderBody: '' };
+                    currentData.tax = apiConfig.tax || { enabled: false, rate: 0, name: 'Tax', inclusive: false };
                     
                     // Preserve store ID - it could be at root level or in settings
                     if (apiConfig._id) {
@@ -1212,6 +1242,7 @@
                 await loadBitcoinLightningSettings();
                 if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                 if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
+                if (typeof loadTaxSettings === 'function') loadTaxSettings();
                 
                 // Update UI state
                 updatePublishStatus();
@@ -1237,6 +1268,7 @@
                     await loadBitcoinLightningSettings();
                     if (typeof loadMembershipFeature === 'function') loadMembershipFeature();
                     if (typeof loadEmailReminderSettings === 'function') loadEmailReminderSettings();
+                    if (typeof loadTaxSettings === 'function') loadTaxSettings();
 
                     updatePublishStatus();
                     updateSaveDraftButton();
@@ -1607,6 +1639,65 @@
         };
 
         loadEmailReminderSettings();
+
+        // --- Tax Settings Logic ---
+        const enableTaxChk   = document.getElementById('enableTax');
+        const taxFormEl      = document.getElementById('taxForm');
+        const taxNameInput   = document.getElementById('taxName');
+        const taxRateInput   = document.getElementById('taxRate');
+        const taxInclusiveChk= document.getElementById('taxInclusive');
+        const taxHelpText    = document.getElementById('taxHelpText');
+        const saveTaxBtn     = document.getElementById('saveTaxBtn');
+        const taxSaveMsg     = document.getElementById('taxSaveMsg');
+
+        function loadTaxSettings() {
+            const tax = currentData.tax || {};
+            enableTaxChk.checked     = tax.enabled  || false;
+            taxNameInput.value       = tax.name     || '';
+            taxRateInput.value       = tax.rate     ?? '';
+            taxInclusiveChk.checked  = tax.inclusive || false;
+            taxFormEl.style.display  = enableTaxChk.checked ? '' : 'none';
+            updateTaxHelp();
+        }
+
+        function updateTaxHelp() {
+            taxHelpText.setAttribute('data-i18n', taxInclusiveChk.checked ? 'tax.inclusiveHelp' : 'tax.exclusiveHelp');
+            taxHelpText.textContent = t(taxHelpText.getAttribute('data-i18n'));
+        }
+
+        enableTaxChk.onchange = function() {
+            taxFormEl.style.display = this.checked ? '' : 'none';
+        };
+
+        taxInclusiveChk.onchange = updateTaxHelp;
+
+        saveTaxBtn.onclick = async function() {
+            const token = localStorage.getItem('pos_admin_token');
+            const API_BASE_URL = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            const tax = {
+                enabled:   enableTaxChk.checked,
+                name:      taxNameInput.value.trim() || 'Tax',
+                rate:      parseFloat(taxRateInput.value) || 0,
+                inclusive: taxInclusiveChk.checked,
+            };
+            try {
+                const res = await fetch(`${API_BASE_URL}/store`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ tax }),
+                });
+                if (!res.ok) throw new Error();
+                currentData.tax = tax;
+                taxSaveMsg.textContent = t('tax.saved');
+                taxSaveMsg.style.color = 'var(--green)';
+            } catch {
+                taxSaveMsg.textContent = t('tax.saveError');
+                taxSaveMsg.style.color = 'var(--red)';
+            }
+            setTimeout(() => { taxSaveMsg.textContent = ''; }, 3000);
+        };
+
+        loadTaxSettings();
 
         // --- API Server URL Config ---
         const apiBaseInput = document.getElementById('apiBaseInput');

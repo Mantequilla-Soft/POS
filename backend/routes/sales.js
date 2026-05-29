@@ -13,7 +13,7 @@ router.use((req, res, next) => {
 // POST /api/sales — record a completed sale (store_owner or superadmin)
 router.post('/', async (req, res) => {
   try {
-    const { items, total, currency, paymentMethod, paymentNotes, hiveFrom, hiveTransactionId } = req.body;
+    const { items, total, subtotal, taxAmount, currency, paymentMethod, paymentNotes, hiveFrom, hiveTransactionId } = req.body;
     const cashier = req.user.username || '';
     if (!items?.length || total == null || !paymentMethod) {
       return res.status(400).json({ error: 'items, total, and paymentMethod are required' });
@@ -21,6 +21,8 @@ router.post('/', async (req, res) => {
     const sale = await Sale.create({
       storeId: req.user.storeId,
       items,
+      subtotal: subtotal ?? total,
+      taxAmount: taxAmount ?? 0,
       total,
       currency: currency || 'USD',
       paymentMethod,

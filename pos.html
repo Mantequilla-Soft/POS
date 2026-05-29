@@ -294,6 +294,21 @@
         function getStoreSettings() {
             return JSON.parse(localStorage.getItem('pos_settings') || '{"businessName":"","bannerUrl":"","categories":["drink","pastry","bread","other"],"hiveAccount":""}');
         }
+        function calculateCartTotals() {
+            const itemsTotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+            const tax = getStoreSettings().tax || {};
+            if (!tax.enabled || !tax.rate) {
+                return { subtotal: itemsTotal, taxAmount: 0, total: itemsTotal };
+            }
+            if (tax.inclusive) {
+                const subtotal = itemsTotal / (1 + tax.rate / 100);
+                const taxAmount = itemsTotal - subtotal;
+                return { subtotal, taxAmount, total: itemsTotal };
+            } else {
+                const taxAmount = itemsTotal * (tax.rate / 100);
+                return { subtotal: itemsTotal, taxAmount, total: itemsTotal + taxAmount };
+            }
+        }
         function renderBannerAndName() {
             const settings = getStoreSettings();
             // Banner
@@ -401,8 +416,19 @@
                     list.appendChild(li);
                 });
             }
-            const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-            document.getElementById('cartTotal').textContent = t('pos.total', { amount: total.toFixed(2) });
+            const { subtotal, taxAmount, total } = calculateCartTotals();
+            const tax = getStoreSettings().tax || {};
+            let totalHtml = '';
+            if (tax.enabled && tax.rate && taxAmount > 0) {
+                if (tax.inclusive) {
+                    totalHtml = `${t('pos.total', { amount: total.toFixed(2) })}<br><span style="font-size:.75em;color:var(--text-2)">${t('tax.includesLine', { name: tax.name || 'Tax', rate: tax.rate })} $${taxAmount.toFixed(2)}</span>`;
+                } else {
+                    totalHtml = `<span style="font-size:.85em;color:var(--text-2)">${t('tax.subtotal')}: $${subtotal.toFixed(2)}<br>${t('tax.taxLine', { name: tax.name || 'Tax', rate: tax.rate })}: $${taxAmount.toFixed(2)}</span><br>${t('pos.total', { amount: total.toFixed(2) })}`;
+                }
+                document.getElementById('cartTotal').innerHTML = totalHtml;
+            } else {
+                document.getElementById('cartTotal').textContent = t('pos.total', { amount: total.toFixed(2) });
+            }
         }
         function renderHiveAccount() {
             const settings = getStoreSettings();
@@ -514,11 +540,11 @@
                             paymentListenerInterval = null;
                             // Show post-sale actions for HBD
                             const saleCart = cart.map(i => ({...i}));
-                            const saleTotal = saleCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+                            const { subtotal: saleSub, taxAmount: saleTax, total: saleTotal } = calculateCartTotals();
                             cart = [];
                             renderCart();
                             renderMenu();
-                            showPostSaleActions('hbd', saleCart, saleTotal, op[1].from, op[1].memo);
+                            showPostSaleActions('hbd', saleCart, saleTotal, op[1].from, op[1].memo, '', saleSub, saleTax);
                             return;
                         }
                     }
@@ -609,7 +635,7 @@
             let currentExternalMethod = '';
 
             function getTotal() {
-                return cart.reduce(function(sum, item) { return sum + item.price * item.qty; }, 0);
+                return calculateCartTotals().total;
             }
             function hideAllSections() {
                 qrInline.classList.remove('open');
@@ -654,7 +680,7 @@
                     return;
                 }
                 // Calculate total in USD (or use POS currency logic if needed)
-                const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+                const total = calculateCartTotals().total;
                 if (!total || total <= 0) {
                     alert(t('pos.cartEmpty'));
                     return;
@@ -729,11 +755,11 @@
             if (finishBtn) {
                 finishBtn.onclick = function() {
                     const saleCart = cart.map(i => ({...i}));
-                    const saleTotal = saleCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+                    const { subtotal: saleSub, taxAmount: saleTax, total: saleTotal } = calculateCartTotals();
                     cart = [];
                     renderCart();
                     renderMenu();
-                    showPostSaleActions('cash', saleCart, saleTotal);
+                    showPostSaleActions('cash', saleCart, saleTotal, null, null, '', saleSub, saleTax);
                 };
             }
             if (finishExtBtn) {
@@ -744,12 +770,12 @@
                         return;
                     }
                     const saleCart = cart.map(i => ({...i}));
-                    const saleTotal = saleCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+                    const { subtotal: saleSub, taxAmount: saleTax, total: saleTotal } = calculateCartTotals();
                     const notes = extNotesInput.value.trim();
                     cart = [];
                     renderCart();
                     renderMenu();
-                    showPostSaleActions(currentExternalMethod, saleCart, saleTotal, null, null, notes);
+                    showPostSaleActions(currentExternalMethod, saleCart, saleTotal, null, null, notes, saleSub, saleTax);
                 };
             }
             // QR overlay stays hidden until the user clicks "Pay with HBD"
@@ -774,6 +800,7 @@
                             categories: store.categories || [],
                             hiveAccount: store.hiveAccount || '',
                             currency: store.currency || 'HBD',
+                            tax: store.tax || { enabled: false, rate: 0, name: 'Tax', inclusive: false },
                         }));
                         localStorage.setItem('pos_features', JSON.stringify(store.features || {}));
                     }
@@ -854,7 +881,7 @@
             };
         }
         // --- Post-Sale Actions ---
-        async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId, paymentNotes) {
+        async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId, paymentNotes, subtotal, taxAmount) {
             document.getElementById('qrInlineContainer').classList.remove('open');
 
             // Auto-save sale to backend (works for both admin and cashier tokens)
@@ -868,6 +895,8 @@
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({
                             items: saleCart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty })),
+                            subtotal: subtotal ?? saleTotal,
+                            taxAmount: taxAmount ?? 0,
                             total: saleTotal,
                             currency: (getStoreSettings().currency || 'HBD'),
                             paymentMethod: paymentType.toLowerCase(),
@@ -910,7 +939,17 @@
                     <p style="margin:0;font-size:11px">${now.toLocaleString()}<br>Payment: ${paymentType.toUpperCase()}${hiveFrom ? '<br>From: @' + hiveFrom : ''}</p>
                     <table><thead><tr><th align="left">Item</th><th>Qty</th><th align="right">Price</th></tr></thead><tbody>
                     ${saleCart.map(i => `<tr><td>${i.name}</td><td align="center">${i.qty}</td><td align="right">$${(i.price*i.qty).toFixed(2)}</td></tr>`).join('')}
-                    </tbody><tfoot><tr><td colspan="2">Total</td><td align="right">$${saleTotal.toFixed(2)}</td></tr></tfoot></table>
+                    </tbody><tfoot>
+                    ${(taxAmount && taxAmount > 0) ? (() => {
+                        const tax = getStoreSettings().tax || {};
+                        return tax.inclusive
+                            ? `<tr><td colspan="2">Total</td><td align="right">$${saleTotal.toFixed(2)}</td></tr>
+                               <tr><td colspan="2" style="font-size:10px">${tax.name || 'Tax'} (${tax.rate}%) incl.</td><td align="right" style="font-size:10px">$${taxAmount.toFixed(2)}</td></tr>`
+                            : `<tr><td colspan="2">Subtotal</td><td align="right">$${(subtotal||0).toFixed(2)}</td></tr>
+                               <tr><td colspan="2">${tax.name || 'Tax'} (${tax.rate}%)</td><td align="right">$${taxAmount.toFixed(2)}</td></tr>
+                               <tr><td colspan="2">Total</td><td align="right">$${saleTotal.toFixed(2)}</td></tr>`;
+                    })() : `<tr><td colspan="2">Total</td><td align="right">$${saleTotal.toFixed(2)}</td></tr>`}
+                    </tfoot></table>
                     <br><button onclick="window.print()">Print</button>
                     </body></html>`);
                 w.document.close();

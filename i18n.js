@@ -410,6 +410,21 @@ const i18n = (() => {
       'receipts.totalPaid':      'Total Paid: ${amount}',
 
       // ── Sales Reports page ────────────────────────────────────────────
+      // ── Tax ──────────────────────────────────────────────────────────────
+      'tax.enableTax':           'Enable Sales Tax',
+      'tax.taxName':             'Tax Name',
+      'tax.taxNamePlaceholder':  'e.g. IVA, Sales Tax, VAT',
+      'tax.taxRate':             'Rate (%)',
+      'tax.inclusive':           'Tax-inclusive pricing',
+      'tax.inclusiveHelp':       'Prices already include tax — receipt shows how much of the total is tax.',
+      'tax.exclusiveHelp':       'Tax is added on top of prices at checkout.',
+      'tax.subtotal':            'Subtotal',
+      'tax.taxLine':             '{name} ({rate}%)',
+      'tax.includesLine':        'Includes {name} ({rate}%)',
+      'tax.saved':               'Tax settings saved.',
+      'tax.saveError':           'Failed to save tax settings.',
+
+      // ── Sales Reports page ────────────────────────────────────────────
       'sales.pageTitle':         'Sales Reports',
       'sales.back':              '← Back',
       'sales.filterFrom':        'From',
@@ -841,6 +856,21 @@ const i18n = (() => {
       'receipts.colPrice':       'Precio',
       'receipts.colSubtotal':    'Subtotal',
       'receipts.totalPaid':      'Total pagado: ${amount}',
+
+      // ── Sales Reports page ────────────────────────────────────────────
+      // ── Tax ──────────────────────────────────────────────────────────────
+      'tax.enableTax':           'Activar impuesto de ventas',
+      'tax.taxName':             'Nombre del impuesto',
+      'tax.taxNamePlaceholder':  'ej. IVA, ITBMS, Sales Tax',
+      'tax.taxRate':             'Tasa (%)',
+      'tax.inclusive':           'Precios con impuesto incluido',
+      'tax.inclusiveHelp':       'Los precios ya incluyen el impuesto — el recibo muestra cuánto del total corresponde al impuesto.',
+      'tax.exclusiveHelp':       'El impuesto se agrega sobre los precios al momento del cobro.',
+      'tax.subtotal':            'Subtotal',
+      'tax.taxLine':             '{name} ({rate}%)',
+      'tax.includesLine':        'Incluye {name} ({rate}%)',
+      'tax.saved':               'Configuración de impuesto guardada.',
+      'tax.saveError':           'Error al guardar la configuración de impuesto.',
 
       // ── Sales Reports page ────────────────────────────────────────────
       'sales.pageTitle':         'Reportes de ventas',

@@ -16,9 +16,15 @@ const storeSchema = new mongoose.Schema({
   categories: { type: [String], default: [] },
   currency: { type: String, default: 'HBD' },
   features: {
-    memberships: { type: Boolean, default: false },
+    memberships:      { type: Boolean, default: false },
     bitcoinLightning: { type: Boolean, default: false },
-    emailReminders: { type: Boolean, default: false },
+    emailReminders:   { type: Boolean, default: false },
+  },
+  tax: {
+    enabled:   { type: Boolean, default: false },
+    rate:      { type: Number,  default: 0 },
+    name:      { type: String,  default: 'Tax' },
+    inclusive: { type: Boolean, default: false },
   },
   language: { type: String, default: 'en' },
   emailSettings: {
