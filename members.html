@@ -173,12 +173,20 @@
       <button class="modal-close" onclick="closeModal('paymentModal')" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="payment-tabs">
-        <button class="tab-btn active" id="tabCash" onclick="switchTab('cash')" data-i18n="members.tabCash">Cash</button>
-        <button class="tab-btn" id="tabHbd" onclick="switchTab('hbd')" data-i18n="members.tabHbd">HBD (Hive)</button>
+      <!-- Method selector -->
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label data-i18n="members.paymentMethod">Payment Method</label>
+        <select id="pMethod" onchange="switchPaymentMethod(this.value)">
+          <option value="cash"          data-i18n="pay.method_cash">Cash</option>
+          <option value="hbd"           data-i18n="pay.method_hbd">HBD (Hive)</option>
+          <option value="bank_transfer" data-i18n="pay.method_bank_transfer">Bank Transfer</option>
+          <option value="card"          data-i18n="pay.method_card">Credit / Debit Card</option>
+          <option value="check"         data-i18n="pay.method_check">Check</option>
+          <option value="other"         data-i18n="pay.method_other">Other</option>
+        </select>
       </div>
 
-      <!-- Cash panel -->
+      <!-- Cash / external panel (cash, card, bank_transfer, check, other) -->
       <div id="panelCash">
         <div class="form-row">
           <div class="form-group">
@@ -197,6 +205,10 @@
         <div class="form-group">
           <label data-i18n="common.notes">Notes</label>
           <input type="text" id="pNotes" data-i18n-placeholder="members.notesOptional" placeholder="Optional">
+        </div>
+        <div class="form-group" id="pPaymentNotesGroup" style="display:none;">
+          <label id="pPaymentNotesLabel" data-i18n="members.paymentNotes">Payment Notes</label>
+          <input type="text" id="pPaymentNotes" data-i18n-placeholder="pay.notesPlaceholder" placeholder="">
         </div>
       </div>
 
@@ -218,7 +230,7 @@
     <div class="modal-footer">
       <div id="paymentModalFooterCash">
         <button class="btn btn-secondary" onclick="closeModal('paymentModal')" data-i18n="common.cancel">Cancel</button>
-        <button class="btn btn-success" onclick="recordCashPayment()" data-i18n="members.recordCash">Record Cash Payment</button>
+        <button class="btn btn-success" onclick="recordCashPayment()" data-i18n="members.recordPaymentBtn">Record Payment</button>
       </div>
       <div id="paymentModalFooterHbd" style="display:none">
         <button class="btn btn-secondary" onclick="cancelHbdPolling()" data-i18n="common.cancel">Cancel</button>
@@ -449,30 +461,42 @@ function openPayment(memberId, name, amount, currency) {
   document.getElementById('qrContainer').style.display = 'none';
   document.getElementById('payStatus').textContent = '';
   document.getElementById('qrCode').innerHTML = '';
-  switchTab('cash');
+  document.getElementById('pMethod').value = 'cash';
+  switchPaymentMethod('cash');
   openModal('paymentModal');
 }
 
-function switchTab(tab) {
-  document.getElementById('tabCash').classList.toggle('active', tab === 'cash');
-  document.getElementById('tabHbd').classList.toggle('active', tab === 'hbd');
-  document.getElementById('panelCash').style.display = tab === 'cash' ? '' : 'none';
-  document.getElementById('panelHbd').style.display = tab === 'hbd' ? '' : 'none';
-  document.getElementById('paymentModalFooterCash').style.display = tab === 'cash' ? 'contents' : 'none';
-  document.getElementById('paymentModalFooterHbd').style.display = tab === 'hbd' ? 'contents' : 'none';
-  if (tab === 'cash') cancelHbdPolling();
+function switchPaymentMethod(method) {
+  const isHbd = method === 'hbd';
+  const isOther = method === 'other';
+  document.getElementById('panelCash').style.display = isHbd ? 'none' : '';
+  document.getElementById('panelHbd').style.display = isHbd ? '' : 'none';
+  document.getElementById('paymentModalFooterCash').style.display = isHbd ? 'none' : 'contents';
+  document.getElementById('paymentModalFooterHbd').style.display = isHbd ? 'contents' : 'none';
+  // Show payment notes field for non-cash external methods
+  const notesGroup = document.getElementById('pPaymentNotesGroup');
+  const notesLabel = document.getElementById('pPaymentNotesLabel');
+  const showNotes = !isHbd && method !== 'cash';
+  notesGroup.style.display = showNotes ? '' : 'none';
+  if (notesLabel) notesLabel.textContent = t('members.paymentNotes') + (isOther ? ' *' : '');
+  if (!isHbd) cancelHbdPolling();
 }
 
 async function recordCashPayment() {
   const amount = parseFloat(document.getElementById('pAmount').value);
   if (!amount || amount <= 0) { toast(t('members.enterAmount'), false); return; }
+  const method = document.getElementById('pMethod').value;
+  const paymentNotes = document.getElementById('pPaymentNotes')?.value?.trim() || '';
+  if (method === 'other' && !paymentNotes) {
+    toast(t('members.paymentNotesRequired'), false); return;
+  }
   const body = {
     amount,
     currency: document.getElementById('pCurrency').value || 'HBD',
-    method: 'cash',
+    method,
+    paymentNotes,
     paidDate: document.getElementById('pDate').value,
     notes: document.getElementById('pNotes').value,
-    recordedBy: JSON.parse(localStorage.getItem('pos_admin_user') || '{}').username || '',
   };
   const res = await fetch(`${API_BASE}/api/members/${currentPayMemberId}/payments`, {
     method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
@@ -554,7 +578,6 @@ async function recordHbdPayment(amount, memo, hiveFrom) {
     hiveTransactionMemo: memo,
     hiveFrom,
     paidDate: new Date().toISOString(),
-    recordedBy: JSON.parse(localStorage.getItem('pos_admin_user') || '{}').username || '',
   };
   const res = await fetch(`${API_BASE}/api/members/${currentPayMemberId}/payments`, {
     method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
@@ -590,7 +613,7 @@ async function openHistory(memberId, name) {
           <tr>
             <td>${fmtDate(p.paidDate)}</td>
             <td>${p.amount} ${p.currency}</td>
-            <td><span class="badge" style="background:${p.method==='hbd'?'#cfe2ff':'#d4edda'};color:#333">${p.method.toUpperCase()}</span></td>
+            <td><span class="badge" style="background:${p.method==='hbd'?'#cfe2ff':'#d4edda'};color:#333">${p.method.replace(/_/g,' ').toUpperCase()}</span>${p.paymentNotes ? `<br><span style="font-size:.72rem;color:var(--muted)">${esc(p.paymentNotes)}</span>` : ''}</td>
             <td style="font-size:.8rem">${fmtDate(p.periodStart)} → ${fmtDate(p.periodEnd)}</td>
             <td style="font-size:.8rem;color:var(--muted)">${esc(p.recordedBy || '—')}</td>
           </tr>`).join('')}

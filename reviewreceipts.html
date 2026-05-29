@@ -91,10 +91,14 @@
             font-weight: 600;
             text-transform: uppercase;
         }
-        .method-hbd       { background: var(--green-light);  color: var(--green); }
-        .method-hive      { background: var(--blue-light);   color: var(--blue); }
-        .method-cash      { background: var(--amber-light);  color: var(--amber); }
-        .method-lightning { background: #fef9c3; color: #a16207; }
+        .method-hbd           { background: var(--green-light);  color: var(--green); }
+        .method-hive          { background: var(--blue-light);   color: var(--blue); }
+        .method-cash          { background: var(--amber-light);  color: var(--amber); }
+        .method-lightning     { background: #fef9c3; color: #a16207; }
+        .method-bank_transfer { background: #dbeafe; color: #1d4ed8; }
+        .method-card          { background: #ede9fe; color: #6d28d9; }
+        .method-check         { background: #f3f4f6; color: #374151; }
+        .method-other         { background: #f3f4f6; color: #374151; }
 
         /* Expandable row */
         .items-row td { padding: 0 1rem 0.75rem; background: var(--bg); }
@@ -148,11 +152,15 @@
             </label>
             <label>Payment
                 <select id="filterMethod">
-                    <option value="">All methods</option>
-                    <option value="hbd">HBD</option>
-                    <option value="hive">HIVE</option>
-                    <option value="cash">Cash</option>
-                    <option value="lightning">Lightning</option>
+                    <option value="" data-i18n="members.allStatuses">All methods</option>
+                    <option value="hbd"           data-i18n="pay.method_hbd">HBD (Hive)</option>
+                    <option value="cash"          data-i18n="pay.method_cash">Cash</option>
+                    <option value="bank_transfer" data-i18n="pay.method_bank_transfer">Bank Transfer</option>
+                    <option value="card"          data-i18n="pay.method_card">Credit / Debit Card</option>
+                    <option value="check"         data-i18n="pay.method_check">Check</option>
+                    <option value="other"         data-i18n="pay.method_other">Other</option>
+                    <option value="lightning"     data-i18n="pay.method_lightning">Bitcoin Lightning</option>
+                    <option value="hive"          data-i18n="pay.method_hive">HIVE</option>
                 </select>
             </label>
             <div class="filter-actions">
@@ -307,12 +315,14 @@
         tbody.innerHTML = sales.map((s, idx) => {
             const dt   = new Date(s.createdAt).toLocaleString();
             const meth = s.paymentMethod;
+            const methLabel = meth.replace(/_/g, ' ').toUpperCase();
             const itemsSummary = s.items.map(i => `${i.qty}× ${i.name}`).join(', ');
             const from = s.hiveFrom ? `@${s.hiveFrom}` : '—';
+            const notesTooltip = s.paymentNotes ? ` title="${s.paymentNotes.replace(/"/g,'&quot;')}"` : '';
             return `
                 <tr data-idx="${idx}" onclick="toggleItems(this, ${idx})">
                     <td>${dt}</td>
-                    <td><span class="method-badge method-${meth}">${meth.toUpperCase()}</span></td>
+                    <td><span class="method-badge method-${meth}"${notesTooltip}>${methLabel}</span>${s.paymentNotes ? `<br><span style="font-size:.72rem;color:var(--text-2)">${s.paymentNotes}</span>` : ''}</td>
                     <td style="color:var(--text-2);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itemsSummary}</td>
                     <td style="color:var(--text-2);font-size:0.8rem">${from}</td>
                     <td class="amount" style="text-align:right">$${s.total.toFixed(2)}</td>

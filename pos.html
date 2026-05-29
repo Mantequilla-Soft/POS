@@ -543,20 +543,33 @@
         }
         function renderPaymentButtons() {
             const cartFoot = document.getElementById('cartFoot');
-            // Remove existing payment sections
-            ['paymentButtonsRow', 'cashPaymentSection'].forEach(id => {
+            ['paymentButtonsRow', 'cashPaymentSection', 'externalPaymentSection'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.remove();
             });
             const cartHasItems = getCartHasItems();
             const dis = cartHasItems ? '' : 'disabled';
             let html = `<div id="paymentButtonsRow" style="display:flex;flex-direction:column;gap:0.5rem;">`;
-            html += `<button id="payWithHbdBtn" type="button" class="btn btn-success btn-block" ${dis}>${t('pos.payHbd')}</button>`;
-            html += `<button id="payWithCashBtn" type="button" class="btn btn-block" style="background:var(--amber);color:#fff;border-color:var(--amber);" ${dis}>${t('pos.payCash')}</button>`;
+            // Primary row: HBD + Cash
+            html += `<div style="display:flex;gap:0.5rem;">`;
+            html += `<button id="payWithHbdBtn" type="button" class="btn btn-success" style="flex:1;" ${dis}>${t('pos.payHbd')}</button>`;
+            html += `<button id="payWithCashBtn" type="button" class="btn" style="flex:1;background:var(--amber);color:#fff;border-color:var(--amber);" ${dis}>${t('pos.payCash')}</button>`;
+            html += `</div>`;
+            // Secondary row: Card + Bank Transfer
+            html += `<div style="display:flex;gap:0.5rem;">`;
+            html += `<button id="payWithCardBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payCard')}</button>`;
+            html += `<button id="payWithBankBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payBankTransfer')}</button>`;
+            html += `</div>`;
+            // Third row: Check + Other
+            html += `<div style="display:flex;gap:0.5rem;">`;
+            html += `<button id="payWithCheckBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payCheck')}</button>`;
+            html += `<button id="payWithOtherBtn" type="button" class="btn btn-secondary" style="flex:1;" ${dis}>${t('pos.payOther')}</button>`;
+            html += `</div>`;
             if (isBitcoinLightningEnabled()) {
                 html += `<button id="payWithBtcBtn" type="button" class="btn btn-block" style="background:#f7931a;color:#fff;border-color:#f7931a;" ${dis}>${t('pos.payBtc')}</button>`;
             }
             html += `</div>`;
+            // Cash section (change calculator)
             html += `<div id="cashPaymentSection" style="display:none;padding-top:0.75rem;">
                 <div class="form-group">
                     <label for="cashGivenInput">${t('pos.cashGiven')}</label>
@@ -565,32 +578,69 @@
                 <div id="changeDueDisplay" style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;min-height:1.5em;"></div>
                 <button id="finishCashSaleBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
             </div>`;
+            // External payment section (card / bank transfer / check / other)
+            html += `<div id="externalPaymentSection" style="display:none;padding-top:0.75rem;">
+                <div class="form-group" id="externalNotesGroup">
+                    <label id="externalNotesLabel">${t('pos.paymentNotesLabel')}</label>
+                    <input id="externalNotesInput" type="text" placeholder="" />
+                </div>
+                <button id="finishExternalSaleBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
+            </div>`;
             cartFoot.insertAdjacentHTML('beforeend', html);
         }
         function setupPaymentButtons() {
             renderPaymentButtons();
-            const payWithCashBtn = document.getElementById('payWithCashBtn');
-            const payWithHbdBtn = document.getElementById('payWithHbdBtn');
-            const payWithBtcBtn = document.getElementById('payWithBtcBtn');
-            const qrInline = document.getElementById('qrInlineContainer');
-            const cashSection = document.getElementById('cashPaymentSection');
-            const cashInput = document.getElementById('cashGivenInput');
-            const changeDue = document.getElementById('changeDueDisplay');
-            const finishBtn = document.getElementById('finishCashSaleBtn');
+            const payWithCashBtn   = document.getElementById('payWithCashBtn');
+            const payWithHbdBtn    = document.getElementById('payWithHbdBtn');
+            const payWithBtcBtn    = document.getElementById('payWithBtcBtn');
+            const payWithCardBtn   = document.getElementById('payWithCardBtn');
+            const payWithBankBtn   = document.getElementById('payWithBankBtn');
+            const payWithCheckBtn  = document.getElementById('payWithCheckBtn');
+            const payWithOtherBtn  = document.getElementById('payWithOtherBtn');
+            const qrInline         = document.getElementById('qrInlineContainer');
+            const cashSection      = document.getElementById('cashPaymentSection');
+            const externalSection  = document.getElementById('externalPaymentSection');
+            const cashInput        = document.getElementById('cashGivenInput');
+            const changeDue        = document.getElementById('changeDueDisplay');
+            const finishBtn        = document.getElementById('finishCashSaleBtn');
+            const finishExtBtn     = document.getElementById('finishExternalSaleBtn');
+            const extNotesInput    = document.getElementById('externalNotesInput');
+            const extNotesLabel    = document.getElementById('externalNotesLabel');
+            let currentExternalMethod = '';
+
             function getTotal() {
                 return cart.reduce(function(sum, item) { return sum + item.price * item.qty; }, 0);
             }
-            function showKeychain() {
-                qrInline.classList.add('open');
+            function hideAllSections() {
+                qrInline.classList.remove('open');
                 cashSection.style.display = 'none';
+                externalSection.style.display = 'none';
+            }
+            function showKeychain() {
+                hideAllSections();
+                qrInline.classList.add('open');
             }
             function showCash() {
-                qrInline.classList.remove('open');
+                hideAllSections();
                 cashSection.style.display = 'block';
                 cashInput.value = '';
                 changeDue.textContent = '';
             }
-            if (payWithCashBtn) payWithCashBtn.onclick = showCash;
+            function showExternal(method) {
+                hideAllSections();
+                currentExternalMethod = method;
+                const isOther = method === 'other';
+                extNotesLabel.textContent = t('pos.paymentNotesLabel') + (isOther ? ' *' : '');
+                extNotesInput.value = '';
+                extNotesInput.placeholder = isOther ? t('pos.paymentNotesRequired') : t('pay.notesPlaceholder');
+                externalSection.style.display = 'block';
+                extNotesInput.focus();
+            }
+            if (payWithCashBtn)  payWithCashBtn.onclick  = showCash;
+            if (payWithCardBtn)  payWithCardBtn.onclick  = () => showExternal('card');
+            if (payWithBankBtn)  payWithBankBtn.onclick  = () => showExternal('bank_transfer');
+            if (payWithCheckBtn) payWithCheckBtn.onclick = () => showExternal('check');
+            if (payWithOtherBtn) payWithOtherBtn.onclick = () => showExternal('other');
             if (payWithHbdBtn) payWithHbdBtn.onclick = function() {
                 showKeychain();
                 showQrInline();
@@ -684,6 +734,22 @@
                     renderCart();
                     renderMenu();
                     showPostSaleActions('cash', saleCart, saleTotal);
+                };
+            }
+            if (finishExtBtn) {
+                finishExtBtn.onclick = function() {
+                    if (currentExternalMethod === 'other' && !extNotesInput.value.trim()) {
+                        alert(t('pos.paymentNotesRequired'));
+                        extNotesInput.focus();
+                        return;
+                    }
+                    const saleCart = cart.map(i => ({...i}));
+                    const saleTotal = saleCart.reduce((sum, i) => sum + i.price * i.qty, 0);
+                    const notes = extNotesInput.value.trim();
+                    cart = [];
+                    renderCart();
+                    renderMenu();
+                    showPostSaleActions(currentExternalMethod, saleCart, saleTotal, null, null, notes);
                 };
             }
             // QR overlay stays hidden until the user clicks "Pay with HBD"
@@ -788,7 +854,7 @@
             };
         }
         // --- Post-Sale Actions ---
-        async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId) {
+        async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId, paymentNotes) {
             document.getElementById('qrInlineContainer').classList.remove('open');
 
             // Auto-save sale to backend (works for both admin and cashier tokens)
@@ -805,6 +871,7 @@
                             total: saleTotal,
                             currency: (getStoreSettings().currency || 'HBD'),
                             paymentMethod: paymentType.toLowerCase(),
+                            paymentNotes: paymentNotes || '',
                             hiveFrom: hiveFrom || null,
                             hiveTransactionId: txId || null,
                             cashier: JSON.parse(localStorage.getItem('pos_cashier_user') || 'null')?.username || null,

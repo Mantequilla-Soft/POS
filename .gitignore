@@ -18,6 +18,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Utility scripts (local only)
+backend/reset-password.js
+
 # Backups
 *.json.bak
 backup*.json
