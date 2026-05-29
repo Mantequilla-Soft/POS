@@ -1286,13 +1286,16 @@
         }
 
         function renderTabBadge() {
+            const h2 = document.querySelector('.cart-head h2');
             const badge = document.getElementById('tabBadge');
-            if (!badge) return;
+            if (badge) badge.style.display = 'none'; // badge replaced by h2
+            if (!h2) return;
             if (currentTabState) {
-                badge.textContent = '🪑 ' + currentTabState.tableLabel;
-                badge.style.display = '';
+                h2.textContent = '🪑 ' + currentTabState.tableLabel;
+                h2.style.color = 'var(--amber)';
             } else {
-                badge.style.display = 'none';
+                h2.textContent = t('pos.cartTitle') || 'Cart';
+                h2.style.color = '';
             }
         }
 
@@ -1346,17 +1349,18 @@
             hideTablesPanel();
             if (!table) {
                 currentTabState = null;
+                cart = [];
                 renderTabBadge();
+                renderCart();
                 setupPaymentButtons();
                 return;
             }
             currentTabState = { tabId: existingTab?._id || null, tableId: table.id, tableLabel: table.label };
-            if (existingTab) {
-                cart = existingTab.items.map(i => ({ ...i }));
-            }
+            cart = existingTab ? existingTab.items.map(i => ({ ...i })) : [];
             renderCart();
             renderMenu();
             renderTabBadge();
+            setupPaymentButtons();
         }
 
         async function saveTab() {
