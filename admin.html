@@ -329,20 +329,20 @@
 
     <!-- Theme Section -->
     <div id="themeSection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:2rem;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);max-width:600px;">
-        <h2 style="margin-top:0;margin-bottom:.1rem">🎨 Appearance</h2>
-        <p style="font-size:.85em;color:var(--text-3);margin-bottom:1rem">Choose a color theme for your store's POS and management pages.</p>
+        <h2 style="margin-top:0;margin-bottom:.1rem" data-i18n="admin.appearance">🎨 Appearance</h2>
+        <p style="font-size:.85em;color:var(--text-3);margin-bottom:1rem" data-i18n="admin.appearanceHelp">Choose a color theme for your store's POS and management pages.</p>
         <div id="themeSwatch" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.6rem;margin-bottom:1rem"></div>
         <!-- Custom color pickers — shown only when Custom is selected -->
         <div id="themeCustomPanel" style="display:none;border-top:1px solid var(--border);padding-top:1rem;margin-top:.25rem">
-            <p style="font-size:.82em;color:var(--text-2);margin-bottom:.75rem">Pick your own colors. Text colors adjust automatically.</p>
+            <p style="font-size:.82em;color:var(--text-2);margin-bottom:.75rem" data-i18n="admin.customThemeHelp">Pick your own colors. Text colors adjust automatically.</p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-                <label style="font-size:.84em;font-weight:600">Page Background<br>
+                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customBgLabel">Page Background</span><br>
                     <input type="color" id="customBg" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
-                <label style="font-size:.84em;font-weight:600">Card / Panel<br>
+                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customSurfaceLabel">Card / Panel</span><br>
                     <input type="color" id="customSurface" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
-                <label style="font-size:.84em;font-weight:600">Primary Button<br>
+                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customInkLabel">Primary Button</span><br>
                     <input type="color" id="customInk" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
-                <label style="font-size:.84em;font-weight:600">Accent Color<br>
+                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customAccentLabel">Accent Color</span><br>
                     <input type="color" id="customAmber" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
             </div>
         </div>
@@ -2699,8 +2699,8 @@
             const container = document.getElementById('themeSwatch');
             if (!container || !window.POS_THEMES) return;
             const active = getActiveThemeId();
-            container.innerHTML = Object.entries(window.POS_THEMES).map(([id, t]) => {
-                const [bg, ink, accent] = t.swatches;
+            container.innerHTML = Object.entries(window.POS_THEMES).map(([id, theme]) => {
+                const [bg, ink, accent] = theme.swatches;
                 const sel = id === active;
                 return `<button type="button" onclick="selectTheme('${id}')" style="
                     border:2px solid ${sel ? ink : 'var(--border)'};
@@ -2712,14 +2712,14 @@
                         <span style="width:18px;height:18px;border-radius:50%;background:${ink}"></span>
                         <span style="width:18px;height:18px;border-radius:50%;background:${accent}"></span>
                     </div>
-                    <div style="font-size:.78rem;font-weight:600;color:${contrastText(bg)}">${t.emoji} ${t.name}</div>
+                    <div style="font-size:.78rem;font-weight:600;color:${contrastText(bg)}">${theme.emoji} ${t('theme.' + id)}</div>
                 </button>`;
             }).join('') + `<button type="button" onclick="selectTheme('custom')" style="
                 border:2px solid ${'custom' === active ? 'var(--ink)' : 'var(--border)'};
                 border-radius:var(--r);padding:.6rem .5rem;background:var(--surface-2);
                 cursor:pointer;text-align:center;transition:var(--ease)">
                 <div style="font-size:1.4rem;margin-bottom:.25rem">🖌️</div>
-                <div style="font-size:.78rem;font-weight:600">Custom</div>
+                <div style="font-size:.78rem;font-weight:600">${t('theme.custom')}</div>
             </button>`;
         }
 

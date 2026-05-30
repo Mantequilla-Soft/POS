@@ -713,6 +713,23 @@ const i18n = (() => {
       'plugin.bankTransfer.imageHelp':  'Upload a QR code, payment app image, or formatted account card.',
       'admin.upload':                'Upload',
 
+      // ── Appearance / theme ────────────────────────────────────────────────
+      'admin.appearance':         '🎨 Appearance',
+      'admin.appearanceHelp':     "Choose a color theme for your store's POS and management pages.",
+      'admin.customThemeHelp':    'Pick your own colors. Text colors adjust automatically.',
+      'admin.customBgLabel':      'Page Background',
+      'admin.customSurfaceLabel': 'Card / Panel',
+      'admin.customInkLabel':     'Primary Button',
+      'admin.customAccentLabel':  'Accent Color',
+      'theme.artisan':   'Artisan',
+      'theme.midnight':  'Midnight',
+      'theme.ocean':     'Ocean',
+      'theme.forest':    'Forest',
+      'theme.slate':     'Slate',
+      'theme.blush':     'Blush',
+      'theme.espresso':  'Espresso',
+      'theme.custom':    'Custom',
+
       // ── Hive plugin ──────────────────────────────────────────────────────
       'admin.enableHive':           'Hive / HBD Payments',
       'admin.hiveHelp':             'Accept HBD (stable $1 crypto) at the POS via QR code. Customers scan with any Hive wallet.',
@@ -1586,6 +1603,23 @@ const i18n = (() => {
       'plugin.bankTransfer.imageLabel': 'Código QR / Imagen de Cuenta (opcional)',
       'plugin.bankTransfer.imageHelp':  'Sube un código QR, imagen de app de pago o tarjeta de cuenta.',
       'admin.upload':                'Subir',
+
+      // ── Appearance / theme ────────────────────────────────────────────────
+      'admin.appearance':         '🎨 Apariencia',
+      'admin.appearanceHelp':     'Elige un tema de colores para el POS y las páginas de gestión de tu tienda.',
+      'admin.customThemeHelp':    'Elige tus propios colores. Los colores de texto se ajustan automáticamente.',
+      'admin.customBgLabel':      'Fondo de Página',
+      'admin.customSurfaceLabel': 'Tarjeta / Panel',
+      'admin.customInkLabel':     'Botón Principal',
+      'admin.customAccentLabel':  'Color de Acento',
+      'theme.artisan':   'Artesanal',
+      'theme.midnight':  'Medianoche',
+      'theme.ocean':     'Océano',
+      'theme.forest':    'Bosque',
+      'theme.slate':     'Pizarra',
+      'theme.blush':     'Rubor',
+      'theme.espresso':  'Espresso',
+      'theme.custom':    'Personalizado',
 
       // ── Hive plugin ──────────────────────────────────────────────────────
       'admin.enableHive':           'Pagos Hive / HBD',
