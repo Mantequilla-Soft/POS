@@ -645,6 +645,12 @@
         </div>
     </div>
 
+    <!-- Sticky save bar — must be in DOM before the script runs -->
+    <div id="stickySaveBar">
+        <span class="bar-msg" data-i18n="admin.unsavedChanges">Unsaved changes</span>
+        <button id="stickySaveBarBtn" onclick="saveFromBar()" data-i18n="admin.saveChanges">Save changes</button>
+    </div>
+
     <!-- Debug Toggle Button -->
     <button class="debug-toggle" id="debugToggle" title="Toggle Debug Console">🐛</button>
 
@@ -970,7 +976,7 @@
         }
 
         // Sticky bar save — saves + keeps published state, no confirm dialog
-        async function saveFromBar() {
+        window.saveFromBar = async function saveFromBar() {
             const btn = document.getElementById('stickySaveBarBtn');
             btn.disabled = true;
             btn.textContent = t('admin.saving');
@@ -1005,7 +1011,7 @@
             }
         }
 
-        document.getElementById('stickySaveBarBtn').onclick = saveFromBar;
+        // stickySaveBarBtn uses onclick="saveFromBar()" inline — element is above the script tag
 
         // Enhanced data functions - API first, no localStorage fallback
         async function getItems() {
@@ -2719,10 +2725,5 @@
 
         loadThemeSection();
     </script>
-
-    <div id="stickySaveBar">
-        <span class="bar-msg" data-i18n="admin.unsavedChanges">Unsaved changes</span>
-        <button id="stickySaveBarBtn" data-i18n="admin.saveChanges">Save changes</button>
-    </div>
 </body>
 </html>
