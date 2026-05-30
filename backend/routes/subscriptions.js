@@ -2,6 +2,8 @@ const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 const SubscriptionPayment = require('../models/SubscriptionPayment');
+const Store = require('../models/Store');
+const { getOrCreateConfig } = require('./pricing');
 
 router.use(authenticate);
 
@@ -33,15 +35,35 @@ async function recordPayment(sub, { amount, currency, method, hiveFrom, hiveTxMe
   return sub;
 }
 
-// GET /api/subscription — own subscription status
+// GET /api/subscription — own subscription status + billing breakdown
 router.get('/', async (req, res) => {
   try {
     const sub = await Subscription.findOne({ storeId: req.user.storeId });
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
+
+    const [store, cfg] = await Promise.all([
+      Store.findById(sub.storeId),
+      getOrCreateConfig(),
+    ]);
+    const feats = store?.features || {};
+
+    const breakdown = [{ label: 'Base plan', amount: cfg.basePrice || 0 }];
+    if (feats.kitchenDisplay || feats.tabs)
+      breakdown.push({ label: 'Restaurant features', amount: cfg.addons?.restaurantFeatures || 0 });
+    if (feats.memberships)
+      breakdown.push({ label: 'Memberships',    amount: cfg.addons?.memberships    || 0 });
+    if (feats.emailCampaigns)
+      breakdown.push({ label: 'Email campaigns', amount: cfg.addons?.emailCampaigns || 0 });
+    if (feats.discountCodes)
+      breakdown.push({ label: 'Discount codes',  amount: cfg.addons?.discountCodes  || 0 });
+    if (feats.reservations)
+      breakdown.push({ label: 'Reservations',    amount: cfg.addons?.reservations   || 0 });
+
     res.json({
       ...sub.toObject(),
       billingMemo: `poshive-${sub.storeId.toString()}`,
       billingHiveAccount: BILLING_HIVE_ACCOUNT(),
+      breakdown,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -937,13 +937,29 @@
                    </div>`
                 : '';
 
+            const sym = (sub.planCurrency === 'HBD' || !sub.planCurrency) ? '$' : sub.planCurrency + ' ';
+            const billAmount = Math.max(sub.planPrice, sub.periodHighPrice || 0);
+            const lockedNotice = (sub.periodHighPrice > sub.planPrice)
+                ? `<div style="margin-top:.35rem;font-size:.8em;opacity:.85">
+                       ⚠️ A feature was disabled mid-period. This period: <strong>${sym}${sub.periodHighPrice}</strong> &nbsp;·&nbsp; Next period: ${sym}${sub.planPrice}
+                   </div>`
+                : '';
+
+            const breakdownHtml = (sub.breakdown && sub.breakdown.length > 1)
+                ? `<div style="margin-top:.45rem;display:flex;flex-wrap:wrap;gap:.3rem .75rem">
+                       ${sub.breakdown.map(b => `<span style="font-size:.78em;opacity:.85">${b.label}: ${sym}${b.amount}</span>`).join('<span style="opacity:.35">·</span>')}
+                   </div>`
+                : '';
+
             banner.style.display = 'block';
             banner.innerHTML = `
                 <div style="border:1.5px solid ${c.border};background:${c.bg};color:${c.text};border-radius:var(--r);padding:.65rem 1rem;font-size:.85em;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
                     <div style="flex:1;min-width:160px">
                         <strong>${t('billing.widgetTitle')}</strong>
                         <span style="margin-left:.5rem;background:${c.border};color:#fff;border-radius:999px;padding:.1rem .55rem;font-size:.78em">${statusLabel}</span>
-                        <div style="margin-top:.25rem">${t('billing.widgetDue')}: <strong>${dueDate}</strong> &nbsp;·&nbsp; ${sub.planCurrency === 'HBD' || !sub.planCurrency ? '$' : sub.planCurrency + ' '}${sub.planPrice}/${t('billing.perMonth')}</div>
+                        <div style="margin-top:.25rem">${t('billing.widgetDue')}: <strong>${dueDate}</strong> &nbsp;·&nbsp; ${sym}${billAmount}/${t('billing.perMonth')}</div>
+                        ${breakdownHtml}
+                        ${lockedNotice}
                     </div>
                     ${payBtns}
                 </div>`;
@@ -954,8 +970,10 @@
             if (!_subData) return;
             const memo = _subData.billingMemo || '';
             const to   = _subData.billingHiveAccount || '';
-            const price = `${_subData.planCurrency === 'HBD' || !_subData.planCurrency ? '$' : _subData.planCurrency + ' '}${_subData.planPrice}`;
-            const qrVal = `hive:${to}?amount=${_subData.planPrice}&currency=${_subData.planCurrency}&memo=${encodeURIComponent(memo)}`;
+            const _billAmt = Math.max(_subData.planPrice, _subData.periodHighPrice || 0);
+            const _sym = (_subData.planCurrency === 'HBD' || !_subData.planCurrency) ? '$' : _subData.planCurrency + ' ';
+            const price = `${_sym}${_billAmt}`;
+            const qrVal = `hive:${to}?amount=${_billAmt}&currency=${_subData.planCurrency}&memo=${encodeURIComponent(memo)}`;
 
             const modal = document.createElement('div');
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center';
