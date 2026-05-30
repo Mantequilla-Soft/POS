@@ -819,8 +819,10 @@
         async function loadConfigFromAPI(storeId = null) {
             try {
                 console.log('Loading config from API...');
-                // Always use /api/config endpoint since we have single-store model
-                const url = `${API_BASE_URL}/store/config`;
+                const sid = storeId || getStoreIdFromUrl();
+                const url = sid
+                    ? `${API_BASE_URL}/store/config?storeId=${encodeURIComponent(sid)}`
+                    : `${API_BASE_URL}/store/config`;
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: getAuthHeaders()

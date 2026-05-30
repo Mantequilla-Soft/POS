@@ -71,7 +71,9 @@ router.get('/config', async (req, res) => {
   try {
     const query = req.user.role === 'cashier'
       ? { _id: req.user.storeId }
-      : { ownerId: req.user.userId };
+      : req.user.role === 'superadmin' && req.query.storeId
+        ? { _id: req.query.storeId }
+        : { ownerId: req.user.userId };
     const store = await Store.findOne(query);
     if (!store) return res.status(404).json({ error: 'Store not found' });
 
@@ -228,12 +230,15 @@ router.put('/:id', roleOnly('store_owner', 'superadmin'), async (req, res) => {
       if (settings.categories   !== undefined) update.categories   = settings.categories;
       if (settings.hiveAccount  !== undefined) update.hiveAccount  = settings.hiveAccount;
     }
+    const storeQuery = req.user.role === 'superadmin'
+      ? { _id: req.params.id }
+      : { _id: req.params.id, ownerId: req.user.userId };
     if (incomingPlugins) {
-      const existing = await Store.findOne({ _id: req.params.id, ownerId: req.user.userId }, 'pluginConfigs');
+      const existing = await Store.findOne(storeQuery, 'pluginConfigs');
       update.pluginConfigs = mergePluginConfigs(existing?.pluginConfigs, incomingPlugins);
     }
     const store = await Store.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.userId },
+      storeQuery,
       { $set: update },
       { new: true }
     );
