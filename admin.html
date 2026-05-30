@@ -166,6 +166,46 @@
             transform: scale(1.1);
         }
 
+        /* Sticky save bar */
+        #stickySaveBar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--surface);
+            border-top: 2px solid var(--blue);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            z-index: 900;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.25s ease;
+        }
+        #stickySaveBar.visible { transform: translateY(0); }
+        #stickySaveBar .bar-msg {
+            font-size: 0.9rem;
+            color: var(--text-muted, var(--text));
+            opacity: 0.75;
+        }
+        #stickySaveBar .bar-msg::before { content: '● '; color: var(--orange, #f59e0b); }
+        #stickySaveBarBtn {
+            margin-top: 0;
+            background: var(--blue);
+            color: #fff;
+            padding: 0.55rem 1.5rem;
+            border-radius: var(--r);
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            transition: var(--ease);
+            white-space: nowrap;
+        }
+        #stickySaveBarBtn:hover { filter: brightness(1.1); }
+        #stickySaveBarBtn:disabled { opacity: 0.6; cursor: not-allowed; filter: none; }
+        body.has-sticky-bar { padding-bottom: 70px; }
+
         @media (max-width: 640px) {
             body { margin: 1rem 0.75rem; }
             .header-container { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
@@ -897,12 +937,22 @@
                 isDirty = true;
                 updateSaveDraftButton();
             }
+            const bar = document.getElementById('stickySaveBar');
+            if (bar && hasExistingStore()) {
+                bar.classList.add('visible');
+                document.body.classList.add('has-sticky-bar');
+            }
         }
 
         // Mark data as clean (saved)
         function markClean() {
             isDirty = false;
             updateSaveDraftButton();
+            const bar = document.getElementById('stickySaveBar');
+            if (bar) {
+                bar.classList.remove('visible');
+                document.body.classList.remove('has-sticky-bar');
+            }
         }
 
         // Update save draft button state
@@ -916,6 +966,44 @@
                 saveDraftBtn.textContent = t('admin.saved');
             }
         }
+
+        // Sticky bar save — saves + keeps published state, no confirm dialog
+        async function saveFromBar() {
+            const btn = document.getElementById('stickySaveBarBtn');
+            btn.disabled = true;
+            btn.textContent = t('admin.saving');
+            try {
+                const isPublished = localStorage.getItem('pos_store_published') === 'true';
+                const items = await getItems();
+                const settings = await getStoreSettings();
+                const config = {
+                    items,
+                    settings,
+                    features: currentData.features || {},
+                    pluginConfigs: currentData.pluginConfigs || {},
+                    emailSettings: currentData.emailSettings || {},
+                    theme: currentData.theme || null,
+                    language: i18n.getLocale(),
+                    ownerEmail: currentData.ownerEmail || '',
+                    backupEmail: currentData.backupEmail !== false,
+                    tables: currentData.tables || [],
+                    rooms:  currentData.rooms  || [],
+                    ...(isPublished ? { published: true } : {}),
+                };
+                const result = await saveConfigToAPI(config, true);
+                if (!result) throw new Error('Save failed');
+                markClean();
+                btn.textContent = t('admin.savedExclaim');
+                setTimeout(() => { btn.disabled = false; btn.textContent = t('admin.saveChanges'); }, 2000);
+            } catch (err) {
+                console.error('Sticky save error:', err);
+                btn.disabled = false;
+                btn.textContent = t('admin.saveChanges');
+                alert(t('admin.saveDraftFail'));
+            }
+        }
+
+        document.getElementById('stickySaveBarBtn').onclick = saveFromBar;
 
         // Enhanced data functions - API first, no localStorage fallback
         async function getItems() {
@@ -2629,5 +2717,10 @@
 
         loadThemeSection();
     </script>
+
+    <div id="stickySaveBar">
+        <span class="bar-msg" data-i18n="admin.unsavedChanges">Unsaved changes</span>
+        <button id="stickySaveBarBtn" data-i18n="admin.saveChanges">Save changes</button>
+    </div>
 </body>
 </html>

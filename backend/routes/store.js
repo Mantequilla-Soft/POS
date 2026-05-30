@@ -158,13 +158,14 @@ router.post('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
 // PUT / — update store
 router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
   try {
-    const { settings, items, published, features, pluginConfigs: incomingPlugins, kitchenPin: rawPin, tables, theme, ...rest } = req.body;
+    const { settings, items, published, features, pluginConfigs: incomingPlugins, kitchenPin: rawPin, tables, rooms, theme, ...rest } = req.body;
 
     const update = { ...rest };
     if (published !== undefined) update.published = published;
     if (features)                update.features  = features;
     if (items)                   update.items     = items;
     if (tables !== undefined)    update.tables    = tables;
+    if (rooms  !== undefined)    update.rooms     = rooms;
     if (theme !== undefined)     update.theme     = theme;
 
     if (rawPin) {
