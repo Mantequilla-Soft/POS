@@ -166,6 +166,7 @@
                 <span class="username" id="welcomeSpan">Welcome, <span id="usernameDisplay"></span></span>
                 <a href="members.html" class="btn btn-primary btn-sm" id="membersNavBtn" style="display:none" data-i18n="common.members">Members</a>
                 <a href="reports.html" class="btn btn-secondary btn-sm" id="reportsNavBtn" style="display:none" data-i18n="reports.navLink">📊 Reports</a>
+                <a href="hotel.html" class="btn btn-secondary btn-sm" id="hotelNavBtn" style="display:none" data-i18n="hotel.navLink">🏨 Hotel</a>
                 <span id="langToggleContainer"></span>
                 <button class="btn btn-danger btn-sm" id="logoutBtn" data-i18n="common.logout">
                     🚪 Logout
@@ -446,6 +447,10 @@
             }
             const reportsBtn = document.getElementById('reportsNavBtn');
             if (reportsBtn) reportsBtn.style.display = 'inline-flex';
+            if (userStore.features?.hotel) {
+                const btn = document.getElementById('hotelNavBtn');
+                if (btn) btn.style.display = 'inline-flex';
+            }
 
             const storeName = userStore.settings?.businessName || userStore.businessName || userStore.name || 'Unnamed Store';
             const storeStatus = userStore.published ? 'Published' : 'Draft';

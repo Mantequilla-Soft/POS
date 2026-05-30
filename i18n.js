@@ -544,6 +544,7 @@ const i18n = (() => {
       'reports.noData':          'No data for this period.',
       'reports.loadError':       'Failed to load report data.',
       'reports.navLink':         '📊 Reports',
+      'hotel.navLink':           '🏨 Hotel',
 
       // ── Passes ──────────────────────────────────────────────────────────
       'pass.isPassLabel':        'Day/Week Pass (sold at POS)',
@@ -1386,6 +1387,7 @@ const i18n = (() => {
       'reports.noData':          'Sin datos para este período.',
       'reports.loadError':       'Error al cargar el reporte.',
       'reports.navLink':         '📊 Reportes',
+      'hotel.navLink':           '🏨 Hotel',
 
       // ── Passes ──────────────────────────────────────────────────────────
       'pass.isPassLabel':        'Pase de día/semana (vendido en POS)',
