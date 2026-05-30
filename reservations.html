@@ -308,10 +308,9 @@ function renderTimeline() {
     html += `<div class="tg-row-label">${escHtml(table.label)}</div>`;
     slots.forEach(slot => {
       const slotStart = new Date(currentDate);
-      slotStart.setUTCHours(slot.h, slot.m, 0, 0);
+      slotStart.setHours(slot.h, slot.m, 0, 0);
       const slotEnd = new Date(slotStart.getTime() + SLOT_STEP * 60000);
 
-      // Find booking that starts in this slot for this table
       const b = bookings.find(bk =>
         bk.resourceId === table.id &&
         new Date(bk.startAt) >= slotStart &&
@@ -325,6 +324,26 @@ function renderTimeline() {
       html += `</div>`;
     });
   });
+
+  // Unassigned row — bookings with no table or a table not in the active list
+  const tableIds = new Set(tables.map(t => t.id));
+  const unassigned = bookings.filter(bk => !bk.resourceId || !tableIds.has(bk.resourceId));
+  if (unassigned.length) {
+    html += `<div class="tg-row-label" style="font-style:italic;color:var(--text-2)">—</div>`;
+    slots.forEach(slot => {
+      const slotStart = new Date(currentDate);
+      slotStart.setHours(slot.h, slot.m, 0, 0);
+      const slotEnd = new Date(slotStart.getTime() + SLOT_STEP * 60000);
+      const b = unassigned.find(bk =>
+        new Date(bk.startAt) >= slotStart && new Date(bk.startAt) < slotEnd
+      );
+      html += `<div class="tg-cell" onclick="cellClick(event,'','','${slotStart.toISOString()}')">`;
+      if (b) {
+        html += `<div class="booking-block bb-${b.status}" onclick="event.stopPropagation();openEditModal('${b._id}')" title="${escAttr(b.guestName)} (${b.partySize})">${escHtml(b.guestName)} ×${b.partySize}</div>`;
+      }
+      html += `</div>`;
+    });
+  }
 
   grid.innerHTML = html;
 }
