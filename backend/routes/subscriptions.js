@@ -28,6 +28,7 @@ async function recordPayment(sub, { amount, currency, method, hiveFrom, hiveTxMe
   });
   sub.status = 'active';
   sub.currentPeriodEnd = periodEnd;
+  sub.periodHighPrice  = sub.planPrice; // reset floor — new period starts fresh
   await sub.save();
   return sub;
 }

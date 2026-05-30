@@ -42,14 +42,17 @@ router.put('/', authenticate, requireRole('superadmin'), async (req, res) => {
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
-    // Reprice every store that hasn't been manually overridden
+    // Reprice every store that hasn't been manually overridden.
+    // periodHighPrice only rises — a global price change that lowers a store's
+    // price still can't undercut what was already owed this period.
     const stores = await Store.find({}, '_id features');
     await Promise.all(stores.map(async store => {
       const newPrice = computePlanPrice(store.features || {}, cfg);
-      await Subscription.updateOne(
-        { storeId: store._id, priceOverride: { $ne: true } },
-        { $set: { planPrice: newPrice } }
-      );
+      const sub = await Subscription.findOne({ storeId: store._id, priceOverride: { $ne: true } });
+      if (!sub) return;
+      sub.planPrice = newPrice;
+      if (newPrice > (sub.periodHighPrice || 0)) sub.periodHighPrice = newPrice;
+      await sub.save();
     }));
 
     res.json(cfg);

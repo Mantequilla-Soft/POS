@@ -124,7 +124,8 @@ async function sendBillingReminders() {
 
     const billingAccount = process.env.BILLING_HIVE_ACCOUNT || '';
     const memo = `poshive-${sub.storeId.toString()}`;
-    const price = `${sub.planPrice} ${sub.planCurrency}`;
+    const billAmount = Math.max(sub.planPrice, sub.periodHighPrice || 0);
+    const price = `${billAmount} ${sub.planCurrency}`;
 
     try {
       await transporter.sendMail({

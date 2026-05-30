@@ -11,6 +11,7 @@ const subscriptionSchema = new mongoose.Schema({
   stripeCustomerId: { type: String, default: '' },
   notes:            { type: String, default: '' },
   priceOverride:    { type: Boolean, default: false },
+  periodHighPrice:  { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

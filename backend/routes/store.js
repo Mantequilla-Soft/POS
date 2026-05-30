@@ -188,15 +188,19 @@ router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
       { new: true, upsert: true }
     );
 
-    // Reprice subscription when features change
+    // Reprice subscription when features change.
+    // planPrice always tracks current features; periodHighPrice is the billing
+    // floor for this period and only moves up — never down mid-period.
     if (features) {
       try {
         const cfg = await getOrCreateConfig();
         const newPrice = computePlanPrice(store.features || {}, cfg);
-        await Subscription.updateOne(
-          { storeId: store._id, priceOverride: { $ne: true } },
-          { $set: { planPrice: newPrice } }
-        );
+        const sub = await Subscription.findOne({ storeId: store._id, priceOverride: { $ne: true } });
+        if (sub) {
+          sub.planPrice = newPrice;
+          if (newPrice > (sub.periodHighPrice || 0)) sub.periodHighPrice = newPrice;
+          await sub.save();
+        }
       } catch (_) {}
     }
 
