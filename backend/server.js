@@ -109,6 +109,7 @@ app.use('/api/pricing',        require('./routes/pricing'));
 app.use('/api/discount-codes', require('./routes/discountCodes'));
 app.use('/api/bookings',      require('./routes/bookings'));
 app.use('/api/hotel',         require('./routes/hotel'));
+app.use('/api/closeouts',     require('./routes/closeouts'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date() }));
 

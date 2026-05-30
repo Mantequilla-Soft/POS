@@ -585,6 +585,92 @@
                 </div>
             </div>
         </div>
+
+        <!-- Closeout / Cierre de Caja -->
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+                <input type="checkbox" id="enableCloseout">
+                <span><strong data-i18n="admin.enableCloseout">End-of-Day Closeout (Cierre de Caja)</strong></span>
+            </label>
+            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.closeoutHelp">Daily cash reconciliation form — replaces the paper cierre de caja.</p>
+            <div id="closeoutConfigPanel" style="display:none">
+
+                <!-- Tips toggle -->
+                <label style="display:flex;align-items:center;gap:.6em;font-size:.9em;margin-bottom:1rem;cursor:pointer">
+                    <input type="checkbox" id="enableCloseoutTips">
+                    <span data-i18n="admin.closeoutTips">Enable tips tracking</span>
+                </label>
+                <p style="font-size:.8em;color:var(--text-2);margin:-.75rem 0 1rem 1.8rem" data-i18n="admin.closeoutTipsHelp">Cashiers record cash and transfer tips per staff member per shift.</p>
+
+                <!-- Shifts -->
+                <div style="margin-bottom:1rem">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+                        <strong style="font-size:.9em" data-i18n="admin.closeoutShifts">Shifts</strong>
+                        <button type="button" id="addShiftBtn" class="btn btn-sm" data-i18n="admin.addShift">+ Add Shift</button>
+                    </div>
+                    <div id="shiftsAddForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.7rem;margin-bottom:.5rem;display:flex;gap:.5rem;align-items:center">
+                        <input type="text" id="newShiftLabel" class="form-control" style="flex:1" data-i18n-placeholder="admin.shiftLabel" placeholder="Shift name">
+                        <button type="button" id="saveShiftBtn" class="btn btn-sm" style="background:var(--ink);color:var(--ink-text)">✓</button>
+                        <button type="button" id="cancelShiftBtn" class="btn btn-sm btn-secondary">✕</button>
+                    </div>
+                    <div id="shiftsList"></div>
+                </div>
+
+                <!-- Staff Roster -->
+                <div style="margin-bottom:1rem">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+                        <strong style="font-size:.9em" data-i18n="admin.closeoutStaff">Staff Roster</strong>
+                        <button type="button" id="addStaffBtn" class="btn btn-sm" data-i18n="admin.addStaff">+ Add Staff Member</button>
+                    </div>
+                    <div id="staffAddForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.7rem;margin-bottom:.5rem">
+                        <input type="text" id="newStaffName" class="form-control" style="margin-bottom:.4rem" data-i18n-placeholder="admin.staffName" placeholder="Name">
+                        <div id="newStaffShiftsCheckboxes" style="font-size:.82em;margin-bottom:.5rem"></div>
+                        <div style="display:flex;gap:.5rem">
+                            <button type="button" id="saveStaffBtn" class="btn btn-sm" style="background:var(--ink);color:var(--ink-text)">Save</button>
+                            <button type="button" id="cancelStaffBtn" class="btn btn-sm btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                    <div id="staffList"></div>
+                </div>
+
+                <!-- Deduction Categories -->
+                <div style="margin-bottom:.5rem">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+                        <strong style="font-size:.9em" data-i18n="admin.closeoutDeductions">Deduction Categories</strong>
+                        <button type="button" id="addDeductionBtn" class="btn btn-sm" data-i18n="admin.addDeduction">+ Add Category</button>
+                    </div>
+                    <div id="deductionsAddForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.7rem;margin-bottom:.5rem;display:flex;gap:.5rem;align-items:center">
+                        <input type="text" id="newDeductionLabel" class="form-control" style="flex:1" data-i18n-placeholder="admin.deductionLabel" placeholder="Label">
+                        <button type="button" id="saveDeductionBtn" class="btn btn-sm" style="background:var(--ink);color:var(--ink-text)">✓</button>
+                        <button type="button" id="cancelDeductionBtn" class="btn btn-sm btn-secondary">✕</button>
+                    </div>
+                    <div id="deductionsList"></div>
+                </div>
+
+            </div><!-- /closeoutConfigPanel -->
+        </div>
+    </div><!-- /restaurantSettings -->
+
+    <!-- Closeout History (owner review) -->
+    <div id="closeoutHistorySection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);max-width:700px;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+            <h3 style="margin:0;font-size:1.05rem" data-i18n="closeout.historyTitle">Closeout History</h3>
+            <a href="closeout.html" class="btn btn-sm" style="text-decoration:none" data-i18n="closeout.navLink">📋 Cierre de Caja</a>
+        </div>
+        <!-- Filters -->
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center">
+            <input type="date" id="closeoutFilterFrom" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
+            <input type="date" id="closeoutFilterTo" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
+            <select id="closeoutFilterStatus" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
+                <option value="">All</option>
+                <option value="draft">Draft</option>
+                <option value="submitted">Submitted</option>
+                <option value="reviewed">Reviewed</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="loadCloseoutHistory()">Filter</button>
+        </div>
+        <div id="closeoutHistoryList" style="font-size:.9em"></div>
+        <div id="closeoutHistoryPager" style="display:flex;gap:.5rem;justify-content:center;margin-top:.75rem;font-size:.85em"></div>
     </div>
 
     <!-- Discount Codes Section -->
@@ -996,6 +1082,7 @@
                     backupEmail: currentData.backupEmail !== false,
                     tables: currentData.tables || [],
                     rooms:  currentData.rooms  || [],
+                    closeoutConfig: currentData.closeoutConfig || null,
                     ...(isPublished ? { published: true } : {}),
                 };
                 const result = await saveConfigToAPI(config, true);
@@ -1129,6 +1216,7 @@
                     backupEmail: currentData.backupEmail !== false,
                     tables: currentData.tables || [],
                     rooms:  currentData.rooms  || [],
+                    closeoutConfig: currentData.closeoutConfig || null,
                 };
 
                 // Save to API as draft using the correct endpoint
@@ -1477,6 +1565,7 @@
                     currentData.backupEmail = apiConfig.backupEmail !== false;
                     currentData.tables = apiConfig.tables || [];
                     currentData.rooms  = apiConfig.rooms  || [];
+                    currentData.closeoutConfig = apiConfig.closeoutConfig || { enabled: false, tipsEnabled: false, shifts: [], staff: [], deductionCategories: [] };
                     currentData.hasKitchenPin = apiConfig.hasKitchenPin || false;
                     currentData.theme = apiConfig.theme || null;
                     // Always sync — clear if this store has no theme set
@@ -1761,6 +1850,7 @@
                     backupEmail: currentData.backupEmail !== false,
                     tables: currentData.tables || [],
                     rooms:  currentData.rooms  || [],
+                    closeoutConfig: currentData.closeoutConfig || null,
                 };
 
                 // Save to API using the correct endpoint based on store existence
@@ -2223,6 +2313,7 @@
             kitchenPinPanel.style.display = enableKitchenChk.checked ? '' : 'none';
             renderTablesList();
             updateKitchenUrl();
+            if (typeof renderCloseoutConfig === 'function') renderCloseoutConfig();
         }
 
         enableTabsChk.onchange = function() {
@@ -2396,6 +2487,300 @@
                 btn.textContent = '✓ Copied!';
                 setTimeout(() => { btn.textContent = orig; }, 1800);
             });
+        };
+
+        // ── Closeout Config ───────────────────────────────────────────────────
+        (function() {
+            const enableCloseoutChk  = document.getElementById('enableCloseout');
+            const closeoutConfigPanel = document.getElementById('closeoutConfigPanel');
+            const closeoutHistorySection = document.getElementById('closeoutHistorySection');
+            const enableTipsChk      = document.getElementById('enableCloseoutTips');
+
+            function getCfg() {
+                if (!currentData.closeoutConfig) currentData.closeoutConfig = { enabled: false, tipsEnabled: false, shifts: [], staff: [], deductionCategories: [] };
+                return currentData.closeoutConfig;
+            }
+
+            function renderShifts() {
+                const shifts = getCfg().shifts || [];
+                const el = document.getElementById('shiftsList');
+                if (!shifts.length) { el.innerHTML = `<p style="font-size:.82em;color:var(--text-3);margin:.3rem 0" data-i18n="admin.noShifts">${t('admin.noShifts')}</p>`; return; }
+                el.innerHTML = shifts.map((s, i) => `
+                    <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">
+                        <span style="flex:1;font-size:.9em">${posEscHtml(s.label)}</span>
+                        <label style="font-size:.8em;color:var(--text-2);display:flex;align-items:center;gap:.25rem">
+                            <input type="checkbox" ${s.active !== false ? 'checked' : ''} onchange="closeoutToggleShiftActive(${i},this.checked)"> Active
+                        </label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="closeoutDeleteShift(${i})" style="padding:.2rem .45rem;font-size:.8em">✕</button>
+                    </div>`).join('');
+            }
+
+            function renderStaff() {
+                const staff = getCfg().staff || [];
+                const shifts = getCfg().shifts || [];
+                const el = document.getElementById('staffList');
+                if (!staff.length) { el.innerHTML = `<p style="font-size:.82em;color:var(--text-3);margin:.3rem 0">${t('admin.noStaff')}</p>`; return; }
+                el.innerHTML = staff.map((s, i) => {
+                    const shiftLabels = (s.defaultShiftIds || []).map(sid => {
+                        const sh = shifts.find(x => x.id === sid);
+                        return sh ? posEscHtml(sh.label) : null;
+                    }).filter(Boolean).join(', ');
+                    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">
+                        <span style="flex:1;font-size:.9em">${posEscHtml(s.name)} <span style="font-size:.78em;color:var(--text-3)">${shiftLabels}</span></span>
+                        <label style="font-size:.8em;color:var(--text-2);display:flex;align-items:center;gap:.25rem">
+                            <input type="checkbox" ${s.active !== false ? 'checked' : ''} onchange="closeoutToggleStaffActive(${i},this.checked)"> Active
+                        </label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="closeoutDeleteStaff(${i})" style="padding:.2rem .45rem;font-size:.8em">✕</button>
+                    </div>`;
+                }).join('');
+            }
+
+            function renderDeductions() {
+                const cats = getCfg().deductionCategories || [];
+                const el = document.getElementById('deductionsList');
+                if (!cats.length) { el.innerHTML = `<p style="font-size:.82em;color:var(--text-3);margin:.3rem 0">${t('admin.noDeductions')}</p>`; return; }
+                el.innerHTML = cats.map((c, i) => `
+                    <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">
+                        <span style="flex:1;font-size:.9em">${posEscHtml(c.label)}</span>
+                        <label style="font-size:.8em;color:var(--text-2);display:flex;align-items:center;gap:.25rem">
+                            <input type="checkbox" ${c.active !== false ? 'checked' : ''} onchange="closeoutToggleDeductionActive(${i},this.checked)"> Active
+                        </label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="closeoutDeleteDeduction(${i})" style="padding:.2rem .45rem;font-size:.8em">✕</button>
+                    </div>`).join('');
+            }
+
+            window.renderCloseoutConfig = function() {
+                const cfg = getCfg();
+                enableCloseoutChk.checked = currentData.features?.closeout || false;
+                closeoutConfigPanel.style.display = enableCloseoutChk.checked ? '' : 'none';
+                closeoutHistorySection.style.display = enableCloseoutChk.checked ? '' : 'none';
+                enableTipsChk.checked = cfg.tipsEnabled || false;
+                renderShifts(); renderStaff(); renderDeductions();
+                if (enableCloseoutChk.checked) loadCloseoutHistory();
+            };
+
+            enableCloseoutChk.onchange = function() {
+                if (!currentData.features) currentData.features = {};
+                currentData.features.closeout = this.checked;
+                closeoutConfigPanel.style.display = this.checked ? '' : 'none';
+                closeoutHistorySection.style.display = this.checked ? '' : 'none';
+                if (this.checked) loadCloseoutHistory();
+                markDirty();
+            };
+
+            enableTipsChk.onchange = function() { getCfg().tipsEnabled = this.checked; markDirty(); };
+
+            // Shifts
+            document.getElementById('addShiftBtn').onclick = function() {
+                document.getElementById('shiftsAddForm').style.display = 'flex';
+                document.getElementById('newShiftLabel').focus();
+            };
+            document.getElementById('cancelShiftBtn').onclick = function() {
+                document.getElementById('shiftsAddForm').style.display = 'none';
+                document.getElementById('newShiftLabel').value = '';
+            };
+            document.getElementById('saveShiftBtn').onclick = function() {
+                const label = document.getElementById('newShiftLabel').value.trim();
+                if (!label) return;
+                const cfg = getCfg();
+                cfg.shifts = cfg.shifts || [];
+                cfg.shifts.push({ id: Date.now().toString(36), label, active: true, order: cfg.shifts.length });
+                renderShifts(); renderStaff();
+                document.getElementById('newShiftLabel').value = '';
+                document.getElementById('shiftsAddForm').style.display = 'none';
+                markDirty();
+            };
+
+            window.closeoutToggleShiftActive = function(i, v) { getCfg().shifts[i].active = v; markDirty(); };
+            window.closeoutDeleteShift = function(i) {
+                getCfg().shifts.splice(i, 1);
+                renderShifts(); renderStaff(); markDirty();
+            };
+
+            // Staff
+            document.getElementById('addStaffBtn').onclick = function() {
+                const form = document.getElementById('staffAddForm');
+                form.style.display = form.style.display === 'none' ? '' : 'none';
+                // Render shift checkboxes
+                const shifts = getCfg().shifts || [];
+                document.getElementById('newStaffShiftsCheckboxes').innerHTML = shifts.length
+                    ? `<div style="color:var(--text-2);margin-bottom:.25rem">${t('admin.staffShifts')}:</div>` +
+                      shifts.map(s => `<label style="display:flex;align-items:center;gap:.3rem;margin-bottom:.2rem"><input type="checkbox" value="${posEscHtml(s.id)}" class="newStaffShiftCb"> ${posEscHtml(s.label)}</label>`).join('')
+                    : '';
+                document.getElementById('newStaffName').focus();
+            };
+            document.getElementById('cancelStaffBtn').onclick = function() {
+                document.getElementById('staffAddForm').style.display = 'none';
+                document.getElementById('newStaffName').value = '';
+            };
+            document.getElementById('saveStaffBtn').onclick = function() {
+                const name = document.getElementById('newStaffName').value.trim();
+                if (!name) return;
+                const defaultShiftIds = [...document.querySelectorAll('.newStaffShiftCb:checked')].map(cb => cb.value);
+                const cfg = getCfg();
+                cfg.staff = cfg.staff || [];
+                cfg.staff.push({ id: Date.now().toString(36), name, defaultShiftIds, active: true });
+                renderStaff();
+                document.getElementById('newStaffName').value = '';
+                document.getElementById('staffAddForm').style.display = 'none';
+                markDirty();
+            };
+
+            window.closeoutToggleStaffActive = function(i, v) { getCfg().staff[i].active = v; markDirty(); };
+            window.closeoutDeleteStaff = function(i) { getCfg().staff.splice(i, 1); renderStaff(); markDirty(); };
+
+            // Deductions
+            document.getElementById('addDeductionBtn').onclick = function() {
+                document.getElementById('deductionsAddForm').style.display = 'flex';
+                document.getElementById('newDeductionLabel').focus();
+            };
+            document.getElementById('cancelDeductionBtn').onclick = function() {
+                document.getElementById('deductionsAddForm').style.display = 'none';
+                document.getElementById('newDeductionLabel').value = '';
+            };
+            document.getElementById('saveDeductionBtn').onclick = function() {
+                const label = document.getElementById('newDeductionLabel').value.trim();
+                if (!label) return;
+                const cfg = getCfg();
+                cfg.deductionCategories = cfg.deductionCategories || [];
+                cfg.deductionCategories.push({ id: Date.now().toString(36), label, active: true, order: cfg.deductionCategories.length });
+                renderDeductions();
+                document.getElementById('newDeductionLabel').value = '';
+                document.getElementById('deductionsAddForm').style.display = 'none';
+                markDirty();
+            };
+
+            window.closeoutToggleDeductionActive = function(i, v) { getCfg().deductionCategories[i].active = v; markDirty(); };
+            window.closeoutDeleteDeduction = function(i) { getCfg().deductionCategories.splice(i, 1); renderDeductions(); markDirty(); };
+        })();
+
+        // ── Closeout History ──────────────────────────────────────────────────
+        let _closeoutPage = 1;
+
+        window.loadCloseoutHistory = async function(page) {
+            page = page || 1; _closeoutPage = page;
+            const token = localStorage.getItem('pos_admin_token');
+            if (!token) return;
+            const from   = document.getElementById('closeoutFilterFrom')?.value || '';
+            const to     = document.getElementById('closeoutFilterTo')?.value || '';
+            const status = document.getElementById('closeoutFilterStatus')?.value || '';
+            let url = `${API_BASE_URL}/closeouts?page=${page}&limit=10`;
+            if (from) url += `&from=${from}`;
+            if (to)   url += `&to=${to}`;
+            if (status) url += `&status=${status}`;
+            const list  = document.getElementById('closeoutHistoryList');
+            const pager = document.getElementById('closeoutHistoryPager');
+            list.innerHTML = '<p style="color:var(--text-3);font-size:.85em">Loading…</p>';
+            try {
+                const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                const { closeouts, total, pages } = await r.json();
+                if (!closeouts.length) {
+                    list.innerHTML = `<p style="color:var(--text-3);font-size:.85em">${t('closeout.noHistory')}</p>`;
+                    pager.innerHTML = '';
+                    return;
+                }
+                const statusColors = { draft: 'var(--text-3)', submitted: 'var(--amber)', reviewed: 'var(--green)' };
+                list.innerHTML = `<table style="width:100%;border-collapse:collapse">
+                    <thead><tr style="border-bottom:1px solid var(--border);font-size:.82em;color:var(--text-2)">
+                        <th style="padding:.35rem .4rem;text-align:left">${t('closeout.colDate')}</th>
+                        <th style="padding:.35rem .4rem;text-align:left">${t('closeout.colSubmittedBy')}</th>
+                        <th style="padding:.35rem .4rem;text-align:right">${t('closeout.colCash')}</th>
+                        <th style="padding:.35rem .4rem;text-align:right">${t('closeout.colBank')}</th>
+                        <th style="padding:.35rem .4rem;text-align:center">${t('closeout.colStatus')}</th>
+                        <th style="padding:.35rem .4rem"></th>
+                    </tr></thead>
+                    <tbody id="closeoutHistoryBody">
+                    ${closeouts.map(c => `
+                        <tr style="border-bottom:1px solid var(--border)" id="co-row-${c._id}">
+                            <td style="padding:.35rem .4rem;font-size:.88em">${c.date}</td>
+                            <td style="padding:.35rem .4rem;font-size:.88em">${posEscHtml(c.submittedBy || '—')}</td>
+                            <td style="padding:.35rem .4rem;font-size:.88em;text-align:right">${fmtMoney(c.cashDelivered)}</td>
+                            <td style="padding:.35rem .4rem;font-size:.88em;text-align:right">${fmtMoney(c.bankTotal)}</td>
+                            <td style="padding:.35rem .4rem;text-align:center">
+                                <span style="font-size:.75em;font-weight:600;padding:.15rem .5rem;border-radius:20px;background:${statusColors[c.status]}22;color:${statusColors[c.status]}">${t('closeout.status' + c.status.charAt(0).toUpperCase() + c.status.slice(1))}</span>
+                            </td>
+                            <td style="padding:.35rem .4rem">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCloseoutDetail('${c._id}')" style="font-size:.78em;padding:.2rem .5rem">▼</button>
+                            </td>
+                        </tr>
+                        <tr id="co-detail-${c._id}" style="display:none">
+                            <td colspan="6" style="padding:.75rem .5rem;background:var(--bg)">
+                                <div id="co-detail-body-${c._id}"></div>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody></table>`;
+                // Pager
+                pager.innerHTML = pages <= 1 ? '' :
+                    Array.from({ length: pages }, (_, i) => i + 1).map(p =>
+                        `<button type="button" class="btn btn-sm ${p === page ? '' : 'btn-secondary'}" onclick="loadCloseoutHistory(${p})" style="padding:.25rem .55rem">${p}</button>`
+                    ).join('');
+            } catch (e) {
+                list.innerHTML = `<p style="color:var(--amber);font-size:.85em">${t('closeout.loadFail')}</p>`;
+            }
+        };
+
+        function fmtMoney(n) {
+            return typeof n === 'number' ? n.toFixed(2) : '—';
+        }
+
+        window.toggleCloseoutDetail = async function(id) {
+            const row = document.getElementById(`co-detail-${id}`);
+            const body = document.getElementById(`co-detail-body-${id}`);
+            if (row.style.display !== 'none') { row.style.display = 'none'; return; }
+            row.style.display = '';
+            if (body.dataset.loaded) return;
+            body.innerHTML = '<p style="color:var(--text-3);font-size:.85em">Loading…</p>';
+            const token = localStorage.getItem('pos_admin_token');
+            try {
+                const r = await fetch(`${API_BASE_URL}/closeouts/${id}`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const c = await r.json();
+                const statusColors = { draft: 'var(--text-3)', submitted: 'var(--amber)', reviewed: 'var(--green)' };
+                const tipsRows = (c.shifts || []).flatMap(sh =>
+                    (sh.staff || []).map(s => `<tr><td style="padding:.25rem .4rem">${posEscHtml(sh.shiftLabel)}</td><td style="padding:.25rem .4rem">${posEscHtml(s.staffName)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(s.tipCash)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(s.tipTransfer)}</td></tr>`)
+                );
+                const dedRows = (c.deductions || []).map(d =>
+                    `<tr><td style="padding:.25rem .4rem">${posEscHtml(d.label)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(d.amount)}</td><td style="padding:.25rem .4rem;color:var(--text-3)">${posEscHtml(d.note || '')}</td></tr>`
+                );
+                body.innerHTML = `
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1.5rem;margin-bottom:.75rem;font-size:.87em">
+                        <div><span style="color:var(--text-2)">${t('closeout.totalSales')}:</span> <strong>${fmtMoney(c.totalSales)}</strong></div>
+                        <div><span style="color:var(--text-2)">${t('closeout.transfers')}:</span> <strong>${fmtMoney(c.transferAmount)}</strong></div>
+                        <div><span style="color:var(--text-2)">${t('closeout.cashDelivered')}:</span> <strong>${fmtMoney(c.cashDelivered)}</strong></div>
+                        <div><span style="color:var(--text-2)">${t('closeout.bankTotal')}:</span> <strong>${fmtMoney(c.bankTotal)}</strong></div>
+                    </div>
+                    ${tipsRows.length ? `<table style="width:100%;border-collapse:collapse;font-size:.83em;margin-bottom:.5rem">
+                        <thead><tr style="color:var(--text-2);border-bottom:1px solid var(--border)"><th style="text-align:left;padding:.2rem .4rem">Shift</th><th style="text-align:left;padding:.2rem .4rem">Staff</th><th style="text-align:right;padding:.2rem .4rem">${t('closeout.tipCash')}</th><th style="text-align:right;padding:.2rem .4rem">${t('closeout.tipTransfer')}</th></tr></thead>
+                        <tbody>${tipsRows.join('')}</tbody></table>` : ''}
+                    ${dedRows.length ? `<table style="width:100%;border-collapse:collapse;font-size:.83em;margin-bottom:.5rem">
+                        <thead><tr style="color:var(--text-2);border-bottom:1px solid var(--border)"><th style="text-align:left;padding:.2rem .4rem">${t('closeout.deductionLabel')}</th><th style="text-align:right;padding:.2rem .4rem">${t('closeout.deductionAmount')}</th><th style="text-align:left;padding:.2rem .4rem">${t('closeout.deductionNote')}</th></tr></thead>
+                        <tbody>${dedRows.join('')}</tbody></table>` : ''}
+                    ${c.notes ? `<p style="font-size:.85em;margin:.5rem 0"><strong>${t('closeout.sectionNotes')}:</strong> ${posEscHtml(c.notes)}</p>` : ''}
+                    ${c.status === 'reviewed' ? `<p style="font-size:.82em;color:var(--green);margin:.5rem 0">✓ ${t('closeout.reviewedBy', { name: posEscHtml(c.reviewedBy), date: c.reviewedAt ? new Date(c.reviewedAt).toLocaleDateString() : '' })}</p>
+                    ${c.reviewComment ? `<blockquote style="margin:.5rem 0;padding:.4rem .75rem;border-left:3px solid var(--green);font-size:.85em;color:var(--text)">${posEscHtml(c.reviewComment)}</blockquote>` : ''}` : ''}
+                    ${c.status === 'submitted' ? `<div style="margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem">
+                        <textarea id="reviewComment-${id}" rows="2" style="width:100%;box-sizing:border-box;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.85em;background:var(--bg);color:var(--text);resize:vertical" placeholder="${t('closeout.reviewCommentPlaceholder')}"></textarea>
+                        <button type="button" class="btn btn-sm" style="background:var(--green);color:#fff;margin-top:.4rem" onclick="markCloseoutReviewed('${id}')">${t('closeout.markReviewed')}</button>
+                    </div>` : ''}`;
+                body.dataset.loaded = '1';
+            } catch (e) {
+                body.innerHTML = `<p style="color:var(--amber);font-size:.85em">${t('closeout.loadFail')}</p>`;
+            }
+        };
+
+        window.markCloseoutReviewed = async function(id) {
+            const token = localStorage.getItem('pos_admin_token');
+            const comment = document.getElementById(`reviewComment-${id}`)?.value || '';
+            try {
+                const r = await fetch(`${API_BASE_URL}/closeouts/${id}/review`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ reviewComment: comment }),
+                });
+                if (!r.ok) throw new Error();
+                loadCloseoutHistory(_closeoutPage);
+            } catch (e) {
+                alert(t('closeout.reviewFail'));
+            }
         };
 
         async function loadDiscountCodes() {

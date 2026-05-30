@@ -106,10 +106,11 @@ router.get('/config', async (req, res) => {
       backupEmail:   store.backupEmail,
       language:      store.language,
       tax:           store.tax,
-      tables:        store.tables || [],
-      rooms:         store.rooms  || [],
-      hasKitchenPin: !!store.kitchenPin,
-      theme:         store.theme || null,
+      tables:         store.tables || [],
+      rooms:          store.rooms  || [],
+      closeoutConfig: store.closeoutConfig || null,
+      hasKitchenPin:  !!store.kitchenPin,
+      theme:          store.theme || null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -160,15 +161,16 @@ router.post('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
 // PUT / — update store
 router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
   try {
-    const { settings, items, published, features, pluginConfigs: incomingPlugins, kitchenPin: rawPin, tables, rooms, theme, ...rest } = req.body;
+    const { settings, items, published, features, pluginConfigs: incomingPlugins, kitchenPin: rawPin, tables, rooms, theme, closeoutConfig, ...rest } = req.body;
 
     const update = { ...rest };
-    if (published !== undefined) update.published = published;
-    if (features)                update.features  = features;
-    if (items)                   update.items     = items;
-    if (tables !== undefined)    update.tables    = tables;
-    if (rooms  !== undefined)    update.rooms     = rooms;
-    if (theme !== undefined)     update.theme     = theme;
+    if (published !== undefined)       update.published       = published;
+    if (features)                      update.features        = features;
+    if (items)                         update.items           = items;
+    if (tables !== undefined)          update.tables          = tables;
+    if (rooms  !== undefined)          update.rooms           = rooms;
+    if (theme !== undefined)           update.theme           = theme;
+    if (closeoutConfig !== undefined)  update.closeoutConfig  = closeoutConfig;
 
     if (rawPin) {
       update.kitchenPin = await bcrypt.hash(String(rawPin), 10);

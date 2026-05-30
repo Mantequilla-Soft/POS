@@ -270,6 +270,7 @@
             <a href="members.html" id="membersLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none">👥 Members</a>
             <a href="reservations.html" id="reservationsLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none" data-i18n="pos.reservationsBtn">📅 Reservations</a>
             <a href="hotel.html" id="hotelLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none" data-i18n="hotel.navLink">🏨 Hotel</a>
+            <a href="closeout.html" id="closeoutLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none" data-i18n="closeout.posLink">📋 Cierre</a>
             <button id="tablesBtn" class="btn btn-secondary btn-sm" style="display:none" onclick="showTablesPanel()" data-i18n="pos.tablesBtn">🪑 Tables</button>
         </div>
     </header>
@@ -414,6 +415,8 @@
             if (features.reservations) loadTodayReservations();
             const hotelBtn = document.getElementById('hotelLinkBtn');
             if (hotelBtn) hotelBtn.style.display = features.hotel ? '' : 'none';
+            const closeoutBtn = document.getElementById('closeoutLinkBtn');
+            if (closeoutBtn) closeoutBtn.style.display = features.closeout ? '' : 'none';
         }
         // --- Category Tabs Logic (updated to use store settings) ---
         function getCategories(items) {

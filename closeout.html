@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cierre de Caja — POSHIVE</title>
+  <link rel="stylesheet" href="theme.css">
+  <script src="i18n.js"></script>
+  <script src="theme-loader.js"></script>
+  <style>
+    body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; }
+    #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: .6rem 1rem; display: flex; align-items: center; gap: .75rem; }
+    #topbar h1 { margin: 0; font-size: 1.1rem; flex: 1; }
+    .page-wrap { max-width: 640px; margin: 0 auto; padding: 1.25rem 1rem 4rem; }
+    .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1rem 1.25rem 1.25rem; margin-bottom: 1.25rem; box-shadow: var(--sh-sm); }
+    .section-card h2 { margin: 0 0 .9rem; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
+    .field-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .6rem; }
+    .field-row label { flex: 1; font-size: .88em; color: var(--text-2); }
+    .field-row input[type=number], .field-row input[type=text] { width: 120px; text-align: right; padding: .35rem .5rem; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg); color: var(--text); font-size: .92em; }
+    .field-row .calc-val { width: 120px; text-align: right; font-weight: 600; font-size: .92em; padding: .35rem .5rem; }
+    .field-row .minus { color: var(--text-3); width: 14px; text-align: center; flex-shrink: 0; }
+    .shift-block { margin-bottom: 1rem; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .shift-header { background: var(--surface-2); padding: .5rem .75rem; font-weight: 600; font-size: .9em; }
+    .staff-table { width: 100%; border-collapse: collapse; font-size: .86em; }
+    .staff-table th { color: var(--text-3); font-weight: 600; padding: .35rem .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .staff-table th:last-child, .staff-table td:last-child { width: 28px; }
+    .staff-table td { padding: .3rem .4rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .staff-table td input[type=text] { width: 100%; box-sizing: border-box; }
+    .staff-table td input[type=number] { width: 90px; text-align: right; }
+    .staff-table td:last-child { text-align: center; }
+    .deduct-table { width: 100%; border-collapse: collapse; font-size: .86em; }
+    .deduct-table th { color: var(--text-3); font-weight: 600; padding: .35rem .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .deduct-table td { padding: .3rem .4rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .deduct-table td:nth-child(2) input { width: 100px; text-align: right; }
+    .deduct-table td:nth-child(3) input { width: 100%; box-sizing: border-box; }
+    .deduct-table td:last-child { width: 28px; text-align: center; }
+    .totals-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: .75rem 1rem; font-size: .9em; }
+    .totals-box .row { display: flex; justify-content: space-between; padding: .2rem 0; }
+    .totals-box .row.divider { border-top: 1px solid var(--border); margin-top: .4rem; padding-top: .4rem; }
+    .totals-box .row.total-row { font-weight: 700; font-size: 1.05em; border-top: 2px solid var(--border); margin-top: .5rem; padding-top: .5rem; }
+    .totals-box .row.total-row .val { color: var(--ink); }
+    .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: .75rem 1rem; display: flex; gap: .65rem; justify-content: flex-end; z-index: 200; }
+    .submitted-banner { background: var(--green-light, #ecfdf5); border: 1px solid var(--green); border-radius: var(--r); padding: .7rem 1rem; color: var(--green); font-weight: 600; margin-bottom: 1rem; }
+    .status-chip { font-size: .75em; font-weight: 700; padding: .15rem .55rem; border-radius: 20px; }
+    .chip-draft     { background: #8888881a; color: var(--text-3); }
+    .chip-submitted { background: var(--amber, #f59e0b)22; color: var(--amber, #f59e0b); }
+    .chip-reviewed  { background: var(--green)22; color: var(--green); }
+    input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+    @media (max-width: 480px) {
+      .field-row label { font-size: .82em; }
+      .field-row input[type=number], .field-row .calc-val { width: 95px; }
+    }
+    @media print {
+      #topbar { display: none; }
+      .action-bar { display: none; }
+      .print-header { display: block !important; text-align: center; margin-bottom: 1.5rem; }
+      .print-header h1 { font-size: 1.4rem; margin: 0; }
+      .print-header p  { margin: .2rem 0 0; font-size: .9rem; color: #444; }
+      body, .page-wrap { background: #fff; color: #000; }
+      .section-card { box-shadow: none; break-inside: avoid; border: 1px solid #ccc; }
+      .totals-box .row.total-row .val { color: #000; }
+    }
+  </style>
+</head>
+<body>
+<div id="topbar">
+  <button id="backBtn" class="btn btn-secondary btn-sm" style="flex-shrink:0">← Back</button>
+  <h1 id="pageTitle" data-i18n="closeout.title">End-of-Day Closeout</h1>
+  <span id="statusChip" class="status-chip" style="flex-shrink:0"></span>
+  <button type="button" id="printBtn" class="btn btn-secondary btn-sm" onclick="window.print()" style="flex-shrink:0">🖨️</button>
+</div>
+
+<div class="print-header" style="display:none">
+  <h1 id="printStoreName"></h1>
+  <p id="printDate"></p>
+  <p style="font-weight:700;letter-spacing:.05em;margin-top:.3rem" data-i18n="closeout.title">END-OF-DAY CLOSEOUT</p>
+</div>
+
+<div class="page-wrap">
+  <div id="featureOffMsg" style="display:none;text-align:center;padding:3rem 1rem;color:var(--text-3)" data-i18n="closeout.featureOff">Closeout is not enabled for this store.</div>
+  <div id="submittedBanner" class="submitted-banner" style="display:none" data-i18n="closeout.submitted">✅ Submitted — awaiting owner review</div>
+  <div id="reviewedBanner" class="submitted-banner" style="display:none;border-color:var(--green);" data-i18n="closeout.readOnly">This closeout has been reviewed and is read-only.</div>
+  <div id="reviewedComment" style="display:none;margin-bottom:1rem;padding:.6rem .9rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);font-size:.88em"></div>
+
+  <!-- Section 1: Sales Summary -->
+  <div class="section-card">
+    <h2 data-i18n="closeout.sectionSales">Sales Summary</h2>
+    <div class="field-row">
+      <label data-i18n="closeout.date">Business Date</label>
+      <input type="date" id="inputDate" style="width:140px;text-align:left;padding:.35rem .5rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:.92em">
+    </div>
+    <div class="field-row">
+      <label data-i18n="closeout.totalSales">Total Sales</label>
+      <input type="number" id="inputTotalSales" min="0" step="0.01" placeholder="0.00" oninput="recalc()">
+    </div>
+    <div class="field-row">
+      <label data-i18n="closeout.transfers">Bank / Transfer Sales</label>
+      <span class="minus">−</span>
+      <input type="number" id="inputTransferAmount" min="0" step="0.01" placeholder="0.00" oninput="recalc()">
+    </div>
+    <div class="field-row" style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:.1rem">
+      <label style="font-weight:600" data-i18n="closeout.cashSales">Cash from Sales</label>
+      <span class="minus">=</span>
+      <span class="calc-val" id="calcCashSales">0.00</span>
+    </div>
+  </div>
+
+  <!-- Section 2: Shifts & Tips -->
+  <div class="section-card" id="sectionShifts">
+    <h2 data-i18n="closeout.sectionShifts">Shifts &amp; Tips</h2>
+    <div id="shiftsContainer"></div>
+  </div>
+
+  <!-- Section 3: Deductions -->
+  <div class="section-card">
+    <h2 data-i18n="closeout.sectionDeductions">Deductions</h2>
+    <table class="deduct-table" id="deductTable">
+      <thead>
+        <tr>
+          <th data-i18n="closeout.deductionLabel">Label</th>
+          <th style="text-align:right" data-i18n="closeout.deductionAmount">Amount</th>
+          <th data-i18n="closeout.deductionNote">Note (optional)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="deductBody"></tbody>
+    </table>
+    <button type="button" id="addCustomDeductBtn" class="btn btn-sm btn-secondary" style="margin-top:.6rem" data-i18n="closeout.addCustomDeduction">+ Custom deduction</button>
+  </div>
+
+  <!-- Section 4: Totals -->
+  <div class="section-card">
+    <h2 data-i18n="closeout.sectionTotals">Summary</h2>
+    <div class="totals-box">
+      <div class="row"><span data-i18n="closeout.totalSales">Total Sales</span><span id="totTotalSales">0.00</span></div>
+      <div class="row"><span>− <span data-i18n="closeout.transfers">Transfers</span></span><span id="totTransfers">0.00</span></div>
+      <div class="row divider"><span data-i18n="closeout.cashSales">Cash from Sales</span><span id="totCashSales">0.00</span></div>
+      <div class="row" id="totTipsCashRow"><span>+ <span data-i18n="closeout.totalTipsCash">Total Cash Tips</span></span><span id="totTipsCash">0.00</span></div>
+      <div class="row" id="totTipsTransferRow"><span data-i18n="closeout.totalTipsTransfer">Total Transfer Tips</span><span id="totTipsTransfer">0.00</span></div>
+      <div class="row"><span>− <span data-i18n="closeout.totalDeductions">Total Deductions</span></span><span id="totDeductions">0.00</span></div>
+      <div class="row total-row"><span data-i18n="closeout.cashDelivered">Cash to Hand Over</span><span class="val" id="totCashDelivered">0.00</span></div>
+      <div class="row total-row"><span data-i18n="closeout.bankTotal">Total to Bank</span><span class="val" id="totBankTotal">0.00</span></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Notes -->
+  <div class="section-card">
+    <h2 data-i18n="closeout.sectionNotes">Notes</h2>
+    <textarea id="inputNotes" rows="3" style="width:100%;box-sizing:border-box;padding:.5rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:.92em;resize:vertical"></textarea>
+  </div>
+</div>
+
+<div class="action-bar" id="actionBar">
+  <button type="button" id="saveDraftBtn" class="btn btn-secondary" data-i18n="closeout.saveDraft">💾 Save Draft</button>
+  <button type="button" id="submitBtn" class="btn" style="background:var(--green);color:#fff" data-i18n="closeout.submit">✅ Submit Closeout</button>
+</div>
+
+<script>
+const API_BASE = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+const token    = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+const isOwner  = !!localStorage.getItem('pos_admin_token');
+
+let closeoutId   = null;
+let closeoutCfg  = null;
+let tipsEnabled  = false;
+let readOnly     = false;
+
+function fmt(n) { return (Number(n) || 0).toFixed(2); }
+function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Date helpers ────────────────────────────────────────────────────────────
+function todayLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  i18n.init();
+  window.applyPosTheme(JSON.parse(localStorage.getItem('pos_theme') || 'null'));
+
+  if (!token) { window.location.href = 'login.html'; return; }
+
+  // Back button
+  document.getElementById('backBtn').onclick = () => {
+    window.location.href = isOwner ? 'dashboard.html' : 'pos.html';
+  };
+
+  // Date from URL or default today
+  const urlDate = new URLSearchParams(window.location.search).get('date') || todayLocal();
+  document.getElementById('inputDate').value = urlDate;
+  document.getElementById('printDate').textContent = urlDate;
+
+  // Date change reloads data
+  document.getElementById('inputDate').onchange = function() { loadData(this.value); };
+
+  await loadData(urlDate);
+});
+
+async function loadData(date) {
+  closeoutId = null;
+  try {
+    // Load store config (gets closeoutConfig for cashiers too)
+    const cfgRes = await fetch(`${API_BASE}/store/config`, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!cfgRes.ok) throw new Error('config');
+    const cfg = await cfgRes.json();
+
+    document.getElementById('printStoreName').textContent = cfg.settings?.businessName || '';
+
+    if (!cfg.features?.closeout) {
+      document.getElementById('featureOffMsg').style.display = '';
+      document.getElementById('actionBar').style.display = 'none';
+      document.getElementById('sectionShifts').style.display = 'none';
+      return;
+    }
+
+    closeoutCfg = cfg.closeoutConfig || { shifts: [], staff: [], deductionCategories: [], tipsEnabled: false };
+    tipsEnabled = closeoutCfg.tipsEnabled || false;
+    document.getElementById('sectionShifts').style.display = tipsEnabled ? '' : 'none';
+    document.getElementById('totTipsCashRow').style.display    = tipsEnabled ? '' : 'none';
+    document.getElementById('totTipsTransferRow').style.display = tipsEnabled ? '' : 'none';
+
+    // Load sales summary
+    const sumRes = await fetch(`${API_BASE}/closeouts/sales-summary?date=${date}`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const summary = sumRes.ok ? await sumRes.json() : { totalSales: 0, transferAmount: 0, cashSales: 0 };
+
+    // Check for existing closeout
+    let existing = null;
+    const exRes = await fetch(`${API_BASE}/closeouts/by-date/${date}`, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (exRes.ok) existing = await exRes.json();
+
+    if (existing) {
+      closeoutId = existing._id;
+      populateForm(existing);
+      setStatus(existing.status);
+    } else {
+      // Pre-fill from sales summary
+      document.getElementById('inputTotalSales').value    = fmt(summary.totalSales);
+      document.getElementById('inputTransferAmount').value = fmt(summary.transferAmount);
+      buildShifts(null);
+      buildDeductions(null);
+      setStatus('draft');
+      recalc();
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function populateForm(c) {
+  document.getElementById('inputTotalSales').value     = fmt(c.totalSales);
+  document.getElementById('inputTransferAmount').value = fmt(c.transferAmount);
+  document.getElementById('inputNotes').value          = c.notes || '';
+  buildShifts(c.shifts);
+  buildDeductions(c.deductions);
+  recalc();
+}
+
+function setStatus(status) {
+  readOnly = (status === 'reviewed') || (status === 'submitted' && !isOwner);
+  const chip = document.getElementById('statusChip');
+  chip.textContent = t('closeout.status' + status.charAt(0).toUpperCase() + status.slice(1));
+  chip.className   = `status-chip chip-${status}`;
+
+  document.getElementById('submittedBanner').style.display = status === 'submitted' ? '' : 'none';
+  document.getElementById('reviewedBanner').style.display  = status === 'reviewed'  ? '' : 'none';
+  document.getElementById('submitBtn').style.display       = (status === 'draft') ? '' : 'none';
+  document.getElementById('saveDraftBtn').style.display    = (status === 'draft') ? '' : 'none';
+
+  if (readOnly) lockForm();
+}
+
+function lockForm() {
+  document.querySelectorAll('#inputTotalSales,#inputTransferAmount,#inputNotes,#deductBody input,#shiftsContainer input,#addCustomDeductBtn').forEach(el => {
+    if (el.tagName === 'BUTTON') el.style.display = 'none';
+    else el.disabled = true;
+  });
+  document.getElementById('inputDate').disabled = true;
+}
+
+// ── Shifts & Tips ────────────────────────────────────────────────────────────
+function buildShifts(savedShifts) {
+  const container = document.getElementById('shiftsContainer');
+  const activeShifts = (closeoutCfg.shifts || []).filter(s => s.active !== false);
+  if (!tipsEnabled || !activeShifts.length) {
+    container.innerHTML = `<p style="font-size:.85em;color:var(--text-3)">${t('closeout.noShiftsConfigured')}</p>`;
+    return;
+  }
+  container.innerHTML = activeShifts.map(shift => {
+    const saved = savedShifts ? savedShifts.find(s => s.shiftId === shift.id) : null;
+    const staffForShift = (closeoutCfg.staff || []).filter(s => s.active !== false && (s.defaultShiftIds || []).includes(shift.id));
+    // Merge saved staff rows with config
+    let staffRows = saved ? saved.staff : staffForShift.map(s => ({ staffId: s.id, staffName: s.name, tipCash: 0, tipTransfer: 0 }));
+    return `<div class="shift-block" data-shift-id="${escHtml(shift.id)}">
+      <div class="shift-header">${escHtml(shift.label)}</div>
+      <table class="staff-table">
+        <thead><tr>
+          <th data-i18n="closeout.staffName">${t('closeout.staffName')}</th>
+          <th style="text-align:right" data-i18n="closeout.tipCash">${t('closeout.tipCash')}</th>
+          <th style="text-align:right" data-i18n="closeout.tipTransfer">${t('closeout.tipTransfer')}</th>
+          <th></th>
+        </tr></thead>
+        <tbody class="staff-tbody">
+          ${staffRows.map(sr => staffRowHtml(sr)).join('')}
+        </tbody>
+      </table>
+      <button type="button" class="btn btn-sm btn-secondary add-staff-row-btn" data-shift="${escHtml(shift.id)}" style="margin:.4rem;font-size:.8em" data-i18n="closeout.addPerson">${t('closeout.addPerson')}</button>
+    </div>`;
+  }).join('');
+
+  // Wire add-person buttons
+  container.querySelectorAll('.add-staff-row-btn').forEach(btn => {
+    btn.onclick = function() {
+      const tbody = this.closest('.shift-block').querySelector('.staff-tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = staffRowHtml({ staffId: '', staffName: '', tipCash: 0, tipTransfer: 0 });
+      tbody.appendChild(tr);
+    };
+  });
+  container.querySelectorAll('.staff-tbody').forEach(tb => {
+    tb.addEventListener('input', recalc);
+  });
+}
+
+function staffRowHtml(sr) {
+  return `<td><input type="text" class="staff-name" value="${escHtml(sr.staffName)}" data-staff-id="${escHtml(sr.staffId || '')}" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:var(--r-sm);padding:.25rem .4rem;background:var(--bg);color:var(--text)"></td>
+    <td><input type="number" class="tip-cash" value="${fmt(sr.tipCash)}" min="0" step="0.01" oninput="recalc()" style="width:90px;text-align:right;border:1px solid var(--border);border-radius:var(--r-sm);padding:.25rem .4rem;background:var(--bg);color:var(--text)"></td>
+    <td><input type="number" class="tip-transfer" value="${fmt(sr.tipTransfer)}" min="0" step="0.01" oninput="recalc()" style="width:90px;text-align:right;border:1px solid var(--border);border-radius:var(--r-sm);padding:.25rem .4rem;background:var(--bg);color:var(--text)"></td>
+    <td><button type="button" onclick="this.closest('tr').remove();recalc()" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:1rem">✕</button></td>`;
+}
+
+// ── Deductions ───────────────────────────────────────────────────────────────
+function buildDeductions(savedDeductions) {
+  const tbody = document.getElementById('deductBody');
+  const cats  = (closeoutCfg.deductionCategories || []).filter(c => c.active !== false);
+  tbody.innerHTML = '';
+  if (savedDeductions && savedDeductions.length) {
+    savedDeductions.forEach(d => tbody.appendChild(deductRow(d.label, d.amount, d.note, d.categoryId, d.categoryId === 'custom')));
+  } else {
+    cats.forEach(c => tbody.appendChild(deductRow(c.label, 0, '', c.id, false)));
+  }
+  document.getElementById('addCustomDeductBtn').onclick = function() {
+    tbody.appendChild(deductRow('', 0, '', 'custom', true));
+  };
+}
+
+function deductRow(label, amount, note, categoryId, isCustom) {
+  const tr = document.createElement('tr');
+  tr.dataset.categoryId = categoryId || 'custom';
+  tr.innerHTML = `
+    <td>${isCustom
+      ? `<input type="text" class="deduct-label" value="${escHtml(label)}" placeholder="${t('closeout.deductionLabel')}" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:var(--r-sm);padding:.25rem .4rem;background:var(--bg);color:var(--text)">`
+      : `<span style="font-size:.9em">${escHtml(label)}</span><input type="hidden" class="deduct-label" value="${escHtml(label)}">`}
+    </td>
+    <td><input type="number" class="deduct-amount" value="${fmt(amount)}" min="0" step="0.01" oninput="recalc()" style="width:100px;text-align:right;border:1px solid var(--border);border-radius:var(--r-sm);padding:.25rem .4rem;background:var(--bg);color:var(--text)"></td>
+    <td><input type="text" class="deduct-note" value="${escHtml(note || '')}" placeholder="${t('closeout.deductionNote')}" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:var(--r-sm);padding:.25rem .4rem;background:var(--bg);color:var(--text)"></td>
+    <td>${isCustom ? `<button type="button" onclick="this.closest('tr').remove();recalc()" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:1rem">✕</button>` : ''}</td>`;
+  return tr;
+}
+
+// ── Live recalculation ───────────────────────────────────────────────────────
+function recalc() {
+  const totalSales     = parseFloat(document.getElementById('inputTotalSales').value) || 0;
+  const transferAmount = parseFloat(document.getElementById('inputTransferAmount').value) || 0;
+  const cashSales      = totalSales - transferAmount;
+
+  let tipsCash = 0, tipsTransfer = 0;
+  document.querySelectorAll('.tip-cash').forEach(el     => { tipsCash     += parseFloat(el.value) || 0; });
+  document.querySelectorAll('.tip-transfer').forEach(el => { tipsTransfer += parseFloat(el.value) || 0; });
+
+  let totalDeductions = 0;
+  document.querySelectorAll('.deduct-amount').forEach(el => { totalDeductions += parseFloat(el.value) || 0; });
+
+  const cashDelivered = cashSales + tipsCash - totalDeductions;
+  const bankTotal     = transferAmount + tipsTransfer;
+
+  document.getElementById('calcCashSales').textContent    = fmt(cashSales);
+  document.getElementById('totTotalSales').textContent    = fmt(totalSales);
+  document.getElementById('totTransfers').textContent     = fmt(transferAmount);
+  document.getElementById('totCashSales').textContent     = fmt(cashSales);
+  document.getElementById('totTipsCash').textContent      = fmt(tipsCash);
+  document.getElementById('totTipsTransfer').textContent  = fmt(tipsTransfer);
+  document.getElementById('totDeductions').textContent    = fmt(totalDeductions);
+  document.getElementById('totCashDelivered').textContent = fmt(cashDelivered);
+  document.getElementById('totBankTotal').textContent     = fmt(bankTotal);
+}
+
+// ── Collect form data ────────────────────────────────────────────────────────
+function collectFormData(status) {
+  const totalSales     = parseFloat(document.getElementById('inputTotalSales').value)     || 0;
+  const transferAmount = parseFloat(document.getElementById('inputTransferAmount').value) || 0;
+  const cashSales      = totalSales - transferAmount;
+  const date           = document.getElementById('inputDate').value;
+  const notes          = document.getElementById('inputNotes').value;
+
+  // Shifts
+  const shifts = [];
+  document.querySelectorAll('.shift-block').forEach(block => {
+    const shiftId    = block.dataset.shiftId;
+    const shiftCfg   = (closeoutCfg.shifts || []).find(s => s.id === shiftId);
+    const shiftLabel = shiftCfg ? shiftCfg.label : shiftId;
+    const staff      = [];
+    block.querySelectorAll('tbody tr').forEach(tr => {
+      const name = tr.querySelector('.staff-name')?.value?.trim();
+      if (!name) return;
+      staff.push({
+        staffId:     tr.querySelector('.staff-name')?.dataset.staffId || '',
+        staffName:   name,
+        tipCash:     parseFloat(tr.querySelector('.tip-cash')?.value)     || 0,
+        tipTransfer: parseFloat(tr.querySelector('.tip-transfer')?.value) || 0,
+      });
+    });
+    shifts.push({ shiftId, shiftLabel, staff });
+  });
+
+  // Deductions
+  const deductions = [];
+  document.querySelectorAll('#deductBody tr').forEach(tr => {
+    const label  = tr.querySelector('.deduct-label')?.value?.trim();
+    const amount = parseFloat(tr.querySelector('.deduct-amount')?.value) || 0;
+    const note   = tr.querySelector('.deduct-note')?.value?.trim() || '';
+    if (!label && !amount) return;
+    deductions.push({ categoryId: tr.dataset.categoryId || 'custom', label: label || '', amount, note });
+  });
+
+  return { date, totalSales, transferAmount, cashSales, shifts, deductions, notes, status };
+}
+
+// ── Save ─────────────────────────────────────────────────────────────────────
+async function saveCloseout(status) {
+  const data = collectFormData(status);
+  const method  = closeoutId ? 'PUT' : 'POST';
+  const url     = closeoutId ? `${API_BASE}/closeouts/${closeoutId}` : `${API_BASE}/closeouts`;
+  try {
+    const r = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 409) { alert(t('closeout.duplicateDate')); return null; }
+      alert(t('closeout.saveFail'));
+      return null;
+    }
+    const saved = await r.json();
+    closeoutId = saved._id;
+    return saved;
+  } catch (e) {
+    alert(t('closeout.saveFail'));
+    return null;
+  }
+}
+
+// ── Buttons ──────────────────────────────────────────────────────────────────
+document.getElementById('saveDraftBtn').onclick = async function() {
+  this.disabled = true;
+  const saved = await saveCloseout('draft');
+  this.disabled = false;
+  if (saved) setStatus('draft');
+};
+
+document.getElementById('submitBtn').onclick = async function() {
+  if (!confirm(t('closeout.submitConfirm'))) return;
+  this.disabled = true;
+  // Save as draft first if needed, then submit
+  const saved = await saveCloseout('draft');
+  if (!saved) { this.disabled = false; return; }
+  try {
+    const r = await fetch(`${API_BASE}/closeouts/${closeoutId}/submit`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    });
+    if (!r.ok) throw new Error();
+    setStatus('submitted');
+    lockForm();
+  } catch (e) {
+    alert(t('closeout.submitFail'));
+  }
+  this.disabled = false;
+};
+</script>
+</body>
+</html>

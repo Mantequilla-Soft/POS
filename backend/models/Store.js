@@ -26,6 +26,7 @@ const storeSchema = new mongoose.Schema({
     discountCodes:  { type: Boolean, default: false },
     reservations:   { type: Boolean, default: false },
     hotel:          { type: Boolean, default: false },
+    closeout:       { type: Boolean, default: false },
   },
 
   // Generic payment plugin storage.
@@ -56,6 +57,40 @@ const storeSchema = new mongoose.Schema({
       active:      { type: Boolean, default: true },
     }],
     default: [],
+  },
+  closeoutConfig: {
+    enabled:     { type: Boolean, default: false },
+    tipsEnabled: { type: Boolean, default: false },
+    shifts: {
+      type: [{
+        _id:    false,
+        id:     { type: String,  required: true },
+        label:  { type: String,  required: true },
+        active: { type: Boolean, default: true },
+        order:  { type: Number,  default: 0 },
+      }],
+      default: [],
+    },
+    staff: {
+      type: [{
+        _id:             false,
+        id:              { type: String,   required: true },
+        name:            { type: String,   required: true },
+        defaultShiftIds: { type: [String], default: [] },
+        active:          { type: Boolean,  default: true },
+      }],
+      default: [],
+    },
+    deductionCategories: {
+      type: [{
+        _id:    false,
+        id:     { type: String,  required: true },
+        label:  { type: String,  required: true },
+        active: { type: Boolean, default: true },
+        order:  { type: Number,  default: 0 },
+      }],
+      default: [],
+    },
   },
   tax: {
     enabled:   { type: Boolean, default: false },
