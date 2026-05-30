@@ -2,7 +2,7 @@ const router  = require('express').Router();
 const multer  = require('multer');
 const path    = require('path');
 const crypto  = require('crypto');
-const { requireRole } = require('../middleware/auth');
+const { requireRole, authenticate } = require('../middleware/auth');
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -24,6 +24,13 @@ const upload = multer({
 });
 
 router.post('/', requireRole('store_owner', 'superadmin'), upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const apiBase = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3001}`;
+  res.json({ url: `${apiBase}/uploads/${req.file.filename}` });
+});
+
+// Any authenticated user can upload transfer proof photos (cashiers included)
+router.post('/proof', authenticate, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const apiBase = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3001}`;
   res.json({ url: `${apiBase}/uploads/${req.file.filename}` });

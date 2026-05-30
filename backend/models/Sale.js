@@ -29,6 +29,8 @@ const saleSchema = new mongoose.Schema({
   closedAt:         Date,
   discountCode:     { type: String, default: '' },
   discountAmount:   { type: Number, default: 0 },
+  transferProofUrl: { type: String, default: '' },
+  transferNote:     { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Sale', saleSchema);

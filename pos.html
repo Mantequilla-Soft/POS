@@ -856,13 +856,36 @@
                 <button id="finishCashSaleBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
             </div>`;
 
-            // External payment section (bank/check/other)
+            // External payment section (check/other)
             html += `<div id="externalPaymentSection" style="display:none;padding-top:0.75rem;">
                 <div class="form-group" id="externalNotesGroup">
                     <label id="externalNotesLabel">${t('pos.paymentNotesLabel')}</label>
                     <input id="externalNotesInput" type="text" placeholder="" />
                 </div>
                 <button id="finishExternalSaleBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
+            </div>`;
+
+            // Bank transfer section — shows instructions + image + optional proof upload
+            html += `<div id="bankTransferSection" style="display:none;padding-top:0.75rem;">
+                <div id="bankTransferInstructions" style="white-space:pre-wrap;font-size:.88rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem;margin-bottom:.5rem;line-height:1.6"></div>
+                <img id="bankTransferImage" src="" alt="" style="display:none;max-width:100%;max-height:220px;object-fit:contain;border-radius:var(--r);margin-bottom:.5rem">
+                <div style="border-top:1px solid var(--border);margin:.6rem 0 .6rem"></div>
+                <div class="form-group" style="margin-bottom:.5rem">
+                    <label style="font-size:.83rem;font-weight:600">${t('pos.transferNote')}</label>
+                    <input id="bankTransferNoteInput" type="text" placeholder="${t('pos.transferNotePlaceholder')}" style="width:100%">
+                </div>
+                <div class="form-group" style="margin-bottom:.75rem">
+                    <label style="font-size:.83rem;font-weight:600">${t('pos.transferProof')}</label>
+                    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.25rem">
+                        <label class="btn btn-secondary btn-sm" style="margin-top:0;cursor:pointer">
+                            📷 ${t('pos.attachPhoto')}
+                            <input id="bankTransferProofInput" type="file" accept="image/*" capture="environment" style="display:none">
+                        </label>
+                        <span id="bankTransferProofName" style="font-size:.8rem;color:var(--text-2)"></span>
+                    </div>
+                    <img id="bankTransferProofPreview" src="" alt="" style="display:none;max-width:100%;max-height:150px;object-fit:contain;border-radius:var(--r);margin-top:.4rem;border:1px solid var(--border)">
+                </div>
+                <button id="finishBankTransferBtn" class="btn btn-success btn-block">${t('pos.finishSale')}</button>
             </div>`;
 
             cartFoot.insertAdjacentHTML('beforeend', html);
@@ -902,10 +925,44 @@
             const extNotesLabel   = document.getElementById('externalNotesLabel');
             let currentExternalMethod = '';
 
+            const bankTransferSection = document.getElementById('bankTransferSection');
+
             function hideAllSections() {
                 qrInline.classList.remove('open');
                 cashSection.style.display = 'none';
                 externalSection.style.display = 'none';
+                if (bankTransferSection) bankTransferSection.style.display = 'none';
+            }
+
+            function showBankTransfer() {
+                hideAllSections();
+                const pluginCfg = (getPluginConfigs().bankTransfer) || {};
+                const instructions = pluginCfg.instructions || '';
+                const imageUrl     = pluginCfg.imageUrl     || '';
+
+                // If no config at all, fall back to the plain notes prompt
+                if (!instructions && !imageUrl) {
+                    showExternal('bank_transfer');
+                    return;
+                }
+
+                const instrEl = document.getElementById('bankTransferInstructions');
+                const imgEl   = document.getElementById('bankTransferImage');
+                if (instrEl) instrEl.textContent = instructions;
+                if (imgEl) {
+                    if (imageUrl) { imgEl.src = imageUrl; imgEl.style.display = ''; }
+                    else imgEl.style.display = 'none';
+                }
+                // Reset proof fields
+                const noteInput  = document.getElementById('bankTransferNoteInput');
+                const proofInput = document.getElementById('bankTransferProofInput');
+                const proofPrev  = document.getElementById('bankTransferProofPreview');
+                const proofName  = document.getElementById('bankTransferProofName');
+                if (noteInput)  noteInput.value  = '';
+                if (proofInput) proofInput.value  = '';
+                if (proofPrev)  { proofPrev.src = ''; proofPrev.style.display = 'none'; }
+                if (proofName)  proofName.textContent = '';
+                if (bankTransferSection) bankTransferSection.style.display = '';
             }
             function showKeychain() {
                 hideAllSections();
@@ -945,9 +1002,21 @@
             };
 
             document.getElementById('payWithCashBtn')?.addEventListener('click', showCash);
-            document.getElementById('payWithBankBtn')?.addEventListener('click', () => showExternal('bank_transfer'));
+            document.getElementById('payWithBankBtn')?.addEventListener('click', showBankTransfer);
             document.getElementById('payWithCheckBtn')?.addEventListener('click', () => showExternal('check'));
             document.getElementById('payWithOtherBtn')?.addEventListener('click', () => showExternal('other'));
+
+            // Proof photo preview
+            document.getElementById('bankTransferProofInput')?.addEventListener('change', function() {
+                const file = this.files[0];
+                const prev = document.getElementById('bankTransferProofPreview');
+                const name = document.getElementById('bankTransferProofName');
+                if (!file) { if (prev) prev.style.display = 'none'; return; }
+                if (name) name.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = e => { if (prev) { prev.src = e.target.result; prev.style.display = ''; } };
+                reader.readAsDataURL(file);
+            });
 
             // Discount code apply/remove
             document.getElementById('applyDiscountBtn')?.addEventListener('click', applyDiscountCode);
@@ -984,6 +1053,45 @@
                     showPostSaleActions('cash', saleCart, saleTotal, null, null, '', saleSub, saleTax, disc);
                 };
             }
+            // Bank transfer finish — upload proof if present, then complete sale
+            const finishBankBtn = document.getElementById('finishBankTransferBtn');
+            if (finishBankBtn) {
+                finishBankBtn.onclick = async function() {
+                    finishBankBtn.disabled = true;
+                    finishBankBtn.textContent = t('pos.processing');
+                    try {
+                        const token   = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+                        const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+                        const proofInput = document.getElementById('bankTransferProofInput');
+                        const note       = (document.getElementById('bankTransferNoteInput')?.value || '').trim();
+                        let proofUrl = '';
+
+                        if (proofInput?.files[0]) {
+                            const form = new FormData();
+                            form.append('image', proofInput.files[0]);
+                            const res = await fetch(`${apiBase}/upload/proof`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: form,
+                            });
+                            if (res.ok) proofUrl = (await res.json()).url || '';
+                        }
+
+                        const saleCart = cart.map(i => ({...i}));
+                        const { subtotal: saleSub, taxAmount: saleTax, total: rawTotal } = calculateCartTotals();
+                        const discAmt  = pendingDiscount?.discountAmount || 0;
+                        const saleTotal = Math.max(0, rawTotal - discAmt);
+                        const disc = pendingDiscount;
+                        cart = []; pendingDiscount = null; renderCart(); renderMenu();
+                        showPostSaleActions('bank_transfer', saleCart, saleTotal, null, null, note, saleSub, saleTax, disc, proofUrl, note);
+                    } catch (e) {
+                        console.error('Bank transfer finish error:', e);
+                        finishBankBtn.disabled = false;
+                        finishBankBtn.textContent = t('pos.finishSale');
+                    }
+                };
+            }
+
             if (finishExtBtn) {
                 finishExtBtn.onclick = function() {
                     if (currentExternalMethod === 'other' && !extNotesInput.value.trim()) {
@@ -1308,7 +1416,7 @@
         }
 
         // --- Post-Sale Actions ---
-        async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId, paymentNotes, subtotal, taxAmount, discount) {
+        async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId, paymentNotes, subtotal, taxAmount, discount, transferProofUrl, transferNote) {
             document.getElementById('qrInlineContainer').classList.remove('open');
 
             // Auto-save sale to backend (works for both admin and cashier tokens)
@@ -1331,6 +1439,8 @@
                             taxAmount: taxAmount ?? 0,
                             total: saleTotal,
                             ...(discount && { discountCode: discount.code, discountAmount: discount.discountAmount }),
+                            ...(transferProofUrl ? { transferProofUrl } : {}),
+                            ...(transferNote     ? { transferNote }     : {}),
                           }
                         : {
                             items: saleCart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty })),
@@ -1344,6 +1454,8 @@
                             hiveTransactionId: txId || null,
                             cashier: JSON.parse(localStorage.getItem('pos_cashier_user') || 'null')?.username || null,
                             ...(discount && { discountCode: discount.code, discountAmount: discount.discountAmount }),
+                            ...(transferProofUrl ? { transferProofUrl } : {}),
+                            ...(transferNote     ? { transferNote }     : {}),
                           };
                     const saleRes = await fetch(fetchUrl, {
                         method: isTabClose ? 'PATCH' : 'POST',

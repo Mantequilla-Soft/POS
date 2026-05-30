@@ -97,6 +97,32 @@ window.PAYMENT_PLUGINS = [
     ],
   },
 
+  // ── Bank Transfer ───────────────────────────────────────────────────────────
+  {
+    id:          'bankTransfer',
+    name:        'Bank / Wire Transfer',
+    description: 'Show transfer instructions to customers at checkout. Works for any country — wire, SEPA, Pago Móvil, etc.',
+    icon:        '🏦',
+    color:       '#0ea5e9',
+    noPosButton: true,   // uses the existing built-in Bank Transfer button
+    configFields: [
+      {
+        key:         'instructions',
+        label:       'Transfer Instructions',
+        type:        'textarea',
+        placeholder: 'Bank: Example Bank\nAccount Type: Savings\nAccount #: 1234567890\nAccount Holder: Your Name\nID: 0987654321',
+        help:        'Shown to the cashier and customer when Bank Transfer is selected at checkout.',
+      },
+      {
+        key:         'imageUrl',
+        label:       'QR Code / Account Image (optional)',
+        type:        'image-upload',
+        placeholder: 'https://...',
+        help:        'Upload a QR code, payment app image, or formatted account card.',
+      },
+    ],
+  },
+
   // ── Add future plugins below ────────────────────────────────────────────────
   //
   // Example — USDT (TRC-20):

@@ -18,7 +18,8 @@ router.use(requireActiveSubscription);
 router.post('/', async (req, res) => {
   try {
     const { items, total, subtotal, taxAmount, currency, paymentMethod, paymentNotes,
-            hiveFrom, hiveTransactionId, discountCode, discountAmount } = req.body;
+            hiveFrom, hiveTransactionId, discountCode, discountAmount,
+            transferProofUrl, transferNote } = req.body;
     const cashier = req.user.username || '';
     if (!items?.length || total == null || !paymentMethod) {
       return res.status(400).json({ error: 'items, total, and paymentMethod are required' });
@@ -49,8 +50,10 @@ router.post('/', async (req, res) => {
       cashier,
       status: 'closed',
       closedAt: new Date(),
-      discountCode:   resolvedDiscountCode,
-      discountAmount: resolvedDiscountAmount,
+      discountCode:     resolvedDiscountCode,
+      discountAmount:   resolvedDiscountAmount,
+      transferProofUrl: transferProofUrl || '',
+      transferNote:     transferNote     || '',
     });
     res.status(201).json(sale);
   } catch (err) {
@@ -201,7 +204,8 @@ router.patch('/:id/items', async (req, res) => {
 router.patch('/:id/close', async (req, res) => {
   try {
     const { paymentMethod, paymentNotes, hiveFrom, hiveTransactionId,
-            subtotal, taxAmount, total, discountCode, discountAmount } = req.body;
+            subtotal, taxAmount, total, discountCode, discountAmount,
+            transferProofUrl, transferNote } = req.body;
     if (!paymentMethod) return res.status(400).json({ error: 'paymentMethod is required' });
     const updates = {
       status: 'closed',
@@ -214,6 +218,8 @@ router.patch('/:id/close', async (req, res) => {
     if (subtotal  != null) updates.subtotal  = subtotal;
     if (taxAmount != null) updates.taxAmount = taxAmount;
     if (total     != null) updates.total     = total;
+    if (transferProofUrl)  updates.transferProofUrl = transferProofUrl;
+    if (transferNote)      updates.transferNote     = transferNote;
 
     if (discountCode) {
       const validation = await validateCode(req.user.storeId, discountCode, parseFloat(subtotal ?? total) || 0);

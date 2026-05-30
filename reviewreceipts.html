@@ -320,10 +320,15 @@
             const itemsSummary = s.items.map(i => `${i.qty}× ${i.name}`).join(', ');
             const from = s.hiveFrom ? `@${s.hiveFrom}` : '—';
             const notesTooltip = s.paymentNotes ? ` title="${s.paymentNotes.replace(/"/g,'&quot;')}"` : '';
+            const proofThumb = s.transferProofUrl
+                ? `<a href="${s.transferProofUrl}" target="_blank" title="View transfer proof" style="display:inline-block;margin-top:.25rem">
+                    <img src="${s.transferProofUrl}" alt="proof" style="height:36px;width:48px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle">
+                  </a>` : '';
+            const transferInfo = (s.transferNote ? `<br><span style="font-size:.72rem;color:var(--text-2)">Ref: ${s.transferNote}</span>` : '') + proofThumb;
             return `
                 <tr data-idx="${idx}" onclick="toggleItems(this, ${idx})">
                     <td>${dt}</td>
-                    <td><span class="method-badge method-${meth}"${notesTooltip}>${methLabel}</span>${s.paymentNotes ? `<br><span style="font-size:.72rem;color:var(--text-2)">${s.paymentNotes}</span>` : ''}</td>
+                    <td><span class="method-badge method-${meth}"${notesTooltip}>${methLabel}</span>${s.paymentNotes ? `<br><span style="font-size:.72rem;color:var(--text-2)">${s.paymentNotes}</span>` : ''}${meth === 'bank_transfer' ? transferInfo : ''}</td>
                     <td style="color:var(--text-2);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itemsSummary}</td>
                     <td style="color:var(--text-2);font-size:0.8rem">${from}</td>
                     <td class="amount" style="text-align:right">$${s.total.toFixed(2)}</td>

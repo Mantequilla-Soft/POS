@@ -1923,6 +1923,34 @@
                         ${opts}
                     </select></label>`;
             }
+            if (field.type === 'textarea') {
+                return `<label style="display:block;margin-bottom:.5rem">
+                    <span style="font-size:.88em;font-weight:600">${field.label}</span>
+                    <textarea class="plugin-field" data-plugin="${plugin.id}" data-key="${field.key}"
+                        placeholder="${field.placeholder || ''}"
+                        style="width:100%;margin-top:.25rem;min-height:90px;padding:.4rem;border:1px solid var(--border);border-radius:var(--r);resize:vertical;font-family:inherit;font-size:.88em"
+                    >${value}</textarea>
+                    ${field.help ? `<span style="font-size:.76em;color:var(--text-3)">${field.help}</span>` : ''}
+                </label>`;
+            }
+            if (field.type === 'image-upload') {
+                const imgStyle = value ? '' : 'display:none';
+                return `<div style="margin-bottom:.5rem">
+                    <span style="font-size:.88em;font-weight:600;display:block;margin-bottom:.25rem">${field.label}</span>
+                    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+                        <input type="text" class="plugin-field" data-plugin="${plugin.id}" data-key="${field.key}"
+                            value="${value}" placeholder="${field.placeholder || ''}"
+                            style="flex:1;min-width:0;padding:.4rem;border:1px solid var(--border);border-radius:var(--r)">
+                        <button type="button" class="plugin-img-upload-btn btn btn-secondary btn-sm"
+                            data-plugin="${plugin.id}" data-key="${field.key}" style="margin-top:0;white-space:nowrap">
+                            📷 Upload
+                        </button>
+                    </div>
+                    <img class="plugin-img-preview" data-plugin="${plugin.id}" data-key="${field.key}"
+                        src="${value}" alt="" style="margin-top:.5rem;max-width:180px;max-height:120px;border-radius:var(--r);border:1px solid var(--border);${imgStyle}">
+                    ${field.help ? `<span style="font-size:.76em;color:var(--text-3);display:block;margin-top:.2rem">${field.help}</span>` : ''}
+                </div>`;
+            }
             return `<label style="display:block;margin-bottom:.5rem">
                 <span style="font-size:.88em;font-weight:600">${field.label}</span>
                 <input type="${field.type || 'text'}" class="plugin-field"
@@ -1990,6 +2018,43 @@
                     }
                     markDirty();
                 });
+            });
+
+            // Image upload buttons (e.g. bankTransfer QR image)
+            document.querySelectorAll('.plugin-img-upload-btn').forEach(btn => {
+                btn.onclick = function() {
+                    const id  = this.dataset.plugin;
+                    const key = this.dataset.key;
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = 'image/*';
+                    fileInput.onchange = async function() {
+                        const file = fileInput.files[0];
+                        if (!file) return;
+                        const token = localStorage.getItem('pos_admin_token');
+                        const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+                        const form = new FormData();
+                        form.append('image', file);
+                        try {
+                            const res = await fetch(`${apiBase}/upload`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: form,
+                            });
+                            if (!res.ok) throw new Error('Upload failed');
+                            const { url } = await res.json();
+                            // Update text input
+                            const textInput = document.querySelector(`.plugin-field[data-plugin="${id}"][data-key="${key}"]`);
+                            if (textInput) { textInput.value = url; textInput.dispatchEvent(new Event('input')); }
+                            // Update preview
+                            const preview = document.querySelector(`.plugin-img-preview[data-plugin="${id}"][data-key="${key}"]`);
+                            if (preview) { preview.src = url; preview.style.display = ''; }
+                        } catch (e) {
+                            alert('Image upload failed. Please try again.');
+                        }
+                    };
+                    fileInput.click();
+                };
             });
         }
 
