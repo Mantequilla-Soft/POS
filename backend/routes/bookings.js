@@ -42,6 +42,20 @@ router.post('/', async (req, res) => {
     const { resourceType, resourceId, resourceLabel, guestName, guestPhone, guestEmail,
             partySize, startAt, endAt, notes } = req.body;
     if (!guestName || !startAt) return res.status(400).json({ error: 'guestName and startAt required' });
+
+    // Overlap check for room bookings with a specific room assigned
+    if ((resourceType === 'room' || (!resourceType && resourceId)) && resourceId && endAt) {
+      const conflict = await Booking.findOne({
+        storeId:      sid,
+        resourceType: 'room',
+        resourceId,
+        status:       { $nin: ['cancelled', 'no_show'] },
+        startAt:      { $lt: new Date(endAt) },
+        endAt:        { $gt: new Date(startAt) },
+      });
+      if (conflict) return res.status(409).json({ error: 'overlap', message: 'Room already booked for those dates' });
+    }
+
     const booking = await Booking.create({
       storeId: sid,
       resourceType: resourceType || 'table',

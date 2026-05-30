@@ -242,9 +242,15 @@ windowStart.setHours(0, 0, 0, 0);
 let bookings  = [];
 let storeData = null;
 let authToken = null;
+let userRole  = null;
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-function getToken() { return localStorage.getItem('pos_admin_token'); }
+function getToken() {
+  return localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+}
+function getRole() {
+  return localStorage.getItem('pos_admin_token') ? 'store_owner' : 'cashier';
+}
 function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }; }
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
@@ -665,7 +671,14 @@ function escAttr(s) { return String(s ?? '').replace(/"/g,'&quot;').replace(/'/g
 async function init() {
   authToken = getToken();
   if (!authToken) { window.location.href = 'login.html'; return; }
+  userRole = getRole();
   i18n.init();
+
+  // Cashiers cannot cancel bookings — hide that button
+  if (userRole === 'cashier') {
+    document.getElementById('cancelBookingBtn').style.display = 'none';
+  }
+
   try {
     const r = await fetch(`${API_BASE}/api/store`, { headers: { Authorization: 'Bearer ' + authToken } });
     if (r.ok) storeData = await r.json();
