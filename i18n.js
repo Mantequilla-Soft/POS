@@ -743,6 +743,8 @@ const i18n = (() => {
       // Admin reservations
       'admin.enableReservations':      'Table Reservations',
       'admin.reservationsHelp':        'Let guests book tables in advance.',
+      'admin.enableHotel':             'Hotel / Room Rentals',
+      'admin.hotelHelp':               'Manage room bookings and show a public availability calendar on your website.',
       // Reservations page
       'reservations.title':            'Reservations',
       'reservations.newBooking':       '+ New Booking',
@@ -1581,6 +1583,8 @@ const i18n = (() => {
       // Admin reservations
       'admin.enableReservations':      'Reservas de Mesa',
       'admin.reservationsHelp':        'Permite a los clientes reservar mesas con anticipación.',
+      'admin.enableHotel':             'Hotel / Alquiler de Habitaciones',
+      'admin.hotelHelp':               'Gestiona reservas de habitaciones y muestra un calendario de disponibilidad público en tu sitio web.',
       // Reservations page
       'reservations.title':            'Reservas',
       'reservations.newBooking':       '+ Nueva Reserva',
