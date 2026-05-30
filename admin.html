@@ -1589,7 +1589,7 @@
                     // Update page title with store name
                     const pageTitle = document.getElementById('pageTitle');
                     if (currentData.settings.businessName) {
-                        pageTitle.textContent = `Edit Store: ${currentData.settings.businessName}`;
+                        pageTitle.textContent = t('admin.editStoreNamed', { name: currentData.settings.businessName });
                     } else {
                         pageTitle.textContent = t('admin.editStore');
                     }
