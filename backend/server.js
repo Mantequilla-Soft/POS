@@ -23,6 +23,15 @@ const authLimiter = rateLimit({
 // Serve uploaded images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// hotel-widget.html must be embeddable in iframes from any origin.
+// This route runs before express.static so we control the response headers
+// regardless of what X-Frame-Options the reverse proxy normally injects.
+app.get('/hotel-widget.html', (req, res) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  res.sendFile(path.join(__dirname, '..', 'hotel-widget.html'));
+});
+
 // Serve frontend static files from the parent directory
 app.use(express.static(path.join(__dirname, '..'), { index: 'login.html' }));
 
