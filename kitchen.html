@@ -231,8 +231,8 @@ function renderOrders(orders) {
     card.className = 'order-card' + (allReady ? ' all-ready' : urgency ? ` ${urgency}` : '');
     const opened = new Date(order.openedAt || order.createdAt);
     const timeStr = opened.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const tableLabel = order.tableLabel || (order.tableId ? `Table ${order.tableId}` : 'Counter');
-    const elapsedLabel = mins < 1 ? '< 1 min' : `${mins} min`;
+    const tableLabel = order.tableLabel || (order.tableId ? `${t('kitchen.tablePrefix')} ${order.tableId}` : t('kitchen.counter'));
+    const elapsedLabel = mins < 1 ? t('kitchen.lessThanMin') : t('kitchen.mins', { n: mins });
     const elapsedClass = urgency || 'ok';
     card.innerHTML = `
       <div class="order-card-header">

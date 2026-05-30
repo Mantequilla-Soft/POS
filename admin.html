@@ -1911,13 +1911,15 @@
             const value   = isRoot
                 ? (currentData.settings?.hiveAccount || '')
                 : (field.serverOnly ? '' : (cfg[field.key] || ''));
+            const fLabel  = field.labelKey ? t(field.labelKey) : (field.label || '');
+            const fHelp   = field.helpKey  ? t(field.helpKey)  : (field.help  || '');
 
             if (field.type === 'select') {
                 const opts = (field.options || []).map(o =>
                     `<option value="${o.value}"${value === o.value ? ' selected' : ''}>${o.label}</option>`
                 ).join('');
                 return `<label style="display:block;margin-bottom:.5rem">
-                    <span style="font-size:.88em;font-weight:600">${field.label}</span>
+                    <span style="font-size:.88em;font-weight:600">${fLabel}</span>
                     <select class="plugin-field" data-plugin="${plugin.id}" data-key="${field.key}"${isRoot ? ' data-root' : ''}
                         style="width:100%;margin-top:.25rem;padding:.4rem;border:1px solid var(--border);border-radius:var(--r)">
                         ${opts}
@@ -1925,52 +1927,54 @@
             }
             if (field.type === 'textarea') {
                 return `<label style="display:block;margin-bottom:.5rem">
-                    <span style="font-size:.88em;font-weight:600">${field.label}</span>
+                    <span style="font-size:.88em;font-weight:600">${fLabel}</span>
                     <textarea class="plugin-field" data-plugin="${plugin.id}" data-key="${field.key}"
                         placeholder="${field.placeholder || ''}"
                         style="width:100%;margin-top:.25rem;min-height:90px;padding:.4rem;border:1px solid var(--border);border-radius:var(--r);resize:vertical;font-family:inherit;font-size:.88em"
                     >${value}</textarea>
-                    ${field.help ? `<span style="font-size:.76em;color:var(--text-3)">${field.help}</span>` : ''}
+                    ${fHelp ? `<span style="font-size:.76em;color:var(--text-3)">${fHelp}</span>` : ''}
                 </label>`;
             }
             if (field.type === 'image-upload') {
                 const imgStyle = value ? '' : 'display:none';
                 return `<div style="margin-bottom:.5rem">
-                    <span style="font-size:.88em;font-weight:600;display:block;margin-bottom:.25rem">${field.label}</span>
+                    <span style="font-size:.88em;font-weight:600;display:block;margin-bottom:.25rem">${fLabel}</span>
                     <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
                         <input type="text" class="plugin-field" data-plugin="${plugin.id}" data-key="${field.key}"
                             value="${value}" placeholder="${field.placeholder || ''}"
                             style="flex:1;min-width:0;padding:.4rem;border:1px solid var(--border);border-radius:var(--r)">
                         <button type="button" class="plugin-img-upload-btn btn btn-secondary btn-sm"
                             data-plugin="${plugin.id}" data-key="${field.key}" style="margin-top:0;white-space:nowrap">
-                            📷 Upload
+                            📷 ${t('admin.upload')}
                         </button>
                     </div>
                     <img class="plugin-img-preview" data-plugin="${plugin.id}" data-key="${field.key}"
                         src="${value}" alt="" style="margin-top:.5rem;max-width:180px;max-height:120px;border-radius:var(--r);border:1px solid var(--border);${imgStyle}">
-                    ${field.help ? `<span style="font-size:.76em;color:var(--text-3);display:block;margin-top:.2rem">${field.help}</span>` : ''}
+                    ${fHelp ? `<span style="font-size:.76em;color:var(--text-3);display:block;margin-top:.2rem">${fHelp}</span>` : ''}
                 </div>`;
             }
             return `<label style="display:block;margin-bottom:.5rem">
-                <span style="font-size:.88em;font-weight:600">${field.label}</span>
+                <span style="font-size:.88em;font-weight:600">${fLabel}</span>
                 <input type="${field.type || 'text'}" class="plugin-field"
                     data-plugin="${plugin.id}" data-key="${field.key}"${isRoot ? ' data-root' : ''}${field.serverOnly ? ' data-secret' : ''}
                     value="${value}"
                     placeholder="${field.serverOnly && isSaved ? '••••••••••••••••' : (field.placeholder || '')}"
                     style="width:100%;margin-top:.25rem;">
-                ${field.help ? `<span style="font-size:.76em;color:var(--text-3)">${field.help}</span>` : ''}
+                ${fHelp ? `<span style="font-size:.76em;color:var(--text-3)">${fHelp}</span>` : ''}
             </label>`;
         }
 
         function renderPluginSection(plugin) {
             const cfg     = (currentData.pluginConfigs || {})[plugin.id] || {};
             const enabled = !!cfg.enabled;
+            const pName   = plugin.nameKey ? t(plugin.nameKey) : plugin.name;
+            const pDesc   = plugin.descKey ? t(plugin.descKey) : plugin.description;
             return `<div style="margin-bottom:.75rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);">
                 <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;margin-bottom:0">
                     <input type="checkbox" class="plugin-toggle" data-plugin="${plugin.id}"${enabled ? ' checked' : ''} style="margin-top:3px;flex-shrink:0">
                     <span>
-                        <strong>${plugin.icon} ${plugin.name}</strong><br>
-                        <span style="color:var(--text-3);font-size:.82em">${plugin.description}</span>
+                        <strong>${plugin.icon} ${pName}</strong><br>
+                        <span style="color:var(--text-3);font-size:.82em">${pDesc}</span>
                     </span>
                 </label>
                 <div class="plugin-fields" data-plugin="${plugin.id}" style="display:${enabled ? '' : 'none'};margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">

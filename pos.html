@@ -306,10 +306,10 @@
 <div id="tablesOverlay">
   <div class="tables-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem">
-      <h3 style="margin:0;font-size:1.05rem">Select Table</h3>
+      <h3 style="margin:0;font-size:1.05rem" data-i18n="pos.selectTable">Select Table</h3>
       <button onclick="hideTablesPanel()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-2);line-height:1;">×</button>
     </div>
-    <p style="margin:0 0 .5rem;font-size:.82rem;color:var(--text-2)">Tap a table to open or resume its tab.</p>
+    <p style="margin:0 0 .5rem;font-size:.82rem;color:var(--text-2)" data-i18n="pos.selectTableHelp">Tap a table to open or resume its tab.</p>
     <!-- Today's Reservations strip (shown only when feature enabled) -->
     <div id="reservationsStrip" style="display:none;margin-bottom:.75rem">
       <button id="reservationsToggleBtn" onclick="toggleReservationsStrip()" style="width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:.5rem .75rem;cursor:pointer;font-size:.87rem;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center">
@@ -319,7 +319,7 @@
       <div id="reservationsStripList" style="display:none;background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);max-height:180px;overflow-y:auto"></div>
     </div>
     <div class="tables-grid" id="tilesGrid"></div>
-    <button onclick="selectTable(null)" class="btn btn-secondary btn-block" style="margin-top:1rem;width:100%;">⚡ Quick Sale (No Table)</button>
+    <button onclick="selectTable(null)" class="btn btn-secondary btn-block" style="margin-top:1rem;width:100%;" data-i18n="pos.quickSale">⚡ Quick Sale (No Table)</button>
   </div>
 </div>
 
@@ -821,7 +821,7 @@
 
             // Active payment plugins from manifest
             const pluginCfgs = getPluginConfigs();
-            const activePlugins = (window.PAYMENT_PLUGINS || []).filter(p => pluginCfgs[p.id]?.enabled);
+            const activePlugins = (window.PAYMENT_PLUGINS || []).filter(p => pluginCfgs[p.id]?.enabled && !p.noPosButton);
             activePlugins.forEach(plugin => {
                 html += `<button class="plugin-pay-btn btn btn-block" data-plugin="${plugin.id}"
                     style="background:${plugin.color};color:#fff;border-color:${plugin.color};" ${dis}>
@@ -1418,6 +1418,8 @@
         // --- Post-Sale Actions ---
         async function showPostSaleActions(paymentType, saleCart, saleTotal, hiveFrom, txId, paymentNotes, subtotal, taxAmount, discount, transferProofUrl, transferNote) {
             document.getElementById('qrInlineContainer').classList.remove('open');
+            document.getElementById('bankTransferSection')?.style && (document.getElementById('bankTransferSection').style.display = 'none');
+            document.getElementById('externalPaymentSection')?.style && (document.getElementById('externalPaymentSection').style.display = 'none');
 
             // Auto-save sale to backend (works for both admin and cashier tokens)
             const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
@@ -1581,7 +1583,7 @@
         async function showTablesPanel() {
             const tables = JSON.parse(localStorage.getItem('pos_tables') || '[]');
             if (!tables.length) {
-                alert('No tables configured. Add tables in the Admin → Tables section.');
+                alert(t('pos.noTablesConfigured'));
                 return;
             }
             openTabsByTable = await loadOpenTabs();
@@ -1592,7 +1594,7 @@
                 const div = document.createElement('div');
                 div.className = 'table-tile' + (tab ? ' has-tab' : '');
                 div.innerHTML = `<div class="tile-label">${posEscHtml(table.label)}</div>
-                    <div class="tile-sub${tab ? ' open' : ''}">${tab ? `${tab.items.length} item${tab.items.length===1?'':'s'}` : 'Available'}</div>
+                    <div class="tile-sub${tab ? ' open' : ''}">${tab ? (tab.items.length === 1 ? t('pos.tableItems', { n: tab.items.length }) : t('pos.tableItemsPlural', { n: tab.items.length })) : t('pos.tableAvailable')}</div>
                     ${tab ? `<button class="tile-void-x" title="${t('pos.voidTab')}">×</button>` : ''}`;
                 div.onclick = () => selectTable(table, tab);
                 if (tab) {
