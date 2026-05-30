@@ -216,9 +216,10 @@ function fmtTime(iso) {
 function fmtDateLabel(d) {
   const today = new Date(); today.setHours(0,0,0,0);
   const diff = (d - today) / 86400000;
-  if (diff === 0) return 'Today — ' + d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
-  if (diff === 1) return 'Tomorrow — ' + d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
-  if (diff === -1) return 'Yesterday — ' + d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  const locale = d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  if (diff === 0)  return t('reservations.today')    + ' — ' + locale;
+  if (diff === 1)  return t('reservations.tomorrow') + ' — ' + locale;
+  if (diff === -1) return t('reservations.yesterday')+ ' — ' + locale;
   return d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
@@ -261,13 +262,13 @@ function renderCashierList() {
       <span class="booking-table">${escHtml(b.resourceLabel || '—')}</span>
       <div class="booking-guest">
         <div class="booking-name">${escHtml(b.guestName)}</div>
-        <div class="booking-party">Party of ${b.partySize}${b.notes ? ' · ' + escHtml(b.notes) : ''}</div>
+        <div class="booking-party">${t('reservations.partyOf')} ${b.partySize}${b.notes ? ' · ' + escHtml(b.notes) : ''}</div>
       </div>
       <span class="chip chip-${b.status}">${statusLabel(b.status)}</span>
       <div class="booking-actions">
         ${b.status === 'confirmed' ? `
-          <button class="btn btn-sm" onclick="doTransition('${b._id}','seat')">Seat</button>
-          <button class="btn btn-sm" style="background:var(--red)" onclick="doTransition('${b._id}','noshow')">No Show</button>
+          <button class="btn btn-sm" onclick="doTransition('${b._id}','seat')">${t('reservations.seat')}</button>
+          <button class="btn btn-sm" style="background:var(--red)" onclick="doTransition('${b._id}','noshow')">${t('reservations.noShow')}</button>
         ` : ''}
       </div>
     </div>`).join('');
@@ -279,7 +280,7 @@ function renderTimeline() {
   const empty = document.getElementById('emptyState');
   const tables = (storeData?.tables || []).filter(t => t.active !== false);
   if (!tables.length) {
-    grid.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-2)">No active tables configured. Add tables in <a href="admin.html">Settings</a>.</div>';
+    grid.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-2)">${t('reservations.noTablesMsg')}</div>`;
     empty.style.display = 'none';
     return;
   }
@@ -296,7 +297,7 @@ function renderTimeline() {
   grid.style.gridTemplateColumns = `90px repeat(${slots.length}, minmax(42px,1fr))`;
 
   // Header row
-  let html = `<div class="tg-corner">Table / Time</div>`;
+  let html = `<div class="tg-corner">${t('reservations.tableTimeHeader')}</div>`;
   slots.forEach(s => {
     const label = s.m === 0 ? `${s.h > 12 ? s.h - 12 : s.h}${s.h >= 12 ? 'p' : 'a'}` : '';
     html += `<div class="tg-time-head">${label}</div>`;
@@ -330,8 +331,7 @@ function renderTimeline() {
 
 // ── Status label ──────────────────────────────────────────────────────────────
 function statusLabel(s) {
-  const map = { confirmed: 'Confirmed', seated: 'Seated', completed: 'Completed', cancelled: 'Cancelled', no_show: 'No Show' };
-  return map[s] || s;
+  return t('reservations.status.' + s) || s;
 }
 
 // ── Timeline cell click → open create modal pre-filled ───────────────────────
@@ -343,7 +343,7 @@ function cellClick(e, tableId, tableLabel, isoTime) {
 // ── Modal ─────────────────────────────────────────────────────────────────────
 function openCreateModal(tableId, tableLabel, isoTime) {
   resetModal();
-  document.getElementById('modalTitle').textContent = 'New Booking';
+  document.getElementById('modalTitle').textContent = t('reservations.modalNew');
   document.getElementById('cancelBookingBtn').style.display = 'none';
 
   const tables = (storeData?.tables || []).filter(t => t.active !== false);
@@ -369,7 +369,7 @@ async function openEditModal(bookingId) {
   resetModal();
   const b = bookings.find(x => x._id === bookingId);
   if (!b) return;
-  document.getElementById('modalTitle').textContent = 'Edit Booking';
+  document.getElementById('modalTitle').textContent = t('reservations.modalEdit');
   document.getElementById('modalBookingId').value = bookingId;
 
   const tables = (storeData?.tables || []).filter(t => t.active !== false);
@@ -427,8 +427,8 @@ document.getElementById('saveBookingBtn').addEventListener('click', async () => 
   const tableLabel = tableEl.options[tableEl.selectedIndex]?.dataset.label || '';
   const errEl      = document.getElementById('modalError');
 
-  if (!guestName) { errEl.textContent = 'Guest name is required.'; return; }
-  if (!dateVal)   { errEl.textContent = 'Date is required.'; return; }
+  if (!guestName) { errEl.textContent = t('reservations.errorGuestName'); return; }
+  if (!dateVal)   { errEl.textContent = t('reservations.errorDate'); return; }
   errEl.textContent = '';
 
   const startAt = new Date(`${dateVal}T${timeVal}:00Z`).toISOString();
@@ -442,23 +442,23 @@ document.getElementById('saveBookingBtn').addEventListener('click', async () => 
     const r = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(body) });
     if (!r.ok) { const e = await r.json(); errEl.textContent = e.error || 'Error'; return; }
     closeModal();
-    toast(bookingId ? 'Booking updated.' : 'Booking created.', 'var(--green)');
+    toast(t(bookingId ? 'reservations.toastUpdated' : 'reservations.toastCreated'), 'var(--green)');
     loadBookings();
   } catch (err) {
-    errEl.textContent = 'Network error.';
+    errEl.textContent = t('reservations.errorNetwork');
   }
 });
 
 document.getElementById('cancelBookingBtn').addEventListener('click', async () => {
   const bookingId = document.getElementById('modalBookingId').value;
-  if (!bookingId || !confirm('Cancel this booking?')) return;
+  if (!bookingId || !confirm(t('reservations.confirmCancel'))) return;
   try {
     const r = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE', headers: authHeaders() });
     if (!r.ok) { const e = await r.json(); toast(e.error || 'Error', 'var(--red)'); return; }
     closeModal();
-    toast('Booking cancelled.', 'var(--amber)');
+    toast(t('reservations.toastCancelled'), 'var(--amber)');
     loadBookings();
-  } catch { toast('Network error.', 'var(--red)'); }
+  } catch { toast(t('reservations.errorNetwork'), 'var(--red)'); }
 });
 
 // ── Status transitions ────────────────────────────────────────────────────────
@@ -466,10 +466,10 @@ async function doTransition(bookingId, action) {
   try {
     const r = await fetch(`/api/bookings/${bookingId}/${action}`, { method: 'PATCH', headers: authHeaders() });
     if (!r.ok) { const e = await r.json(); toast(e.error || 'Error', 'var(--red)'); return; }
-    const labels = { seat: 'Marked as seated.', noshow: 'Marked as no-show.', complete: 'Marked as completed.' };
-    toast(labels[action] || 'Updated.', 'var(--green)');
+    const labels = { seat: t('reservations.toastSeated'), noshow: t('reservations.toastNoShow'), complete: t('reservations.toastCompleted') };
+    toast(labels[action] || 'OK', 'var(--green)');
     loadBookings();
-  } catch { toast('Network error.', 'var(--red)'); }
+  } catch { toast(t('reservations.errorNetwork'), 'var(--red)'); }
 }
 
 // ── Day navigation ─────────────────────────────────────────────────────────────

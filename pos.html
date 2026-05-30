@@ -268,7 +268,7 @@
             <div id="hiveAccountDisplay" class="pos-hive-badge" style="display:none;"></div>
             <div id="cashierBadge" style="display:none;font-size:0.8rem;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-full);padding:0.2rem 0.7rem;"></div>
             <a href="members.html" id="membersLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none">👥 Members</a>
-            <a href="reservations.html" id="reservationsLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none">📅 Reservations</a>
+            <a href="reservations.html" id="reservationsLinkBtn" class="btn btn-secondary btn-sm" style="display:none;text-decoration:none" data-i18n="pos.reservationsBtn">📅 Reservations</a>
             <button id="tablesBtn" class="btn btn-secondary btn-sm" style="display:none" onclick="showTablesPanel()" data-i18n="pos.tablesBtn">🪑 Tables</button>
         </div>
     </header>
@@ -312,7 +312,7 @@
     <!-- Today's Reservations strip (shown only when feature enabled) -->
     <div id="reservationsStrip" style="display:none;margin-bottom:.75rem">
       <button id="reservationsToggleBtn" onclick="toggleReservationsStrip()" style="width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:.5rem .75rem;cursor:pointer;font-size:.87rem;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center">
-        <span id="reservationsStripLabel">&#9650; Today's Reservations</span>
+        <span id="reservationsStripLabel">&#9650; <span data-i18n="pos.todayReservations">Today's Reservations</span></span>
         <span style="font-size:.8rem;color:var(--text-2)" id="reservationsStripCount"></span>
       </button>
       <div id="reservationsStripList" style="display:none;background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);max-height:180px;overflow-y:auto"></div>
@@ -1518,7 +1518,7 @@
         function renderReservationsStripList(bookings, token) {
             const list = document.getElementById('reservationsStripList');
             if (!bookings.length) {
-                list.innerHTML = '<div style="padding:.5rem .75rem;font-size:.83rem;color:var(--text-3)">No upcoming reservations today.</div>';
+                list.innerHTML = `<div style="padding:.5rem .75rem;font-size:.83rem;color:var(--text-3)">${t('reservations.noUpcoming')}</div>`;
                 return;
             }
             list.innerHTML = bookings.map(b => {
@@ -1530,7 +1530,7 @@
                     <span style="color:var(--text-2);min-width:60px">${posEscHtml(b.resourceLabel || '—')}</span>
                     <span style="flex:1;font-weight:600">${posEscHtml(b.guestName)} <span style="font-weight:400;color:var(--text-2)">×${b.partySize}</span></span>
                     <span style="font-size:.76rem;color:${statusColor}">${b.status === 'seated' ? 'Seated' : 'Confirmed'}</span>
-                    ${b.status === 'confirmed' ? `<button onclick="posMarkSeated('${b._id}')" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:.2rem .55rem;cursor:pointer;font-size:.78rem;white-space:nowrap">Seat</button>` : ''}
+                    ${b.status === 'confirmed' ? `<button onclick="posMarkSeated('${b._id}')" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:.2rem .55rem;cursor:pointer;font-size:.78rem;white-space:nowrap">${t('reservations.seat')}</button>` : ''}
                 </div>`;
             }).join('');
         }
@@ -1540,7 +1540,7 @@
             const listEl = document.getElementById('reservationsStripList');
             const labelEl = document.getElementById('reservationsStripLabel');
             listEl.style.display = reservationsStripOpen ? '' : 'none';
-            labelEl.innerHTML = (reservationsStripOpen ? '&#9660;' : '&#9650;') + " Today's Reservations";
+            labelEl.innerHTML = (reservationsStripOpen ? '&#9660;' : '&#9650;') + ' ' + t('pos.todayReservations');
         }
 
         async function posMarkSeated(bookingId) {
