@@ -308,6 +308,14 @@
       <button onclick="hideTablesPanel()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-2);line-height:1;">×</button>
     </div>
     <p style="margin:0 0 .5rem;font-size:.82rem;color:var(--text-2)">Tap a table to open or resume its tab.</p>
+    <!-- Today's Reservations strip (shown only when feature enabled) -->
+    <div id="reservationsStrip" style="display:none;margin-bottom:.75rem">
+      <button id="reservationsToggleBtn" onclick="toggleReservationsStrip()" style="width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:.5rem .75rem;cursor:pointer;font-size:.87rem;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center">
+        <span id="reservationsStripLabel">&#9650; Today's Reservations</span>
+        <span style="font-size:.8rem;color:var(--text-2)" id="reservationsStripCount"></span>
+      </button>
+      <div id="reservationsStripList" style="display:none;background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);max-height:180px;overflow-y:auto"></div>
+    </div>
     <div class="tables-grid" id="tilesGrid"></div>
     <button onclick="selectTable(null)" class="btn btn-secondary btn-block" style="margin-top:1rem;width:100%;">⚡ Quick Sale (No Table)</button>
   </div>
@@ -399,6 +407,7 @@
             }
             const tablesBtn = document.getElementById('tablesBtn');
             if (tablesBtn) tablesBtn.style.display = features.tabs ? '' : 'none';
+            if (features.reservations) loadTodayReservations();
         }
         // --- Category Tabs Logic (updated to use store settings) ---
         function getCategories(items) {
@@ -1481,6 +1490,63 @@
 
         function hideTablesPanel() {
             document.getElementById('tablesOverlay').classList.remove('open');
+        }
+
+        // ── Today's Reservations strip ────────────────────────────────────────
+        let reservationsStripOpen = false;
+        async function loadTodayReservations() {
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const strip = document.getElementById('reservationsStrip');
+            const countEl = document.getElementById('reservationsStripCount');
+            try {
+                const today = new Date();
+                const ymd = today.toISOString().slice(0, 10);
+                const r = await fetch(`/api/bookings?date=${ymd}&resourceType=table`,
+                    { headers: { 'Authorization': 'Bearer ' + token } });
+                if (!r.ok) return;
+                const bookings = await r.json();
+                const upcoming = bookings.filter(b => b.status === 'confirmed' || b.status === 'seated');
+                countEl.textContent = `${upcoming.length} upcoming`;
+                strip.style.display = '';
+                renderReservationsStripList(upcoming, token);
+            } catch {}
+        }
+
+        function renderReservationsStripList(bookings, token) {
+            const list = document.getElementById('reservationsStripList');
+            if (!bookings.length) {
+                list.innerHTML = '<div style="padding:.5rem .75rem;font-size:.83rem;color:var(--text-3)">No upcoming reservations today.</div>';
+                return;
+            }
+            list.innerHTML = bookings.map(b => {
+                const d = new Date(b.startAt);
+                const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                const statusColor = b.status === 'seated' ? 'var(--green)' : 'var(--text-2)';
+                return `<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .75rem;border-bottom:1px solid var(--border);font-size:.84rem">
+                    <span style="font-weight:700;color:var(--text);min-width:55px">${posEscHtml(timeStr)}</span>
+                    <span style="color:var(--text-2);min-width:60px">${posEscHtml(b.resourceLabel || '—')}</span>
+                    <span style="flex:1;font-weight:600">${posEscHtml(b.guestName)} <span style="font-weight:400;color:var(--text-2)">×${b.partySize}</span></span>
+                    <span style="font-size:.76rem;color:${statusColor}">${b.status === 'seated' ? 'Seated' : 'Confirmed'}</span>
+                    ${b.status === 'confirmed' ? `<button onclick="posMarkSeated('${b._id}')" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:.2rem .55rem;cursor:pointer;font-size:.78rem;white-space:nowrap">Seat</button>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function toggleReservationsStrip() {
+            reservationsStripOpen = !reservationsStripOpen;
+            const listEl = document.getElementById('reservationsStripList');
+            const labelEl = document.getElementById('reservationsStripLabel');
+            listEl.style.display = reservationsStripOpen ? '' : 'none';
+            labelEl.innerHTML = (reservationsStripOpen ? '&#9660;' : '&#9650;') + " Today's Reservations";
+        }
+
+        async function posMarkSeated(bookingId) {
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            try {
+                await fetch(`/api/bookings/${bookingId}/seat`, { method: 'PATCH',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } });
+                loadTodayReservations();
+            } catch {}
         }
 
         function selectTable(table, existingTab) {

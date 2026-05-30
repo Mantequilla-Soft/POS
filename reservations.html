@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservations — POSHIVE</title>
+  <script src="i18n.js"></script>
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme-loader.js"></script>
+  <style>
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: var(--sh-xs); }
+    .header-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .header h1 { color: var(--text); font-size: 1.4rem; margin: 0; }
+    .nav-links { display: flex; gap: .75rem; align-items: center; }
+    .nav-links a { color: var(--text-2); text-decoration: none; font-size: .9rem; }
+    .nav-links a:hover { color: var(--text); }
+    .main { max-width: 1200px; margin: 1.5rem auto; padding: 0 1.5rem; }
+    .toolbar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; }
+    .day-nav { display: flex; align-items: center; gap: .5rem; }
+    .day-nav button { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: var(--r); padding: .4rem .7rem; cursor: pointer; font-size: 1rem; line-height: 1; }
+    .day-nav button:hover { background: var(--surface-2); }
+    #dayLabel { font-weight: 600; font-size: 1rem; min-width: 160px; text-align: center; }
+    .btn { background: var(--ink); color: var(--ink-text); border: none; border-radius: var(--r); padding: .5rem 1rem; cursor: pointer; font-size: .9rem; font-weight: 500; transition: var(--ease); }
+    .btn:hover { background: var(--ink-hover); }
+    .btn-sm { padding: .3rem .65rem; font-size: .82rem; }
+
+    /* Status chips */
+    .chip { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 600; border: 1px solid transparent; }
+    .chip-confirmed { background: var(--blue-light,#eff6ff); color: var(--blue,#2563eb); border-color: var(--blue-border,#93c5fd); }
+    .chip-seated    { background: var(--green-light); color: var(--green); border-color: var(--green-border); }
+    .chip-completed { background: var(--surface-2); color: var(--text-2); border-color: var(--border); }
+    .chip-cancelled { background: var(--surface-2); color: var(--text-3); border-color: var(--border); }
+    .chip-no_show   { background: var(--red-light,#fef2f2); color: var(--red); border-color: var(--red-border,#fca5a5); }
+
+    /* ── Owner timeline grid ──────────────────────────────── */
+    #ownerView { display: none; }
+    .timeline-wrap { overflow-x: auto; }
+    .timeline-grid { display: grid; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); min-width: 700px; }
+    .timeline-header { display: contents; }
+    .tg-corner { background: var(--surface-2); padding: .5rem .75rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: .78rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
+    .tg-time-head { background: var(--surface-2); padding: .5rem .3rem; text-align: center; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: .75rem; color: var(--text-3); font-weight: 600; }
+    .tg-row-label { background: var(--surface-2); padding: .45rem .75rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: .85rem; font-weight: 600; white-space: nowrap; }
+    .tg-cell { position: relative; min-height: 48px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+    .tg-cell:hover { background: var(--surface-2); }
+    .booking-block { position: absolute; inset: 3px 2px; border-radius: var(--r-sm); padding: .2rem .4rem; font-size: .74rem; font-weight: 600; cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; z-index: 1; }
+    .bb-confirmed { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .bb-seated    { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+    .bb-completed { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+    .bb-cancelled { background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); opacity: .5; }
+    .bb-no_show   { background: #fef2f2; color: var(--red); border: 1px solid #fca5a5; }
+
+    /* ── Cashier list ─────────────────────────────────────── */
+    #cashierView { display: none; }
+    .booking-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: .75rem 1rem; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .6rem; }
+    .booking-time { font-weight: 700; font-size: 1rem; min-width: 60px; color: var(--text); }
+    .booking-table { font-size: .85rem; color: var(--text-2); min-width: 70px; }
+    .booking-guest { flex: 1; }
+    .booking-name { font-weight: 600; font-size: .95rem; }
+    .booking-party { font-size: .82rem; color: var(--text-2); }
+    .booking-actions { display: flex; gap: .4rem; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 500; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border-radius: var(--r-lg); padding: 1.5rem; width: min(520px, 95vw); max-height: 90vh; overflow-y: auto; box-shadow: var(--sh-lg,0 20px 60px rgba(0,0,0,.3)); }
+    .modal h3 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .form-group { margin-bottom: .85rem; }
+    .form-group label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: .25rem; color: var(--text-2); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; box-sizing: border-box; padding: .5rem .75rem;
+      border: 1.5px solid var(--border); border-radius: var(--r); font-size: .9rem;
+      background: var(--bg); color: var(--text); font-family: var(--font);
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .form-actions { display: flex; gap: .5rem; margin-top: 1.25rem; flex-wrap: wrap; }
+    .btn-danger { background: var(--red); color: #fff; border: none; border-radius: var(--r); padding: .5rem 1rem; cursor: pointer; font-size: .9rem; font-weight: 500; }
+    .btn-cancel-style { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--r); padding: .5rem 1rem; cursor: pointer; font-size: .9rem; font-weight: 500; }
+    #modalError { color: var(--red); font-size: .82rem; margin-top: .5rem; }
+
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--ink); color: var(--ink-text); padding: .75rem 1.25rem; border-radius: var(--r-lg); font-size: .9rem; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+    #toast.show { opacity: 1; }
+
+    @media (max-width: 600px) {
+      .main { padding: 0 .75rem; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1 data-i18n="reservations.title">Reservations</h1>
+    <div class="nav-links">
+      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
+      <a href="admin.html" data-i18n="common.settings">Settings</a>
+      <a href="pos.html" data-i18n="common.pos">POS</a>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="toolbar">
+    <div class="day-nav">
+      <button id="prevDay" title="Previous day">&#8249;</button>
+      <span id="dayLabel"></span>
+      <button id="nextDay" title="Next day">&#8250;</button>
+    </div>
+    <button class="btn" id="todayBtn">Today</button>
+    <button class="btn" id="newBookingBtn" data-i18n="reservations.newBooking" style="display:none">+ New Booking</button>
+  </div>
+
+  <!-- Owner: timeline grid -->
+  <div id="ownerView">
+    <div class="timeline-wrap">
+      <div id="timelineGrid" class="timeline-grid"></div>
+    </div>
+  </div>
+
+  <!-- Cashier: simple list -->
+  <div id="cashierView">
+    <div id="cashierList"></div>
+  </div>
+
+  <div id="emptyState" style="text-align:center;color:var(--text-2);padding:3rem;display:none" data-i18n="reservations.noBookings">No bookings for this day.</div>
+</div>
+
+<!-- Booking Modal (create / edit / detail) -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <h3 id="modalTitle">Booking</h3>
+    <input type="hidden" id="modalBookingId">
+    <div class="form-grid">
+      <div class="form-group">
+        <label data-i18n="reservations.guestName">Guest Name *</label>
+        <input type="text" id="fGuestName" placeholder="Alice Smith">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.partySize">Party Size</label>
+        <input type="number" id="fPartySize" min="1" value="2">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.guestPhone">Phone</label>
+        <input type="tel" id="fGuestPhone" placeholder="+1 555 0100">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.guestEmail">Email</label>
+        <input type="email" id="fGuestEmail" placeholder="guest@email.com">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.table">Table</label>
+        <select id="fTable"></select>
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.date">Date</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.time">Time</label>
+        <input type="time" id="fTime" step="900">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label data-i18n="reservations.notes">Notes</label>
+        <textarea id="fNotes" rows="2" style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div id="modalError"></div>
+    <div class="form-actions" id="modalActions">
+      <button class="btn" id="saveBookingBtn" data-i18n="common.save">Save</button>
+      <button class="btn-cancel-style" onclick="closeModal()" data-i18n="common.cancel">Cancel</button>
+      <button class="btn-danger" id="cancelBookingBtn" style="display:none;margin-left:auto" data-i18n="reservations.cancel">Cancel Booking</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+const API_BASE = '';
+const SLOT_START = 9;   // 9 AM
+const SLOT_END   = 23;  // 11 PM (last slot starts at 22:30)
+const SLOT_STEP  = 30;  // minutes
+
+let currentDate = new Date();
+currentDate.setHours(0, 0, 0, 0);
+let bookings = [];
+let storeData = null;
+let userRole  = null;
+let authToken = null;
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function getToken() {
+  return localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+}
+function getRole() {
+  const t = localStorage.getItem('pos_admin_token');
+  if (t) return 'store_owner';
+  return localStorage.getItem('pos_cashier_token') ? 'cashier' : null;
+}
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken };
+}
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+function ymd(d) {
+  return d.toISOString().slice(0, 10);
+}
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+function fmtDateLabel(d) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = (d - today) / 86400000;
+  if (diff === 0) return 'Today — ' + d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  if (diff === 1) return 'Tomorrow — ' + d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  if (diff === -1) return 'Yesterday — ' + d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, color = 'var(--ink)') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = color;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Load bookings ─────────────────────────────────────────────────────────────
+async function loadBookings() {
+  document.getElementById('dayLabel').textContent = fmtDateLabel(currentDate);
+  try {
+    const r = await fetch(`${API_BASE}/api/bookings?date=${ymd(currentDate)}&resourceType=table`,
+      { headers: { 'Authorization': 'Bearer ' + authToken } });
+    if (!r.ok) throw new Error(await r.text());
+    bookings = await r.json();
+    if (userRole === 'cashier') renderCashierList();
+    else renderTimeline();
+  } catch (err) {
+    toast('Error loading bookings: ' + err.message, 'var(--red)');
+  }
+}
+
+// ── Cashier list view ─────────────────────────────────────────────────────────
+function renderCashierList() {
+  const wrap = document.getElementById('cashierList');
+  const empty = document.getElementById('emptyState');
+  const upcoming = bookings.filter(b => b.status !== 'cancelled' && b.status !== 'no_show' && b.status !== 'completed');
+  if (!upcoming.length) { wrap.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  wrap.innerHTML = upcoming.map(b => `
+    <div class="booking-row">
+      <span class="booking-time">${fmtTime(b.startAt)}</span>
+      <span class="booking-table">${escHtml(b.resourceLabel || '—')}</span>
+      <div class="booking-guest">
+        <div class="booking-name">${escHtml(b.guestName)}</div>
+        <div class="booking-party">Party of ${b.partySize}${b.notes ? ' · ' + escHtml(b.notes) : ''}</div>
+      </div>
+      <span class="chip chip-${b.status}">${statusLabel(b.status)}</span>
+      <div class="booking-actions">
+        ${b.status === 'confirmed' ? `
+          <button class="btn btn-sm" onclick="doTransition('${b._id}','seat')">Seat</button>
+          <button class="btn btn-sm" style="background:var(--red)" onclick="doTransition('${b._id}','noshow')">No Show</button>
+        ` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ── Owner timeline view ───────────────────────────────────────────────────────
+function renderTimeline() {
+  const grid = document.getElementById('timelineGrid');
+  const empty = document.getElementById('emptyState');
+  const tables = (storeData?.tables || []).filter(t => t.active !== false);
+  if (!tables.length) {
+    grid.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-2)">No active tables configured. Add tables in <a href="admin.html">Settings</a>.</div>';
+    empty.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Build slot list: e.g. [9:00, 9:30, 10:00 … 22:30]
+  const slots = [];
+  for (let h = SLOT_START; h < SLOT_END; h++) {
+    slots.push({ h, m: 0 });
+    slots.push({ h, m: 30 });
+  }
+
+  const cols = slots.length + 1; // +1 for row label
+  grid.style.gridTemplateColumns = `90px repeat(${slots.length}, minmax(42px,1fr))`;
+
+  // Header row
+  let html = `<div class="tg-corner">Table / Time</div>`;
+  slots.forEach(s => {
+    const label = s.m === 0 ? `${s.h > 12 ? s.h - 12 : s.h}${s.h >= 12 ? 'p' : 'a'}` : '';
+    html += `<div class="tg-time-head">${label}</div>`;
+  });
+
+  // Table rows
+  tables.forEach(table => {
+    html += `<div class="tg-row-label">${escHtml(table.label)}</div>`;
+    slots.forEach(slot => {
+      const slotStart = new Date(currentDate);
+      slotStart.setUTCHours(slot.h, slot.m, 0, 0);
+      const slotEnd = new Date(slotStart.getTime() + SLOT_STEP * 60000);
+
+      // Find booking that starts in this slot for this table
+      const b = bookings.find(bk =>
+        bk.resourceId === table.id &&
+        new Date(bk.startAt) >= slotStart &&
+        new Date(bk.startAt) < slotEnd
+      );
+
+      html += `<div class="tg-cell" data-table="${table.id}" data-time="${slotStart.toISOString()}" onclick="cellClick(event,'${escAttr(table.id)}','${escAttr(table.label)}','${slotStart.toISOString()}')">`;
+      if (b) {
+        html += `<div class="booking-block bb-${b.status}" onclick="event.stopPropagation();openEditModal('${b._id}')" title="${escAttr(b.guestName)} (${b.partySize})">${escHtml(b.guestName)} ×${b.partySize}</div>`;
+      }
+      html += `</div>`;
+    });
+  });
+
+  grid.innerHTML = html;
+}
+
+// ── Status label ──────────────────────────────────────────────────────────────
+function statusLabel(s) {
+  const map = { confirmed: 'Confirmed', seated: 'Seated', completed: 'Completed', cancelled: 'Cancelled', no_show: 'No Show' };
+  return map[s] || s;
+}
+
+// ── Timeline cell click → open create modal pre-filled ───────────────────────
+function cellClick(e, tableId, tableLabel, isoTime) {
+  if (userRole === 'cashier') return;
+  openCreateModal(tableId, tableLabel, isoTime);
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openCreateModal(tableId, tableLabel, isoTime) {
+  resetModal();
+  document.getElementById('modalTitle').textContent = 'New Booking';
+  document.getElementById('cancelBookingBtn').style.display = 'none';
+
+  const tables = (storeData?.tables || []).filter(t => t.active !== false);
+  const sel = document.getElementById('fTable');
+  sel.innerHTML = '<option value="">— No table —</option>' + tables.map(t =>
+    `<option value="${escAttr(t.id)}" data-label="${escAttr(t.label)}" ${t.id === tableId ? 'selected' : ''}>${escHtml(t.label)}</option>`
+  ).join('');
+
+  if (isoTime) {
+    const d = new Date(isoTime);
+    document.getElementById('fDate').value = ymd(d);
+    document.getElementById('fTime').value = `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+  } else {
+    document.getElementById('fDate').value = ymd(currentDate);
+    document.getElementById('fTime').value = '19:00';
+  }
+
+  document.getElementById('bookingModal').classList.add('open');
+  document.getElementById('fGuestName').focus();
+}
+
+async function openEditModal(bookingId) {
+  resetModal();
+  const b = bookings.find(x => x._id === bookingId);
+  if (!b) return;
+  document.getElementById('modalTitle').textContent = 'Edit Booking';
+  document.getElementById('modalBookingId').value = bookingId;
+
+  const tables = (storeData?.tables || []).filter(t => t.active !== false);
+  const sel = document.getElementById('fTable');
+  sel.innerHTML = '<option value="">— No table —</option>' + tables.map(t =>
+    `<option value="${escAttr(t.id)}" data-label="${escAttr(t.label)}" ${t.id === b.resourceId ? 'selected' : ''}>${escHtml(t.label)}</option>`
+  ).join('');
+
+  document.getElementById('fGuestName').value  = b.guestName || '';
+  document.getElementById('fGuestPhone').value = b.guestPhone || '';
+  document.getElementById('fGuestEmail').value = b.guestEmail || '';
+  document.getElementById('fPartySize').value  = b.partySize || 2;
+  document.getElementById('fNotes').value      = b.notes || '';
+  const d = new Date(b.startAt);
+  document.getElementById('fDate').value = ymd(d);
+  document.getElementById('fTime').value = `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+
+  if (userRole !== 'cashier' && b.status === 'confirmed') {
+    document.getElementById('cancelBookingBtn').style.display = '';
+  }
+  document.getElementById('bookingModal').classList.add('open');
+}
+
+function resetModal() {
+  document.getElementById('modalBookingId').value = '';
+  document.getElementById('fGuestName').value  = '';
+  document.getElementById('fGuestPhone').value = '';
+  document.getElementById('fGuestEmail').value = '';
+  document.getElementById('fPartySize').value  = 2;
+  document.getElementById('fNotes').value      = '';
+  document.getElementById('fDate').value       = ymd(currentDate);
+  document.getElementById('fTime').value       = '19:00';
+  document.getElementById('modalError').textContent = '';
+}
+
+function closeModal() {
+  document.getElementById('bookingModal').classList.remove('open');
+}
+
+document.getElementById('bookingModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('bookingModal')) closeModal();
+});
+
+document.getElementById('saveBookingBtn').addEventListener('click', async () => {
+  const bookingId  = document.getElementById('modalBookingId').value;
+  const guestName  = document.getElementById('fGuestName').value.trim();
+  const guestPhone = document.getElementById('fGuestPhone').value.trim();
+  const guestEmail = document.getElementById('fGuestEmail').value.trim();
+  const partySize  = parseInt(document.getElementById('fPartySize').value) || 1;
+  const notes      = document.getElementById('fNotes').value.trim();
+  const dateVal    = document.getElementById('fDate').value;
+  const timeVal    = document.getElementById('fTime').value || '19:00';
+  const tableEl    = document.getElementById('fTable');
+  const tableId    = tableEl.value;
+  const tableLabel = tableEl.options[tableEl.selectedIndex]?.dataset.label || '';
+  const errEl      = document.getElementById('modalError');
+
+  if (!guestName) { errEl.textContent = 'Guest name is required.'; return; }
+  if (!dateVal)   { errEl.textContent = 'Date is required.'; return; }
+  errEl.textContent = '';
+
+  const startAt = new Date(`${dateVal}T${timeVal}:00Z`).toISOString();
+
+  const body = { guestName, guestPhone, guestEmail, partySize, notes, startAt,
+                 resourceType: 'table', resourceId: tableId, resourceLabel: tableLabel };
+
+  try {
+    const url    = bookingId ? `/api/bookings/${bookingId}` : '/api/bookings';
+    const method = bookingId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(body) });
+    if (!r.ok) { const e = await r.json(); errEl.textContent = e.error || 'Error'; return; }
+    closeModal();
+    toast(bookingId ? 'Booking updated.' : 'Booking created.', 'var(--green)');
+    loadBookings();
+  } catch (err) {
+    errEl.textContent = 'Network error.';
+  }
+});
+
+document.getElementById('cancelBookingBtn').addEventListener('click', async () => {
+  const bookingId = document.getElementById('modalBookingId').value;
+  if (!bookingId || !confirm('Cancel this booking?')) return;
+  try {
+    const r = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE', headers: authHeaders() });
+    if (!r.ok) { const e = await r.json(); toast(e.error || 'Error', 'var(--red)'); return; }
+    closeModal();
+    toast('Booking cancelled.', 'var(--amber)');
+    loadBookings();
+  } catch { toast('Network error.', 'var(--red)'); }
+});
+
+// ── Status transitions ────────────────────────────────────────────────────────
+async function doTransition(bookingId, action) {
+  try {
+    const r = await fetch(`/api/bookings/${bookingId}/${action}`, { method: 'PATCH', headers: authHeaders() });
+    if (!r.ok) { const e = await r.json(); toast(e.error || 'Error', 'var(--red)'); return; }
+    const labels = { seat: 'Marked as seated.', noshow: 'Marked as no-show.', complete: 'Marked as completed.' };
+    toast(labels[action] || 'Updated.', 'var(--green)');
+    loadBookings();
+  } catch { toast('Network error.', 'var(--red)'); }
+}
+
+// ── Day navigation ─────────────────────────────────────────────────────────────
+document.getElementById('prevDay').addEventListener('click', () => {
+  currentDate = new Date(currentDate.getTime() - 86400000);
+  loadBookings();
+});
+document.getElementById('nextDay').addEventListener('click', () => {
+  currentDate = new Date(currentDate.getTime() + 86400000);
+  loadBookings();
+});
+document.getElementById('todayBtn').addEventListener('click', () => {
+  currentDate = new Date(); currentDate.setHours(0,0,0,0);
+  loadBookings();
+});
+
+document.getElementById('newBookingBtn').addEventListener('click', () => openCreateModal());
+
+// ── Escape helpers ─────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s ?? '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  authToken = getToken();
+  userRole  = getRole();
+
+  if (!authToken) { window.location.href = 'login.html'; return; }
+
+  i18n.applyTranslations();
+
+  // Load store data for tables list
+  try {
+    const r = await fetch(`${API_BASE}/api/store`, { headers: { 'Authorization': 'Bearer ' + authToken } });
+    if (r.ok) storeData = await r.json();
+  } catch {}
+
+  if (userRole === 'cashier') {
+    document.getElementById('cashierView').style.display = '';
+    document.getElementById('ownerView').style.display   = 'none';
+  } else {
+    document.getElementById('ownerView').style.display   = '';
+    document.getElementById('cashierView').style.display = 'none';
+    document.getElementById('newBookingBtn').style.display = '';
+  }
+
+  currentDate = new Date(); currentDate.setHours(0,0,0,0);
+  loadBookings();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -121,6 +121,14 @@
           <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">🏷️ Discount Codes</label>
           <input type="number" id="pcDiscountCodes" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
         </div>
+        <div>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">📅 Reservations</label>
+          <input type="number" id="pcReservations" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+        </div>
+        <div>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">🏨 Hotel (future)</label>
+          <input type="number" id="pcHotel" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+        </div>
       </div>
       <div id="pricingPreview" style="font-size:.85em;color:var(--text-2);margin-bottom:.75rem;min-height:1.2em"></div>
       <button onclick="savePricing()" style="background:var(--ink,#334155);color:var(--ink-text,#fff);border:none;border-radius:var(--r);padding:.5rem 1.25rem;cursor:pointer;font-weight:600;font-size:.9em" data-i18n="superadmin.savePricing">Save Pricing</button>
@@ -440,6 +448,8 @@
       document.getElementById('pcMemberships').value  = cfg.addons?.memberships        ?? 0;
       document.getElementById('pcEmailCampaigns').value = cfg.addons?.emailCampaigns   ?? 0;
       document.getElementById('pcDiscountCodes').value  = cfg.addons?.discountCodes    ?? 0;
+      document.getElementById('pcReservations').value   = cfg.addons?.reservations      ?? 0;
+      document.getElementById('pcHotel').value           = cfg.addons?.hotel             ?? 0;
       updatePricingPreview();
     } catch {}
   }
@@ -451,17 +461,19 @@
     const m        = parseFloat(document.getElementById('pcMemberships').value) || 0;
     const e        = parseFloat(document.getElementById('pcEmailCampaigns').value) || 0;
     const d        = parseFloat(document.getElementById('pcDiscountCodes').value) || 0;
+    const res      = parseFloat(document.getElementById('pcReservations').value) || 0;
     const parts    = [`Base ${base}`];
-    if (r) parts.push(`+ Restaurant ${r}`);
-    if (m) parts.push(`+ Memberships ${m}`);
-    if (e) parts.push(`+ Email ${e}`);
-    if (d) parts.push(`+ Discount Codes ${d}`);
-    const max = base + r + m + e + d;
+    if (r)   parts.push(`+ Restaurant ${r}`);
+    if (m)   parts.push(`+ Memberships ${m}`);
+    if (e)   parts.push(`+ Email ${e}`);
+    if (d)   parts.push(`+ Discount Codes ${d}`);
+    if (res) parts.push(`+ Reservations ${res}`);
+    const max = base + r + m + e + d + res;
     document.getElementById('pricingPreview').textContent =
       `Preview: ${parts.join(' ')} = up to ${currency === 'HBD' || !currency ? '$' : currency + ' '}${max}/mo`;
   }
 
-  ['pcBase','pcCurrency','pcRestaurant','pcMemberships','pcEmailCampaigns','pcDiscountCodes'].forEach(id => {
+  ['pcBase','pcCurrency','pcRestaurant','pcMemberships','pcEmailCampaigns','pcDiscountCodes','pcReservations','pcHotel'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', updatePricingPreview);
   });
 
@@ -474,6 +486,8 @@
         memberships:        parseFloat(document.getElementById('pcMemberships').value)    || 0,
         emailCampaigns:     parseFloat(document.getElementById('pcEmailCampaigns').value) || 0,
         discountCodes:      parseFloat(document.getElementById('pcDiscountCodes').value)  || 0,
+        reservations:       parseFloat(document.getElementById('pcReservations').value)   || 0,
+        hotel:              parseFloat(document.getElementById('pcHotel').value)           || 0,
       },
     };
     const msgEl = document.getElementById('pricingSaveMsg');

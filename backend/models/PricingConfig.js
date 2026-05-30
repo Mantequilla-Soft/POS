@@ -9,6 +9,8 @@ const pricingConfigSchema = new mongoose.Schema({
     memberships:        { type: Number, default: 0 },
     emailCampaigns:     { type: Number, default: 0 },
     discountCodes:      { type: Number, default: 0 },
+    reservations:       { type: Number, default: 0 },
+    hotel:              { type: Number, default: 0 },
   },
 }, { timestamps: true });
 

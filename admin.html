@@ -457,6 +457,15 @@
             <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.discountCodesHelp">Let cashiers apply promo codes at checkout.</p>
         </div>
 
+        <!-- Reservations -->
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+                <input type="checkbox" id="enableReservations">
+                <span><strong data-i18n="admin.enableReservations">Table Reservations</strong></span>
+            </label>
+            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.reservationsHelp">Let guests book tables in advance. View and manage from <a href="reservations.html" target="_blank" style="color:var(--primary)">Reservations →</a></p>
+        </div>
+
         <!-- Kitchen Display -->
         <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
             <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
@@ -1376,6 +1385,7 @@
                 if (typeof loadBackupSettings === 'function') loadBackupSettings();
                 if (typeof loadRestaurantSettings === 'function') loadRestaurantSettings();
                 if (typeof loadDiscountCodesFeature === 'function') loadDiscountCodesFeature();
+                if (typeof loadReservationsFeature  === 'function') loadReservationsFeature();
                 if (typeof loadTierCost === 'function') loadTierCost();
 
                 // Update UI state
@@ -1408,6 +1418,7 @@
                     if (typeof loadBackupSettings === 'function') loadBackupSettings();
                     if (typeof loadRestaurantSettings === 'function') loadRestaurantSettings();
                     if (typeof loadDiscountCodesFeature === 'function') loadDiscountCodesFeature();
+                    if (typeof loadReservationsFeature  === 'function') loadReservationsFeature();
                     if (typeof loadTierCost === 'function') loadTierCost();
 
                     updatePublishStatus();
@@ -2013,6 +2024,19 @@
             markDirty();
         };
 
+        // --- Reservations feature ---
+        const enableReservationsChk = document.getElementById('enableReservations');
+
+        function loadReservationsFeature() {
+            enableReservationsChk.checked = currentData.features?.reservations || false;
+        }
+
+        enableReservationsChk.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.reservations = this.checked;
+            markDirty();
+        };
+
         async function loadDiscountCodes() {
             const token = localStorage.getItem('pos_admin_token');
             const dcList = document.getElementById('dcList');
@@ -2135,11 +2159,13 @@
                 if (feats.memberships && cfg.addons?.memberships)    parts.push(`Memberships +${cfg.addons.memberships}`);
                 if (feats.emailCampaigns && cfg.addons?.emailCampaigns) parts.push(`Email +${cfg.addons.emailCampaigns}`);
                 if (feats.discountCodes && cfg.addons?.discountCodes)  parts.push(`Discount Codes +${cfg.addons.discountCodes}`);
+                if (feats.reservations  && cfg.addons?.reservations)   parts.push(`Reservations +${cfg.addons.reservations}`);
                 const total = (cfg.basePrice || 0)
                     + ((feats.kitchenDisplay || feats.tabs) ? (cfg.addons?.restaurantFeatures || 0) : 0)
                     + (feats.memberships   ? (cfg.addons?.memberships    || 0) : 0)
                     + (feats.emailCampaigns? (cfg.addons?.emailCampaigns || 0) : 0)
-                    + (feats.discountCodes ? (cfg.addons?.discountCodes  || 0) : 0);
+                    + (feats.discountCodes ? (cfg.addons?.discountCodes  || 0) : 0)
+                    + (feats.reservations  ? (cfg.addons?.reservations   || 0) : 0);
                 const infoEl = document.getElementById('tierCostInfo');
                 const sym = (cfg.currency === 'HBD' || !cfg.currency) ? '$' : cfg.currency + ' ';
                 document.getElementById('tierCostText').textContent = `Your plan: ${parts.join(' + ')} = ${sym}${total}/mo`;

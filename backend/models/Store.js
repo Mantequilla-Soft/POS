@@ -24,6 +24,7 @@ const storeSchema = new mongoose.Schema({
     tabs:           { type: Boolean, default: false },
     kitchenDisplay: { type: Boolean, default: false },
     discountCodes:  { type: Boolean, default: false },
+    reservations:   { type: Boolean, default: false },
   },
 
   // Generic payment plugin storage.
