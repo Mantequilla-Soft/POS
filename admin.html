@@ -2507,7 +2507,7 @@
                 if (!shifts.length) { el.innerHTML = `<p style="font-size:.82em;color:var(--text-3);margin:.3rem 0" data-i18n="admin.noShifts">${t('admin.noShifts')}</p>`; return; }
                 el.innerHTML = shifts.map((s, i) => `
                     <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">
-                        <span style="flex:1;font-size:.9em">${posEscHtml(s.label)}</span>
+                        <span style="flex:1;font-size:.9em">${escHtmlAdmin(s.label)}</span>
                         <label style="font-size:.8em;color:var(--text-2);display:flex;align-items:center;gap:.25rem">
                             <input type="checkbox" ${s.active !== false ? 'checked' : ''} onchange="closeoutToggleShiftActive(${i},this.checked)"> Active
                         </label>
@@ -2523,10 +2523,10 @@
                 el.innerHTML = staff.map((s, i) => {
                     const shiftLabels = (s.defaultShiftIds || []).map(sid => {
                         const sh = shifts.find(x => x.id === sid);
-                        return sh ? posEscHtml(sh.label) : null;
+                        return sh ? escHtmlAdmin(sh.label) : null;
                     }).filter(Boolean).join(', ');
                     return `<div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">
-                        <span style="flex:1;font-size:.9em">${posEscHtml(s.name)} <span style="font-size:.78em;color:var(--text-3)">${shiftLabels}</span></span>
+                        <span style="flex:1;font-size:.9em">${escHtmlAdmin(s.name)} <span style="font-size:.78em;color:var(--text-3)">${shiftLabels}</span></span>
                         <label style="font-size:.8em;color:var(--text-2);display:flex;align-items:center;gap:.25rem">
                             <input type="checkbox" ${s.active !== false ? 'checked' : ''} onchange="closeoutToggleStaffActive(${i},this.checked)"> Active
                         </label>
@@ -2541,7 +2541,7 @@
                 if (!cats.length) { el.innerHTML = `<p style="font-size:.82em;color:var(--text-3);margin:.3rem 0">${t('admin.noDeductions')}</p>`; return; }
                 el.innerHTML = cats.map((c, i) => `
                     <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--border)">
-                        <span style="flex:1;font-size:.9em">${posEscHtml(c.label)}</span>
+                        <span style="flex:1;font-size:.9em">${escHtmlAdmin(c.label)}</span>
                         <label style="font-size:.8em;color:var(--text-2);display:flex;align-items:center;gap:.25rem">
                             <input type="checkbox" ${c.active !== false ? 'checked' : ''} onchange="closeoutToggleDeductionActive(${i},this.checked)"> Active
                         </label>
@@ -2605,7 +2605,7 @@
                 const shifts = getCfg().shifts || [];
                 document.getElementById('newStaffShiftsCheckboxes').innerHTML = shifts.length
                     ? `<div style="color:var(--text-2);margin-bottom:.25rem">${t('admin.staffShifts')}:</div>` +
-                      shifts.map(s => `<label style="display:flex;align-items:center;gap:.3rem;margin-bottom:.2rem"><input type="checkbox" value="${posEscHtml(s.id)}" class="newStaffShiftCb"> ${posEscHtml(s.label)}</label>`).join('')
+                      shifts.map(s => `<label style="display:flex;align-items:center;gap:.3rem;margin-bottom:.2rem"><input type="checkbox" value="${escHtmlAdmin(s.id)}" class="newStaffShiftCb"> ${escHtmlAdmin(s.label)}</label>`).join('')
                     : '';
                 document.getElementById('newStaffName').focus();
             };
@@ -2693,7 +2693,7 @@
                     ${closeouts.map(c => `
                         <tr style="border-bottom:1px solid var(--border)" id="co-row-${c._id}">
                             <td style="padding:.35rem .4rem;font-size:.88em">${c.date}</td>
-                            <td style="padding:.35rem .4rem;font-size:.88em">${posEscHtml(c.submittedBy || '—')}</td>
+                            <td style="padding:.35rem .4rem;font-size:.88em">${escHtmlAdmin(c.submittedBy || '—')}</td>
                             <td style="padding:.35rem .4rem;font-size:.88em;text-align:right">${fmtMoney(c.cashDelivered)}</td>
                             <td style="padding:.35rem .4rem;font-size:.88em;text-align:right">${fmtMoney(c.bankTotal)}</td>
                             <td style="padding:.35rem .4rem;text-align:center">
@@ -2736,10 +2736,10 @@
                 const c = await r.json();
                 const statusColors = { draft: 'var(--text-3)', submitted: 'var(--amber)', reviewed: 'var(--green)' };
                 const tipsRows = (c.shifts || []).flatMap(sh =>
-                    (sh.staff || []).map(s => `<tr><td style="padding:.25rem .4rem">${posEscHtml(sh.shiftLabel)}</td><td style="padding:.25rem .4rem">${posEscHtml(s.staffName)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(s.tipCash)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(s.tipTransfer)}</td></tr>`)
+                    (sh.staff || []).map(s => `<tr><td style="padding:.25rem .4rem">${escHtmlAdmin(sh.shiftLabel)}</td><td style="padding:.25rem .4rem">${escHtmlAdmin(s.staffName)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(s.tipCash)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(s.tipTransfer)}</td></tr>`)
                 );
                 const dedRows = (c.deductions || []).map(d =>
-                    `<tr><td style="padding:.25rem .4rem">${posEscHtml(d.label)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(d.amount)}</td><td style="padding:.25rem .4rem;color:var(--text-3)">${posEscHtml(d.note || '')}</td></tr>`
+                    `<tr><td style="padding:.25rem .4rem">${escHtmlAdmin(d.label)}</td><td style="padding:.25rem .4rem;text-align:right">${fmtMoney(d.amount)}</td><td style="padding:.25rem .4rem;color:var(--text-3)">${escHtmlAdmin(d.note || '')}</td></tr>`
                 );
                 body.innerHTML = `
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1.5rem;margin-bottom:.75rem;font-size:.87em">
@@ -2754,9 +2754,9 @@
                     ${dedRows.length ? `<table style="width:100%;border-collapse:collapse;font-size:.83em;margin-bottom:.5rem">
                         <thead><tr style="color:var(--text-2);border-bottom:1px solid var(--border)"><th style="text-align:left;padding:.2rem .4rem">${t('closeout.deductionLabel')}</th><th style="text-align:right;padding:.2rem .4rem">${t('closeout.deductionAmount')}</th><th style="text-align:left;padding:.2rem .4rem">${t('closeout.deductionNote')}</th></tr></thead>
                         <tbody>${dedRows.join('')}</tbody></table>` : ''}
-                    ${c.notes ? `<p style="font-size:.85em;margin:.5rem 0"><strong>${t('closeout.sectionNotes')}:</strong> ${posEscHtml(c.notes)}</p>` : ''}
-                    ${c.status === 'reviewed' ? `<p style="font-size:.82em;color:var(--green);margin:.5rem 0">✓ ${t('closeout.reviewedBy', { name: posEscHtml(c.reviewedBy), date: c.reviewedAt ? new Date(c.reviewedAt).toLocaleDateString() : '' })}</p>
-                    ${c.reviewComment ? `<blockquote style="margin:.5rem 0;padding:.4rem .75rem;border-left:3px solid var(--green);font-size:.85em;color:var(--text)">${posEscHtml(c.reviewComment)}</blockquote>` : ''}` : ''}
+                    ${c.notes ? `<p style="font-size:.85em;margin:.5rem 0"><strong>${t('closeout.sectionNotes')}:</strong> ${escHtmlAdmin(c.notes)}</p>` : ''}
+                    ${c.status === 'reviewed' ? `<p style="font-size:.82em;color:var(--green);margin:.5rem 0">✓ ${t('closeout.reviewedBy', { name: escHtmlAdmin(c.reviewedBy), date: c.reviewedAt ? new Date(c.reviewedAt).toLocaleDateString() : '' })}</p>
+                    ${c.reviewComment ? `<blockquote style="margin:.5rem 0;padding:.4rem .75rem;border-left:3px solid var(--green);font-size:.85em;color:var(--text)">${escHtmlAdmin(c.reviewComment)}</blockquote>` : ''}` : ''}
                     ${c.status === 'submitted' ? `<div style="margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem">
                         <textarea id="reviewComment-${id}" rows="2" style="width:100%;box-sizing:border-box;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.85em;background:var(--bg);color:var(--text);resize:vertical" placeholder="${t('closeout.reviewCommentPlaceholder')}"></textarea>
                         <button type="button" class="btn btn-sm" style="background:var(--green);color:#fff;margin-top:.4rem" onclick="markCloseoutReviewed('${id}')">${t('closeout.markReviewed')}</button>
