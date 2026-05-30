@@ -279,7 +279,7 @@ function renderTimeline() {
   const grid = document.getElementById('timelineGrid');
   const empty = document.getElementById('emptyState');
   const tables = (storeData?.tables || []).filter(t => t.active !== false);
-  if (!tables.length) {
+  if (!tables.length && !bookings.length) {
     grid.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-2)">${t('reservations.noTablesMsg')}</div>`;
     empty.style.display = 'none';
     return;
@@ -450,7 +450,7 @@ document.getElementById('saveBookingBtn').addEventListener('click', async () => 
   if (!dateVal)   { errEl.textContent = t('reservations.errorDate'); return; }
   errEl.textContent = '';
 
-  const startAt = new Date(`${dateVal}T${timeVal}:00Z`).toISOString();
+  const startAt = new Date(`${dateVal}T${timeVal}:00`).toISOString();
 
   const body = { guestName, guestPhone, guestEmail, partySize, notes, startAt,
                  resourceType: 'table', resourceId: tableId, resourceLabel: tableLabel };
