@@ -568,20 +568,20 @@
         <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
             <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
                 <input type="checkbox" id="enableKitchenDisplay">
-                <span><strong>Kitchen Display</strong></span>
+                <span><strong data-i18n="admin.enableKitchen">Kitchen Display</strong></span>
             </label>
-            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em">A PIN-protected screen shows open orders in the kitchen. <a href="kitchen.html" target="_blank" style="color:var(--primary)">Open Kitchen Display →</a></p>
+            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em"><span data-i18n="admin.kitchenHelp">A PIN-protected screen shows open orders in the kitchen.</span> <a href="kitchen.html" target="_blank" style="color:var(--primary)" data-i18n="admin.openKitchen">Open Kitchen Display →</a></p>
             <div id="kitchenPinPanel" style="display:none">
-                <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.2rem">Kitchen PIN <span style="font-weight:400;color:var(--text-2)">(4–10 digits, leave blank to keep current)</span></label>
+                <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.2rem"><span data-i18n="admin.kitchenPinLabel">Kitchen PIN</span> <span style="font-weight:400;color:var(--text-2)" data-i18n="admin.kitchenPinHelp">(4–10 digits, leave blank to keep current)</span></label>
                 <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
                     <input type="password" id="kitchenPinInput" placeholder="••••" maxlength="10" inputmode="numeric" style="width:130px;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
-                    <button type="button" id="saveKitchenPinBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0">Set PIN</button>
+                    <button type="button" id="saveKitchenPinBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0" data-i18n="admin.setPin">Set PIN</button>
                     <span id="kitchenPinStatus" style="font-size:.82em;color:var(--green)"></span>
                 </div>
                 <div id="kitchenUrlRow" style="margin-top:.75rem;font-size:.82em;display:none">
-                    <strong>Kitchen URL:</strong><br>
+                    <strong data-i18n="admin.kitchenUrlLabel">Kitchen URL:</strong><br>
                     <code id="kitchenUrl" style="background:var(--bg);padding:.2em .5em;border-radius:4px;user-select:all;word-break:break-all;font-size:.95em"></code>
-                    <button type="button" onclick="copyKitchenUrl()" style="margin:.3rem 0 0;padding:.2rem .5rem;font-size:.8em;background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r-sm);cursor:pointer;display:block">Copy URL</button>
+                    <button type="button" onclick="copyKitchenUrl()" style="margin:.3rem 0 0;padding:.2rem .5rem;font-size:.8em;background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r-sm);cursor:pointer;display:block" data-i18n="admin.copyUrl">Copy URL</button>
                 </div>
             </div>
         </div>
@@ -3023,7 +3023,7 @@
 
         window.copyKitchenUrl = function() {
             const url = document.getElementById('kitchenUrl').textContent;
-            navigator.clipboard.writeText(url).then(() => alert('Kitchen URL copied!')).catch(() => prompt('Copy this URL:', url));
+            navigator.clipboard.writeText(url).then(() => alert(t('admin.kitchenUrlCopied'))).catch(() => prompt('Copy this URL:', url));
         };
 
         function adminEscHtml(s) {
