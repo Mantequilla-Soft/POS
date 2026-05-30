@@ -517,8 +517,8 @@ async function init() {
   } else {
     document.getElementById('ownerView').style.display   = '';
     document.getElementById('cashierView').style.display = 'none';
-    document.getElementById('newBookingBtn').style.display = '';
   }
+  document.getElementById('newBookingBtn').style.display = '';
 
   currentDate = new Date(); currentDate.setHours(0,0,0,0);
   loadBookings();

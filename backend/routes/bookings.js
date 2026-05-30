@@ -34,10 +34,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/bookings — owner only
+// POST /api/bookings — owner + cashier
 router.post('/', async (req, res) => {
   try {
-    if (req.user.role === 'cashier') return res.status(403).json({ error: 'Forbidden' });
     const sid = getStoreId(req);
     if (!sid) return res.status(400).json({ error: 'No store' });
     const { resourceType, resourceId, resourceLabel, guestName, guestPhone, guestEmail,
