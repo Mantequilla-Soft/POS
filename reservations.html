@@ -531,13 +531,13 @@ async function init() {
   } catch {}
 
   if (userRole === 'cashier') {
-    document.getElementById('cashierView').style.display = '';
+    document.getElementById('cashierView').style.display = 'block';
     document.getElementById('ownerView').style.display   = 'none';
   } else {
-    document.getElementById('ownerView').style.display   = '';
+    document.getElementById('ownerView').style.display   = 'block';
     document.getElementById('cashierView').style.display = 'none';
   }
-  document.getElementById('newBookingBtn').style.display = '';
+  document.getElementById('newBookingBtn').style.display = 'inline-block';
 
   currentDate = new Date(); currentDate.setHours(0,0,0,0);
   loadBookings();
