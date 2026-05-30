@@ -503,7 +503,7 @@ async function init() {
 
   if (!authToken) { window.location.href = 'login.html'; return; }
 
-  i18n.applyTranslations();
+  i18n.init();
 
   // Load store data for tables list
   try {
