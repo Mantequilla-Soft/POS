@@ -28,7 +28,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // regardless of what X-Frame-Options the reverse proxy normally injects.
 app.get('/hotel-widget.html', (req, res) => {
   res.removeHeader('X-Frame-Options');
-  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  res.removeHeader('Content-Security-Policy');
   res.sendFile(path.join(__dirname, '..', 'hotel-widget.html'));
 });
 
