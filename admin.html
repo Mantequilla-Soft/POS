@@ -1847,11 +1847,16 @@
         const reminderBodyInput      = document.getElementById('reminderBody');
 
         function loadEmailReminderSettings() {
+            const chk     = document.getElementById('enableEmailReminders');
+            const panel   = document.getElementById('emailReminderTemplatePanel');
+            const subject = document.getElementById('reminderSubject');
+            const body    = document.getElementById('reminderBody');
+            if (!chk) return;
             const enabled = currentData.features?.emailReminders || false;
-            enableEmailReminders.checked = enabled;
-            emailReminderPanel.style.display = enabled ? '' : 'none';
-            reminderSubjectInput.value = currentData.emailSettings?.reminderSubject || '';
-            reminderBodyInput.value    = currentData.emailSettings?.reminderBody    || '';
+            chk.checked = enabled;
+            if (panel)   panel.style.display = enabled ? '' : 'none';
+            if (subject) subject.value = currentData.emailSettings?.reminderSubject || '';
+            if (body)    body.value    = currentData.emailSettings?.reminderBody    || '';
         }
 
         enableEmailReminders.onchange = function() {
@@ -2041,7 +2046,7 @@
             const token = localStorage.getItem('pos_admin_token');
             const dcList = document.getElementById('dcList');
             try {
-                const r = await fetch(`${API_BASE}/api/discount-codes`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const r = await fetch(`${API_BASE_URL}/discount-codes`, { headers: { 'Authorization': 'Bearer ' + token } });
                 const codes = await r.json();
                 if (!codes.length) { dcList.innerHTML = `<p style="font-size:.85em;color:var(--text-3);margin:.5rem 0" data-i18n="admin.noDiscountCodes">No codes yet.</p>`; return; }
                 dcList.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.85em">
@@ -2098,7 +2103,7 @@
             };
             if (!body.code || isNaN(body.value)) { document.getElementById('dcError').textContent = 'Code and value are required.'; return; }
             try {
-                const r = await fetch(`${API_BASE}/api/discount-codes${id ? '/' + id : ''}`, {
+                const r = await fetch(`${API_BASE_URL}/discount-codes${id ? '/' + id : ''}`, {
                     method: id ? 'PUT' : 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify(body),
@@ -2113,7 +2118,7 @@
         window.editDcCode = function(id) {
             // reload list to get full data, so just fetch it inline
             const token = localStorage.getItem('pos_admin_token');
-            fetch(`${API_BASE}/api/discount-codes`, { headers: { 'Authorization': 'Bearer ' + token } })
+            fetch(`${API_BASE_URL}/discount-codes`, { headers: { 'Authorization': 'Bearer ' + token } })
                 .then(r => r.json())
                 .then(codes => {
                     const c = codes.find(x => x._id === id);
@@ -2134,13 +2139,13 @@
         window.deleteDcCode = async function(id) {
             if (!confirm('Delete this discount code?')) return;
             const token = localStorage.getItem('pos_admin_token');
-            await fetch(`${API_BASE}/api/discount-codes/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            await fetch(`${API_BASE_URL}/discount-codes/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
             loadDiscountCodes();
         };
 
         window.toggleDcActive = async function(id, active) {
             const token = localStorage.getItem('pos_admin_token');
-            await fetch(`${API_BASE}/api/discount-codes/${id}`, {
+            await fetch(`${API_BASE_URL}/discount-codes/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify({ active }),
@@ -2150,7 +2155,7 @@
         // --- Tier Cost Display ---
         async function loadTierCost() {
             try {
-                const r = await fetch(`${API_BASE}/api/pricing`);
+                const r = await fetch(`${API_BASE_URL}/pricing`);
                 if (!r.ok) return;
                 const cfg = await r.json();
                 const feats = currentData.features || {};
