@@ -3,6 +3,7 @@ const express   = require('express');
 const mongoose  = require('mongoose');
 const cors      = require('cors');
 const path      = require('path');
+const fs        = require('fs');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
@@ -22,6 +23,60 @@ const authLimiter = rateLimit({
 
 // Serve uploaded images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Shareable availability page — /availability/:hiveAccount
+// Reads hotel-widget.html and injects server-rendered Open Graph meta tags
+// so Facebook, WhatsApp, Twitter etc. generate proper link preview cards.
+app.get('/availability/:hiveAccount', async (req, res) => {
+  try {
+    const Store = require('./models/Store');
+    const { hiveAccount } = req.params;
+    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const store = await Store.findOne({ hiveAccount });
+    if (!store || !store.features?.hotel) {
+      return res.status(404).send('<h1>Not found</h1>');
+    }
+
+    const rooms       = (store.rooms || []).filter(r => r.active !== false);
+    const bizName     = store.businessName || hiveAccount;
+    const title       = `${esc(bizName)} — Room Availability`;
+    const description = rooms.length
+      ? `${rooms.length} room${rooms.length !== 1 ? 's' : ''} for rent. Check availability and contact us to book.`
+      : `Check room availability at ${esc(bizName)}.`;
+    const pageUrl     = `${req.protocol}://${req.hostname}/availability/${hiveAccount}`;
+    const image       = store.bannerUrl || '';
+
+    const ogTags = [
+      `  <title>${title}</title>`,
+      `  <meta name="description" content="${esc(description)}">`,
+      `  <meta property="og:title"       content="${esc(title)}">`,
+      `  <meta property="og:description" content="${esc(description)}">`,
+      `  <meta property="og:type"        content="website">`,
+      `  <meta property="og:url"         content="${esc(pageUrl)}">`,
+      image ? `  <meta property="og:image"       content="${esc(image)}">` : '',
+      `  <meta name="twitter:card"        content="${image ? 'summary_large_image' : 'summary'}">`,
+      `  <meta name="twitter:title"       content="${esc(title)}">`,
+      `  <meta name="twitter:description" content="${esc(description)}">`,
+      image ? `  <meta name="twitter:image"       content="${esc(image)}">` : '',
+    ].filter(Boolean).join('\n');
+
+    let html = fs.readFileSync(path.join(__dirname, '..', 'hotel-widget.html'), 'utf8');
+    // Inject OG tags before </head>
+    html = html.replace('</head>', ogTags + '\n</head>');
+    // Pre-fill the store param so no ?store= query string is needed
+    html = html.replace(
+      "const STORE  = params.get('store') || '';",
+      `const STORE  = params.get('store') || '${hiveAccount.replace(/'/g, "\\'")}';`
+    );
+
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('<h1>Server error</h1>');
+  }
+});
 
 // hotel-widget.html must be embeddable in iframes from any origin.
 // This route runs before express.static so we control the response headers

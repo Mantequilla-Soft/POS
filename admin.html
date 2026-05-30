@@ -510,9 +510,14 @@
                         <button class="btn-sm" id="cancelRoomBtn" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.82rem" data-i18n="common.cancel">Cancel</button>
                     </div>
                 </div>
-                <!-- Embed snippet -->
+                <!-- Shareable link + embed snippet -->
                 <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
-                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.4rem" data-i18n="hotel.embedCode">Website Embed Code</label>
+                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.25rem">📱 Shareable Link <span style="font-weight:400;color:var(--text-2)">(Facebook, WhatsApp, Instagram bio)</span></label>
+                    <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.75rem">
+                        <input id="shareableLink" readonly style="flex:1;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.82em;background:var(--bg);color:var(--text);font-family:monospace">
+                        <button class="btn btn-sm" onclick="copyShareableLink()" data-i18n="hotel.copyEmbed">Copy</button>
+                    </div>
+                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.25rem">🖥️ Website Embed Code <span style="font-weight:400;color:var(--text-2)">(paste into any website)</span></label>
                     <textarea id="embedSnippet" readonly rows="3" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.78em;background:var(--bg);color:var(--text);font-family:monospace;resize:none"></textarea>
                     <button class="btn btn-sm" style="margin-top:.4rem" onclick="copyEmbed()" data-i18n="hotel.copyEmbed">Copy</button>
                 </div>
@@ -2201,9 +2206,21 @@
         function updateEmbedSnippet() {
             const hive = currentData.settings?.hiveAccount || currentData.hiveAccount || '';
             const base = (localStorage.getItem('pos_api_base') || window.location.origin).replace(/\/api$/, '');
-            const snippet = `<iframe src="${base}/hotel-widget.html?store=${hive}" width="100%" height="600" frameborder="0" style="border:none;border-radius:12px"></iframe>`;
-            document.getElementById('embedSnippet').value = snippet;
+            const shareUrl = `${base}/availability/${hive}`;
+            const snippet  = `<iframe src="${base}/hotel-widget.html?store=${hive}" width="100%" height="600" frameborder="0" style="border:none;border-radius:12px"></iframe>`;
+            document.getElementById('shareableLink').value = shareUrl;
+            document.getElementById('embedSnippet').value  = snippet;
         }
+
+        window.copyShareableLink = function() {
+            const val = document.getElementById('shareableLink').value;
+            navigator.clipboard.writeText(val).then(() => {
+                const btn = document.getElementById('shareableLink').nextElementSibling;
+                const orig = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 1800);
+            });
+        };
 
         window.copyEmbed = function() {
             const ta = document.getElementById('embedSnippet');
