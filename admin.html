@@ -466,6 +466,59 @@
             <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.reservationsHelp">Let guests book tables in advance. View and manage from <a href="reservations.html" target="_blank" style="color:var(--primary)">Reservations →</a></p>
         </div>
 
+        <!-- Hotel -->
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+                <input type="checkbox" id="enableHotel">
+                <span><strong data-i18n="admin.enableHotel">Hotel / Room Rentals</strong></span>
+            </label>
+            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.hotelHelp">Manage room bookings and show a public availability calendar on your website. <a href="hotel.html" target="_blank" style="color:var(--primary)">Open Hotel →</a></p>
+            <!-- Rooms management panel -->
+            <div id="hotelRoomsPanel" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+                    <strong style="font-size:.9em" data-i18n="hotel.rooms">Rooms</strong>
+                    <button class="btn btn-sm" id="addRoomBtn" data-i18n="hotel.addRoom">Add Room</button>
+                </div>
+                <div id="roomsList"></div>
+                <!-- Add/edit room form -->
+                <div id="roomFormWrap" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-top:.75rem">
+                    <input type="hidden" id="roomEditId">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem">
+                        <div>
+                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem" data-i18n="hotel.roomLabel">Room Name</label>
+                            <input type="text" id="roomLabelInput" placeholder="Cabin 1 – Oceanview" style="width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
+                        </div>
+                        <div>
+                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem" data-i18n="hotel.roomCapacity">Max Guests</label>
+                            <input type="number" id="roomCapInput" min="1" value="2" style="width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
+                        </div>
+                        <div>
+                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem" data-i18n="hotel.roomRate">Nightly Rate</label>
+                            <input type="number" id="roomRateInput" min="0" step="0.01" value="0" style="width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
+                        </div>
+                        <div>
+                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem">Currency</label>
+                            <input type="text" id="roomCurrencyInput" value="HBD" placeholder="HBD" style="width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem" data-i18n="hotel.roomDesc">Description</label>
+                            <input type="text" id="roomDescInput" placeholder="Sea view, king bed, kitchenette" style="width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:.5rem">
+                        <button class="btn btn-sm" id="saveRoomBtn" data-i18n="common.save">Save</button>
+                        <button class="btn-sm" id="cancelRoomBtn" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.82rem" data-i18n="common.cancel">Cancel</button>
+                    </div>
+                </div>
+                <!-- Embed snippet -->
+                <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.4rem" data-i18n="hotel.embedCode">Website Embed Code</label>
+                    <textarea id="embedSnippet" readonly rows="3" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.78em;background:var(--bg);color:var(--text);font-family:monospace;resize:none"></textarea>
+                    <button class="btn btn-sm" style="margin-top:.4rem" onclick="copyEmbed()" data-i18n="hotel.copyEmbed">Copy</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Kitchen Display -->
         <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
             <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
@@ -1386,6 +1439,7 @@
                 if (typeof loadRestaurantSettings === 'function') loadRestaurantSettings();
                 if (typeof loadDiscountCodesFeature === 'function') loadDiscountCodesFeature();
                 if (typeof loadReservationsFeature  === 'function') loadReservationsFeature();
+                if (typeof loadHotelFeature === 'function') loadHotelFeature();
                 if (typeof loadTierCost === 'function') loadTierCost();
 
                 // Update UI state
@@ -1419,6 +1473,7 @@
                     if (typeof loadRestaurantSettings === 'function') loadRestaurantSettings();
                     if (typeof loadDiscountCodesFeature === 'function') loadDiscountCodesFeature();
                     if (typeof loadReservationsFeature  === 'function') loadReservationsFeature();
+                if (typeof loadHotelFeature === 'function') loadHotelFeature();
                     if (typeof loadTierCost === 'function') loadTierCost();
 
                     updatePublishStatus();
@@ -2042,6 +2097,122 @@
             markDirty();
         };
 
+        // ── Hotel feature ──────────────────────────────────────────────────────
+        const enableHotelChk   = document.getElementById('enableHotel');
+        const hotelRoomsPanel  = document.getElementById('hotelRoomsPanel');
+        const roomFormWrap     = document.getElementById('roomFormWrap');
+
+        function loadHotelFeature() {
+            enableHotelChk.checked = currentData.features?.hotel || false;
+            hotelRoomsPanel.style.display = enableHotelChk.checked ? '' : 'none';
+            renderRoomsList();
+            updateEmbedSnippet();
+        }
+
+        enableHotelChk.onchange = function() {
+            if (!currentData.features) currentData.features = {};
+            currentData.features.hotel = this.checked;
+            hotelRoomsPanel.style.display = this.checked ? '' : 'none';
+            if (this.checked) updateEmbedSnippet();
+            markDirty();
+        };
+
+        function renderRoomsList() {
+            const rooms = currentData.rooms || [];
+            const el = document.getElementById('roomsList');
+            if (!rooms.length) {
+                el.innerHTML = `<p style="font-size:.85em;color:var(--text-2);margin:.25rem 0" data-i18n="hotel.noRooms">No rooms yet. Add one below.</p>`;
+                return;
+            }
+            el.innerHTML = rooms.map((r, i) => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem .6rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:.4rem;flex-wrap:wrap;gap:.4rem">
+                <div>
+                  <strong style="font-size:.88em">${escHtmlAdmin(r.label)}</strong>
+                  <span style="font-size:.78em;color:var(--text-2);margin-left:.5rem">${r.currency} ${r.nightlyRate}/night · ${r.capacity} guest${r.capacity !== 1 ? 's' : ''}</span>
+                  ${r.description ? `<div style="font-size:.77em;color:var(--text-2)">${escHtmlAdmin(r.description)}</div>` : ''}
+                </div>
+                <div style="display:flex;gap:.35rem">
+                  <button class="btn btn-sm" onclick="editRoom(${i})" data-i18n="common.edit">Edit</button>
+                  <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="deleteRoom(${i})" data-i18n="common.delete">Delete</button>
+                </div>
+              </div>`).join('');
+        }
+
+        function escHtmlAdmin(s) {
+            return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        document.getElementById('addRoomBtn').onclick = () => {
+            document.getElementById('roomEditId').value = '';
+            document.getElementById('roomLabelInput').value    = '';
+            document.getElementById('roomCapInput').value      = '2';
+            document.getElementById('roomRateInput').value     = '0';
+            document.getElementById('roomCurrencyInput').value = currentData.currency || 'HBD';
+            document.getElementById('roomDescInput').value     = '';
+            roomFormWrap.style.display = '';
+        };
+
+        document.getElementById('cancelRoomBtn').onclick = () => { roomFormWrap.style.display = 'none'; };
+
+        document.getElementById('saveRoomBtn').onclick = () => {
+            const label = document.getElementById('roomLabelInput').value.trim();
+            if (!label) { alert('Room name is required'); return; }
+            if (!currentData.rooms) currentData.rooms = [];
+            const editId = document.getElementById('roomEditId').value;
+            const room = {
+                id:          editId || Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+                label,
+                description: document.getElementById('roomDescInput').value.trim(),
+                capacity:    parseInt(document.getElementById('roomCapInput').value) || 1,
+                nightlyRate: parseFloat(document.getElementById('roomRateInput').value) || 0,
+                currency:    document.getElementById('roomCurrencyInput').value.trim() || 'HBD',
+                active:      true,
+            };
+            if (editId) {
+                const idx = currentData.rooms.findIndex(r => r.id === editId);
+                if (idx >= 0) currentData.rooms[idx] = room;
+            } else {
+                currentData.rooms.push(room);
+            }
+            roomFormWrap.style.display = 'none';
+            renderRoomsList();
+            markDirty();
+        };
+
+        window.editRoom = function(idx) {
+            const r = (currentData.rooms || [])[idx];
+            if (!r) return;
+            document.getElementById('roomEditId').value          = r.id;
+            document.getElementById('roomLabelInput').value      = r.label;
+            document.getElementById('roomCapInput').value        = r.capacity;
+            document.getElementById('roomRateInput').value       = r.nightlyRate;
+            document.getElementById('roomCurrencyInput').value   = r.currency || 'HBD';
+            document.getElementById('roomDescInput').value       = r.description || '';
+            roomFormWrap.style.display = '';
+        };
+
+        window.deleteRoom = function(idx) {
+            if (!confirm('Remove this room?')) return;
+            if (currentData.rooms) { currentData.rooms.splice(idx, 1); renderRoomsList(); markDirty(); }
+        };
+
+        function updateEmbedSnippet() {
+            const hive = currentData.hiveAccount || '';
+            const base = (localStorage.getItem('pos_api_base') || window.location.origin).replace(/\/api$/, '');
+            const snippet = `<iframe src="${base}/hotel-widget.html?store=${hive}" width="100%" height="600" frameborder="0" style="border:none;border-radius:12px"></iframe>`;
+            document.getElementById('embedSnippet').value = snippet;
+        }
+
+        window.copyEmbed = function() {
+            const ta = document.getElementById('embedSnippet');
+            navigator.clipboard.writeText(ta.value).then(() => {
+                const btn = ta.nextElementSibling;
+                const orig = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 1800);
+            });
+        };
+
         async function loadDiscountCodes() {
             const token = localStorage.getItem('pos_admin_token');
             const dcList = document.getElementById('dcList');
@@ -2165,12 +2336,14 @@
                 if (feats.emailCampaigns && cfg.addons?.emailCampaigns) parts.push(`Email +${cfg.addons.emailCampaigns}`);
                 if (feats.discountCodes && cfg.addons?.discountCodes)  parts.push(`Discount Codes +${cfg.addons.discountCodes}`);
                 if (feats.reservations  && cfg.addons?.reservations)   parts.push(`Reservations +${cfg.addons.reservations}`);
+                if (feats.hotel        && cfg.addons?.hotel)           parts.push(`Hotel +${cfg.addons.hotel}`);
                 const total = (cfg.basePrice || 0)
                     + ((feats.kitchenDisplay || feats.tabs) ? (cfg.addons?.restaurantFeatures || 0) : 0)
                     + (feats.memberships   ? (cfg.addons?.memberships    || 0) : 0)
                     + (feats.emailCampaigns? (cfg.addons?.emailCampaigns || 0) : 0)
                     + (feats.discountCodes ? (cfg.addons?.discountCodes  || 0) : 0)
-                    + (feats.reservations  ? (cfg.addons?.reservations   || 0) : 0);
+                    + (feats.reservations  ? (cfg.addons?.reservations   || 0) : 0)
+                    + (feats.hotel        ? (cfg.addons?.hotel           || 0) : 0);
                 const infoEl = document.getElementById('tierCostInfo');
                 const sym = (cfg.currency === 'HBD' || !cfg.currency) ? '$' : cfg.currency + ' ';
                 document.getElementById('tierCostText').textContent = `Your plan: ${parts.join(' + ')} = ${sym}${total}/mo`;

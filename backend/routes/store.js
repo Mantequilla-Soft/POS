@@ -105,6 +105,7 @@ router.get('/config', async (req, res) => {
       language:      store.language,
       tax:           store.tax,
       tables:        store.tables || [],
+      rooms:         store.rooms  || [],
       hasKitchenPin: !!store.kitchenPin,
       theme:         store.theme || null,
     });

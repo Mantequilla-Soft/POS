@@ -7,6 +7,7 @@ function computePlanPrice(features = {}, cfg) {
   if (features.emailCampaigns) price += cfg.addons?.emailCampaigns || 0;
   if (features.discountCodes)  price += cfg.addons?.discountCodes  || 0;
   if (features.reservations)   price += cfg.addons?.reservations   || 0;
+  if (features.hotel)          price += cfg.addons?.hotel          || 0;
   return Math.round(price * 100) / 100;
 }
 

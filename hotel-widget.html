@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Room Availability</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --text-2: #64748b;
+      --ink: #1e293b;
+      --green: #16a34a;
+      --green-light: #dcfce7;
+      --gray: #94a3b8;
+      --gray-light: #f1f5f9;
+      --r: 8px;
+      --r-lg: 12px;
+      --font: system-ui, -apple-system, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --border: #334155;
+        --text: #f1f5f9;
+        --text-2: #94a3b8;
+        --ink: #f8fafc;
+        --green: #4ade80;
+        --green-light: #14532d;
+        --gray: #475569;
+        --gray-light: #1e293b;
+      }
+    }
+
+    body { margin: 0; padding: 1rem; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; }
+
+    h2 { margin: 0 0 1.25rem; font-size: 1.2rem; color: var(--text); }
+
+    .room-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 1rem; overflow: hidden; }
+    .room-header { padding: .85rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; flex-wrap: wrap; }
+    .room-name { font-weight: 700; font-size: 1rem; }
+    .room-meta { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+    .room-meta span { font-size: .82rem; color: var(--text-2); }
+    .room-rate { font-weight: 700; color: var(--text); font-size: .9rem; }
+    .room-desc { padding: .5rem 1rem .75rem; font-size: .85rem; color: var(--text-2); }
+    .room-cal { padding: .5rem 1rem 1rem; }
+
+    /* Mini calendar */
+    .mini-cal { margin-bottom: .75rem; }
+    .cal-month-label { font-size: .82rem; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem; }
+    .cal-week-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 2px; }
+    .cal-dow { font-size: .68rem; color: var(--text-2); text-align: center; font-weight: 600; padding: .15rem 0; }
+    .cal-day { font-size: .78rem; text-align: center; padding: .28rem .1rem; border-radius: 4px; line-height: 1; }
+    .cal-day.empty { }
+    .cal-day.available { background: var(--green-light); color: var(--green); font-weight: 600; }
+    .cal-day.booked { background: var(--gray-light); color: var(--gray); text-decoration: line-through; }
+    .cal-day.past { color: var(--gray); opacity: .45; }
+    .cal-day.today { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+    /* Legend */
+    .legend { display: flex; gap: 1rem; font-size: .78rem; color: var(--text-2); margin-bottom: .75rem; align-items: center; flex-wrap: wrap; }
+    .leg { display: flex; align-items: center; gap: .3rem; }
+    .leg-dot { width: 12px; height: 12px; border-radius: 3px; }
+    .leg-green { background: var(--green-light); }
+    .leg-gray  { background: var(--gray-light); }
+
+    /* Contact footer */
+    .contact-footer { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1rem 1.25rem; margin-top: .75rem; font-size: .88rem; }
+    .contact-footer strong { display: block; margin-bottom: .35rem; color: var(--text); }
+    .contact-footer a { color: var(--ink); }
+    .contact-footer .contact-items { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .contact-item { display: flex; align-items: center; gap: .35rem; }
+
+    .error-msg { text-align: center; padding: 2rem; color: var(--text-2); font-size: .9rem; }
+    .spinner { display: flex; justify-content: center; padding: 3rem; }
+    .spinner::after { content: ''; width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--gray); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .powered { text-align: center; font-size: .72rem; color: var(--gray); margin-top: 1.25rem; opacity: .6; }
+  </style>
+</head>
+<body>
+
+<div id="app"><div class="spinner"></div></div>
+
+<script>
+'use strict';
+
+const params = new URLSearchParams(location.search);
+const STORE  = params.get('store') || '';
+const API    = (params.get('api') || '') || (location.origin);
+
+const DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function ymd(d) {
+  return d.toISOString().slice(0, 10);
+}
+function addDays(d, n) {
+  const r = new Date(d); r.setDate(r.getDate() + n); return r;
+}
+function monthName(d) {
+  return new Date(d + '-02').toLocaleDateString([], { month: 'long', year: 'numeric' });
+}
+
+function renderMiniCal(year, month, unavailable) {
+  const unavailSet = new Set(unavailable);
+  const todayStr   = ymd(new Date());
+
+  // First day of month
+  const first = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const startDow = first.getDay(); // 0=Sun
+
+  let html = `<div class="cal-week-row">${DOW_LABELS.map(d => `<div class="cal-dow">${d}</div>`).join('')}</div>`;
+  html += `<div class="cal-week-row">`;
+
+  let cell = 0;
+  for (let i = 0; i < startDow; i++) {
+    html += `<div class="cal-day empty"></div>`;
+    cell++;
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPast  = dateStr < todayStr;
+    const isToday = dateStr === todayStr;
+    let cls = 'cal-day';
+    if (isPast)               cls += ' past';
+    else if (unavailSet.has(dateStr)) cls += ' booked';
+    else                      cls += ' available';
+    if (isToday) cls += ' today';
+    html += `<div class="${cls}" title="${dateStr}">${d}</div>`;
+    cell++;
+    if (cell % 7 === 0 && d < lastDay) html += `</div><div class="cal-week-row">`;
+  }
+  // Fill remaining cells
+  const remaining = 7 - (cell % 7);
+  if (remaining < 7) for (let i = 0; i < remaining; i++) html += `<div class="cal-day empty"></div>`;
+  html += `</div>`;
+  return html;
+}
+
+function renderRoom(room) {
+  const today = new Date();
+  const months = [];
+  for (let i = 0; i < 2; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    months.push({ year: d.getFullYear(), month: d.getMonth() });
+  }
+
+  const calsHtml = months.map(({ year, month }) => `
+    <div class="mini-cal">
+      <div class="cal-month-label">${monthName(`${year}-${String(month+1).padStart(2,'0')}`)}</div>
+      ${renderMiniCal(year, month, room.unavailableDates)}
+    </div>`).join('');
+
+  const rate = room.nightlyRate > 0
+    ? `<span class="room-rate">${room.currency} ${room.nightlyRate}/night</span>`
+    : '';
+  const cap = `<span>👥 ${room.capacity} guest${room.capacity !== 1 ? 's' : ''}</span>`;
+
+  return `
+    <div class="room-card">
+      <div class="room-header">
+        <div class="room-name">${esc(room.label)}</div>
+        <div class="room-meta">${cap}${rate}</div>
+      </div>
+      ${room.description ? `<div class="room-desc">${esc(room.description)}</div>` : ''}
+      <div class="room-cal">
+        <div class="legend">
+          <div class="leg"><div class="leg-dot leg-green"></div> Available</div>
+          <div class="leg"><div class="leg-dot leg-gray"></div> Booked</div>
+        </div>
+        <div style="display:flex;gap:1.5rem;flex-wrap:wrap">${calsHtml}</div>
+      </div>
+    </div>`;
+}
+
+function renderContact(meta) {
+  if (!meta.contactPhone && !meta.contactEmail) return '';
+  const items = [];
+  if (meta.contactPhone) items.push(`<div class="contact-item">📞 <a href="tel:${esc(meta.contactPhone)}">${esc(meta.contactPhone)}</a></div>`);
+  if (meta.contactEmail) items.push(`<div class="contact-item">✉️ <a href="mailto:${esc(meta.contactEmail)}">${esc(meta.contactEmail)}</a></div>`);
+  return `
+    <div class="contact-footer">
+      <strong>To book, contact:</strong>
+      <div class="contact-items">${items.join('')}</div>
+    </div>`;
+}
+
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function load() {
+  const app = document.getElementById('app');
+  if (!STORE) {
+    app.innerHTML = `<div class="error-msg">Missing <code>?store=hiveAccount</code> parameter.</div>`;
+    return;
+  }
+
+  const from = ymd(new Date());
+  const to   = ymd(addDays(new Date(), 62));
+
+  try {
+    const res = await fetch(`${API}/api/hotel/availability?store=${encodeURIComponent(STORE)}&from=${from}&to=${to}`);
+    if (!res.ok) {
+      app.innerHTML = `<div class="error-msg">Could not load availability. Please try again later.</div>`;
+      return;
+    }
+    const data = await res.json();
+
+    if (!data.rooms || !data.rooms.length) {
+      app.innerHTML = `<div class="error-msg">No rooms available at this time.</div>`;
+      return;
+    }
+
+    const title = data.storeMeta?.businessName || 'Room Availability';
+    const roomsHtml = data.rooms.map(renderRoom).join('');
+    const contactHtml = renderContact(data.storeMeta || {});
+
+    app.innerHTML = `
+      <h2>${esc(title)}</h2>
+      ${roomsHtml}
+      ${contactHtml}
+      <div class="powered">Powered by POSHIVE</div>`;
+  } catch {
+    app.innerHTML = `<div class="error-msg">Network error. Please try again later.</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>

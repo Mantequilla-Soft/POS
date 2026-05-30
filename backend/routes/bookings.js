@@ -138,5 +138,9 @@ router.patch('/:id/seat',     (req, res) => transition(req, res, 'seated'));
 router.patch('/:id/noshow',   (req, res) => transition(req, res, 'no_show'));
 // PATCH /api/bookings/:id/complete
 router.patch('/:id/complete', (req, res) => transition(req, res, 'completed'));
+// PATCH /api/bookings/:id/checkin   — hotel
+router.patch('/:id/checkin',  (req, res) => transition(req, res, 'checked_in'));
+// PATCH /api/bookings/:id/checkout  — hotel
+router.patch('/:id/checkout', (req, res) => transition(req, res, 'checked_out'));
 
 module.exports = router;

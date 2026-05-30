@@ -15,7 +15,7 @@ const bookingSchema = new mongoose.Schema({
   notes:         { type: String, default: '' },
   status: {
     type: String,
-    enum: ['confirmed', 'seated', 'completed', 'cancelled', 'no_show'],
+    enum: ['confirmed', 'seated', 'completed', 'cancelled', 'no_show', 'checked_in', 'checked_out'],
     default: 'confirmed',
   },
   saleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Sale', default: null },

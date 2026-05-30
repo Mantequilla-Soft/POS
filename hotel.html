@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel — POSHIVE</title>
+  <script src="i18n.js"></script>
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme-loader.js"></script>
+  <style>
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: var(--sh-xs); }
+    .header-inner { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .header h1 { color: var(--text); font-size: 1.4rem; margin: 0; }
+    .nav-links { display: flex; gap: .75rem; align-items: center; }
+    .nav-links a { color: var(--text-2); text-decoration: none; font-size: .9rem; }
+    .nav-links a:hover { color: var(--text); }
+
+    .main { max-width: 1300px; margin: 1.5rem auto; padding: 0 1.5rem; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: .25rem; border-bottom: 2px solid var(--border); margin-bottom: 1.25rem; }
+    .tab-btn { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: .6rem 1.1rem; cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--text-2); transition: color .15s; }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* Toolbar */
+    .toolbar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; }
+    .day-nav { display: flex; align-items: center; gap: .5rem; }
+    .day-nav button { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: var(--r); padding: .4rem .7rem; cursor: pointer; font-size: 1rem; line-height: 1; }
+    .day-nav button:hover { background: var(--surface-2); }
+    #calLabel { font-weight: 600; font-size: 1rem; min-width: 200px; text-align: center; }
+    .btn { background: var(--ink); color: var(--ink-text); border: none; border-radius: var(--r); padding: .5rem 1rem; cursor: pointer; font-size: .9rem; font-weight: 500; transition: var(--ease); }
+    .btn:hover { background: var(--ink-hover); }
+    .btn-sm { padding: .3rem .65rem; font-size: .82rem; }
+
+    /* Calendar grid */
+    .cal-wrap { overflow-x: auto; }
+    .cal-grid { display: grid; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); min-width: 700px; }
+    .cg-corner { background: var(--surface-2); padding: .5rem .75rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: .78rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
+    .cg-date-head { background: var(--surface-2); padding: .45rem .3rem; text-align: center; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: .75rem; color: var(--text-3); font-weight: 600; white-space: nowrap; }
+    .cg-date-head.today { color: var(--ink); font-weight: 800; }
+    .cg-row-label { background: var(--surface-2); padding: .45rem .75rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: .85rem; font-weight: 600; white-space: nowrap; }
+    .cg-cell { position: relative; min-height: 44px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+    .cg-cell:hover { background: var(--surface-2); }
+    .cg-cell.occupied { cursor: default; }
+    .booking-block { position: absolute; inset: 3px 2px; border-radius: var(--r-sm); padding: .2rem .4rem; font-size: .74rem; font-weight: 600; cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; z-index: 1; }
+    .bb-confirmed  { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .bb-checked_in { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+    .bb-checked_out { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+    .bb-cancelled  { background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); opacity: .45; }
+    .bb-no_show    { background: #fef2f2; color: var(--red); border: 1px solid #fca5a5; }
+
+    /* Today sidebar */
+    .hotel-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1.25rem; }
+    @media (max-width: 860px) { .hotel-layout { grid-template-columns: 1fr; } }
+    .today-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+    .sidebar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1rem; }
+    .sidebar-card h3 { margin: 0 0 .75rem; font-size: .88rem; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
+    .today-item { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: .85rem; flex-wrap: wrap; }
+    .today-item:last-child { border-bottom: none; }
+    .today-name { font-weight: 600; }
+    .today-room { color: var(--text-2); font-size: .8rem; }
+    .today-actions { display: flex; gap: .3rem; }
+
+    /* Chip */
+    .chip { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 600; border: 1px solid transparent; }
+    .chip-confirmed  { background: #eff6ff; color: #2563eb; border-color: #93c5fd; }
+    .chip-checked_in { background: var(--green-light); color: var(--green); border-color: var(--green-border); }
+    .chip-checked_out { background: var(--surface-2); color: var(--text-2); border-color: var(--border); }
+    .chip-cancelled  { background: var(--surface-2); color: var(--text-3); border-color: var(--border); }
+    .chip-no_show    { background: #fef2f2; color: var(--red); border-color: #fca5a5; }
+
+    /* Guest list */
+    .guest-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .guest-table th { text-align: left; padding: .6rem .75rem; background: var(--surface-2); border-bottom: 2px solid var(--border); font-size: .78rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
+    .guest-table td { padding: .55rem .75rem; border-bottom: 1px solid var(--border); }
+    .guest-table tr:hover td { background: var(--surface-2); }
+    .guest-search { width: 100%; box-sizing: border-box; padding: .5rem .75rem; border: 1.5px solid var(--border); border-radius: var(--r); font-size: .9rem; background: var(--bg); color: var(--text); margin-bottom: 1rem; font-family: var(--font); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 500; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border-radius: var(--r-lg); padding: 1.5rem; width: min(540px, 95vw); max-height: 90vh; overflow-y: auto; box-shadow: var(--sh-lg,0 20px 60px rgba(0,0,0,.3)); }
+    .modal h3 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .form-group { margin-bottom: .85rem; }
+    .form-group label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: .25rem; color: var(--text-2); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; box-sizing: border-box; padding: .5rem .75rem; border: 1.5px solid var(--border); border-radius: var(--r); font-size: .9rem; background: var(--bg); color: var(--text); font-family: var(--font); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .form-actions { display: flex; gap: .5rem; margin-top: 1.25rem; flex-wrap: wrap; }
+    .btn-danger { background: var(--red); color: #fff; border: none; border-radius: var(--r); padding: .5rem 1rem; cursor: pointer; font-size: .9rem; font-weight: 500; }
+    .btn-cancel-style { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--r); padding: .5rem 1rem; cursor: pointer; font-size: .9rem; font-weight: 500; }
+    #modalError { color: var(--red); font-size: .82rem; margin-top: .5rem; min-height: 1.2em; }
+    .nights-preview { font-size: .85rem; color: var(--text-2); margin-top: .35rem; font-weight: 500; }
+
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--ink); color: var(--ink-text); padding: .75rem 1.25rem; border-radius: var(--r-lg); font-size: .9rem; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+    #toast.show { opacity: 1; }
+
+    .empty-msg { text-align: center; color: var(--text-2); padding: 3rem; }
+
+    @media (max-width: 600px) { .main { padding: 0 .75rem; } .form-grid { grid-template-columns: 1fr; } }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1 data-i18n="hotel.title">Hotel</h1>
+    <div class="nav-links">
+      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
+      <a href="admin.html" data-i18n="common.settings">Settings</a>
+      <a href="pos.html" data-i18n="common.pos">POS</a>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="calendar" data-i18n="hotel.calendar">Calendar</button>
+    <button class="tab-btn" data-tab="guests" data-i18n="hotel.guestList">Guest List</button>
+  </div>
+
+  <!-- ── Calendar tab ── -->
+  <div id="tab-calendar" class="tab-pane active">
+    <div class="toolbar">
+      <div class="day-nav">
+        <button id="prevWindow" title="Previous">&#8249;</button>
+        <span id="calLabel"></span>
+        <button id="nextWindow" title="Next">&#8250;</button>
+      </div>
+      <button class="btn" id="todayBtn" data-i18n="common.today">Today</button>
+      <button class="btn" id="newBookingBtn" data-i18n="hotel.newBooking">+ New Booking</button>
+    </div>
+    <div class="hotel-layout">
+      <div>
+        <div class="cal-wrap">
+          <div id="calGrid" class="cal-grid"></div>
+        </div>
+        <div id="calEmpty" class="empty-msg" style="display:none" data-i18n="hotel.noRooms">No rooms configured.</div>
+      </div>
+      <div class="today-sidebar">
+        <div class="sidebar-card">
+          <h3 data-i18n="hotel.arrivals">Arriving Today</h3>
+          <div id="arrivalsList"><span class="empty-msg" style="padding:0;font-size:.85rem" data-i18n="hotel.noArrivals">No arrivals today.</span></div>
+        </div>
+        <div class="sidebar-card">
+          <h3 data-i18n="hotel.departures">Departing Today</h3>
+          <div id="departuresList"><span class="empty-msg" style="padding:0;font-size:.85rem" data-i18n="hotel.noDepartures">No departures today.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Guest list tab ── -->
+  <div id="tab-guests" class="tab-pane">
+    <input class="guest-search" id="guestSearch" type="search" placeholder="Search guests…" data-i18n-placeholder="hotel.guestSearch">
+    <div style="overflow-x:auto">
+      <table class="guest-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Last Stay</th>
+            <th>Stays</th>
+          </tr>
+        </thead>
+        <tbody id="guestTableBody"></tbody>
+      </table>
+    </div>
+    <div id="guestEmpty" class="empty-msg" style="display:none" data-i18n="hotel.noGuests">No guests yet.</div>
+  </div>
+</div>
+
+<!-- Booking modal -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <h3 id="modalTitle">Booking</h3>
+    <input type="hidden" id="modalBookingId">
+    <div class="form-grid">
+      <div class="form-group">
+        <label data-i18n="reservations.guestName">Guest Name *</label>
+        <input type="text" id="fGuestName" placeholder="Alice Smith">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.partySize">Guests</label>
+        <input type="number" id="fPartySize" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.guestPhone">Phone</label>
+        <input type="tel" id="fGuestPhone">
+      </div>
+      <div class="form-group">
+        <label data-i18n="reservations.guestEmail">Email</label>
+        <input type="email" id="fGuestEmail">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label data-i18n="hotel.rooms">Room</label>
+        <select id="fRoom"></select>
+      </div>
+      <div class="form-group">
+        <label data-i18n="hotel.checkIn">Check-in</label>
+        <input type="date" id="fCheckIn">
+      </div>
+      <div class="form-group">
+        <label data-i18n="hotel.checkOut">Check-out</label>
+        <input type="date" id="fCheckOut">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <div id="nightsPreview" class="nights-preview"></div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label data-i18n="reservations.notes">Notes</label>
+        <textarea id="fNotes" rows="2" style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div id="modalError"></div>
+    <div class="form-actions" id="modalActions">
+      <button class="btn" id="saveBookingBtn" data-i18n="common.save">Save</button>
+      <button class="btn-cancel-style" onclick="closeModal()" data-i18n="common.cancel">Cancel</button>
+      <button class="btn btn-sm" id="checkinBtn" style="display:none;background:var(--green)" data-i18n="hotel.checkIn">Check-in</button>
+      <button class="btn btn-sm" id="checkoutBtn" style="display:none;background:var(--surface-2);color:var(--text)" data-i18n="hotel.checkOut">Check-out</button>
+      <button class="btn-danger" id="cancelBookingBtn" style="display:none;margin-left:auto" data-i18n="reservations.cancel">Cancel Booking</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+const API_BASE  = '';
+const CAL_DAYS  = 14; // days visible in window
+
+let windowStart = new Date();
+windowStart.setHours(0, 0, 0, 0);
+
+let bookings  = [];
+let storeData = null;
+let authToken = null;
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+function getToken() { return localStorage.getItem('pos_admin_token'); }
+function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }; }
+
+// ── Date helpers ─────────────────────────────────────────────────────────────
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dy}`;
+}
+function addDays(d, n) {
+  const r = new Date(d); r.setDate(r.getDate() + n); return r;
+}
+function nightsBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+function todayYmd() { return ymd(new Date()); }
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, color = 'var(--ink)') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = color;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Load bookings ─────────────────────────────────────────────────────────────
+async function loadBookings() {
+  const from = ymd(windowStart);
+  const to   = ymd(addDays(windowStart, CAL_DAYS));
+  try {
+    const r = await fetch(`${API_BASE}/api/bookings?resourceType=room&date=${from}`, { headers: { Authorization: 'Bearer ' + authToken } });
+    // The bookings endpoint is date-based; fetch a wider range by also querying endAt via multiple days
+    // Instead, fetch all and filter client-side for the window
+    const all = await fetch(`${API_BASE}/api/bookings?resourceType=room&date=${from}`, { headers: { Authorization: 'Bearer ' + authToken } });
+    // We need range-based bookings: fetch each day in window, dedupe by _id
+    bookings = await fetchRangeBookings(from, to);
+    renderCalendar();
+    renderTodaySidebar();
+  } catch (err) {
+    toast(t('hotel.errorNetwork'), 'var(--red)');
+  }
+}
+
+async function fetchRangeBookings(from, to) {
+  // Fetch start day and all days in window — server returns bookings that start on each day.
+  // For multi-night stays we need to also pick up bookings that started before the window.
+  // Simple approach: fetch from 60 days back (max stay) to catch in-progress stays.
+  const wideFrom = ymd(addDays(new Date(from), -60));
+  const seen = new Map();
+  const days = [];
+  const cur = new Date(wideFrom);
+  const end = new Date(to);
+  while (cur <= end) {
+    days.push(ymd(new Date(cur)));
+    cur.setDate(cur.getDate() + 1);
+  }
+  // Batch: fetch in parallel chunks of 7
+  for (let i = 0; i < days.length; i += 7) {
+    const chunk = days.slice(i, i + 7);
+    const results = await Promise.all(chunk.map(d =>
+      fetch(`${API_BASE}/api/bookings?resourceType=room&date=${d}`, { headers: { Authorization: 'Bearer ' + authToken } })
+        .then(r => r.ok ? r.json() : [])
+    ));
+    for (const arr of results) {
+      for (const bk of arr) { seen.set(bk._id, bk); }
+    }
+  }
+  return Array.from(seen.values());
+}
+
+// ── Calendar render ───────────────────────────────────────────────────────────
+function renderCalendar() {
+  const grid  = document.getElementById('calGrid');
+  const empty = document.getElementById('calEmpty');
+  const rooms = (storeData?.rooms || []).filter(r => r.active !== false);
+
+  // Update label
+  const endDate = addDays(windowStart, CAL_DAYS - 1);
+  document.getElementById('calLabel').textContent =
+    `${fmtDate(windowStart)} – ${fmtDate(endDate)}`;
+
+  if (!rooms.length) {
+    grid.style.display = 'none';
+    empty.style.display = '';
+    return;
+  }
+  grid.style.display = '';
+  empty.style.display = 'none';
+
+  // Build date columns
+  const dates = [];
+  for (let i = 0; i < CAL_DAYS; i++) {
+    dates.push(ymd(addDays(windowStart, i)));
+  }
+
+  grid.style.gridTemplateColumns = `110px repeat(${CAL_DAYS}, minmax(38px,1fr))`;
+
+  const today = todayYmd();
+  let html = `<div class="cg-corner">Room / Date</div>`;
+  dates.forEach(d => {
+    const dt = new Date(d + 'T00:00:00');
+    const label = `${dt.getMonth()+1}/${dt.getDate()}`;
+    html += `<div class="cg-date-head ${d === today ? 'today' : ''}">${label}</div>`;
+  });
+
+  rooms.forEach(room => {
+    html += `<div class="cg-row-label">${escHtml(room.label)}</div>`;
+    dates.forEach(dateStr => {
+      const bk = bookingForRoomDate(room.id, dateStr);
+      const isStart = bk && ymd(new Date(bk.startAt)) === dateStr;
+      const occupied = !!bk;
+      html += `<div class="cg-cell ${occupied ? 'occupied' : ''}" `
+            + `onclick="${occupied ? `openEditModal('${bk._id}')` : `cellClick('${escAttr(room.id)}','${escAttr(room.label)}','${dateStr}')`}">`
+            + (isStart ? `<div class="booking-block bb-${bk.status}" onclick="event.stopPropagation();openEditModal('${bk._id}')" title="${escAttr(bk.guestName)}">${escHtml(bk.guestName)}</div>` : '')
+            + `</div>`;
+    });
+  });
+
+  grid.innerHTML = html;
+}
+
+function bookingForRoomDate(roomId, dateStr) {
+  return bookings.find(bk => {
+    if (bk.resourceId !== roomId) return false;
+    if (bk.status === 'cancelled' || bk.status === 'no_show') return false;
+    const start = ymd(new Date(bk.startAt));
+    const end   = bk.endAt ? ymd(new Date(new Date(bk.endAt).getTime() - 1)) : start; // endAt is exclusive checkout day
+    return dateStr >= start && dateStr <= end;
+  });
+}
+
+// ── Today sidebar ─────────────────────────────────────────────────────────────
+function renderTodaySidebar() {
+  const today = todayYmd();
+  const arrivals   = bookings.filter(bk => bk.status === 'confirmed' && ymd(new Date(bk.startAt)) === today);
+  const departures = bookings.filter(bk => bk.status === 'checked_in' && bk.endAt && ymd(new Date(bk.endAt)) === today);
+
+  const arrEl = document.getElementById('arrivalsList');
+  const depEl = document.getElementById('departuresList');
+
+  arrEl.innerHTML = arrivals.length ? arrivals.map(bk => `
+    <div class="today-item">
+      <div>
+        <div class="today-name">${escHtml(bk.guestName)}</div>
+        <div class="today-room">${escHtml(bk.resourceLabel || '—')}</div>
+      </div>
+      <div class="today-actions">
+        <button class="btn btn-sm" style="background:var(--green);color:#fff" onclick="doTransition('${bk._id}','checkin')">${t('hotel.checkIn')}</button>
+      </div>
+    </div>`).join('')
+    : `<span style="font-size:.85rem;color:var(--text-2)">${t('hotel.noArrivals')}</span>`;
+
+  depEl.innerHTML = departures.length ? departures.map(bk => `
+    <div class="today-item">
+      <div>
+        <div class="today-name">${escHtml(bk.guestName)}</div>
+        <div class="today-room">${escHtml(bk.resourceLabel || '—')}</div>
+      </div>
+      <div class="today-actions">
+        <button class="btn btn-sm" onclick="doTransition('${bk._id}','checkout')">${t('hotel.checkOut')}</button>
+      </div>
+    </div>`).join('')
+    : `<span style="font-size:.85rem;color:var(--text-2)">${t('hotel.noDepartures')}</span>`;
+}
+
+// ── Guest list ─────────────────────────────────────────────────────────────────
+async function loadGuestList(filter = '') {
+  try {
+    // Fetch recent bookings (last 365 days) to build guest list
+    const from = ymd(addDays(new Date(), -365));
+    const guestList = await fetchRangeBookings(from, ymd(addDays(new Date(), 30)));
+    const guestMap = new Map();
+    for (const bk of guestList) {
+      if (!bk.guestName) continue;
+      const key = bk.guestName.toLowerCase();
+      if (!guestMap.has(key)) {
+        guestMap.set(key, { name: bk.guestName, phone: bk.guestPhone, email: bk.guestEmail, stays: 0, lastStay: null });
+      }
+      const g = guestMap.get(key);
+      g.stays++;
+      const d = bk.startAt;
+      if (!g.lastStay || d > g.lastStay) g.lastStay = d;
+      if (bk.guestPhone && !g.phone) g.phone = bk.guestPhone;
+      if (bk.guestEmail && !g.email) g.email = bk.guestEmail;
+    }
+    let guests = Array.from(guestMap.values()).sort((a, b) => (b.lastStay || '') < (a.lastStay || '') ? -1 : 1);
+    if (filter) {
+      const q = filter.toLowerCase();
+      guests = guests.filter(g => g.name.toLowerCase().includes(q) || (g.phone || '').includes(q) || (g.email || '').toLowerCase().includes(q));
+    }
+    const tbody = document.getElementById('guestTableBody');
+    const empty = document.getElementById('guestEmpty');
+    if (!guests.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+    empty.style.display = 'none';
+    tbody.innerHTML = guests.map(g => `
+      <tr>
+        <td><strong>${escHtml(g.name)}</strong></td>
+        <td>${escHtml(g.phone || '—')}</td>
+        <td>${escHtml(g.email || '—')}</td>
+        <td>${g.lastStay ? fmtDate(g.lastStay) : '—'}</td>
+        <td>${g.stays}</td>
+      </tr>`).join('');
+  } catch {
+    toast(t('hotel.errorNetwork'), 'var(--red)');
+  }
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function cellClick(roomId, roomLabel, dateStr) {
+  openCreateModal(roomId, roomLabel, dateStr);
+}
+
+function openCreateModal(roomId = '', roomLabel = '', dateStr = '') {
+  resetModal();
+  document.getElementById('modalTitle').textContent = t('hotel.newBooking');
+  populateRoomSelect(roomId);
+  if (dateStr) {
+    document.getElementById('fCheckIn').value  = dateStr;
+    document.getElementById('fCheckOut').value = ymd(addDays(new Date(dateStr + 'T00:00:00'), 1));
+  } else {
+    const t2 = todayYmd();
+    document.getElementById('fCheckIn').value  = t2;
+    document.getElementById('fCheckOut').value = ymd(addDays(new Date(t2 + 'T00:00:00'), 1));
+  }
+  updateNightsPreview();
+  document.getElementById('bookingModal').classList.add('open');
+}
+
+function openEditModal(bookingId) {
+  const bk = bookings.find(b => b._id === bookingId);
+  if (!bk) return;
+  resetModal();
+  document.getElementById('modalTitle').textContent = bk.guestName;
+  document.getElementById('modalBookingId').value = bookingId;
+  document.getElementById('fGuestName').value  = bk.guestName;
+  document.getElementById('fPartySize').value  = bk.partySize;
+  document.getElementById('fGuestPhone').value = bk.guestPhone || '';
+  document.getElementById('fGuestEmail').value = bk.guestEmail || '';
+  document.getElementById('fNotes').value      = bk.notes || '';
+  populateRoomSelect(bk.resourceId);
+  if (bk.startAt) document.getElementById('fCheckIn').value  = ymd(new Date(bk.startAt));
+  if (bk.endAt)   document.getElementById('fCheckOut').value = ymd(new Date(bk.endAt));
+  updateNightsPreview();
+
+  // Status action buttons
+  if (bk.status === 'confirmed') {
+    document.getElementById('checkinBtn').style.display  = 'inline-block';
+    document.getElementById('checkinBtn').onclick = () => doTransitionFromModal(bookingId, 'checkin');
+  }
+  if (bk.status === 'checked_in') {
+    document.getElementById('checkoutBtn').style.display = 'inline-block';
+    document.getElementById('checkoutBtn').onclick = () => doTransitionFromModal(bookingId, 'checkout');
+  }
+  if (bk.status !== 'cancelled' && bk.status !== 'checked_out') {
+    document.getElementById('cancelBookingBtn').style.display = 'inline-block';
+  }
+  document.getElementById('bookingModal').classList.add('open');
+}
+
+function populateRoomSelect(selectedId = '') {
+  const rooms = (storeData?.rooms || []).filter(r => r.active !== false);
+  const sel = document.getElementById('fRoom');
+  sel.innerHTML = `<option value="">— Unassigned —</option>` +
+    rooms.map(r => `<option value="${escAttr(r.id)}" ${r.id === selectedId ? 'selected' : ''}>${escHtml(r.label)} (${r.currency} ${r.nightlyRate}/night)</option>`).join('');
+}
+
+function updateNightsPreview() {
+  const ci = document.getElementById('fCheckIn').value;
+  const co = document.getElementById('fCheckOut').value;
+  const el = document.getElementById('nightsPreview');
+  if (!ci || !co) { el.textContent = ''; return; }
+  const nights = nightsBetween(ci + 'T00:00:00', co + 'T00:00:00');
+  if (nights <= 0) { el.textContent = ''; return; }
+
+  const roomId = document.getElementById('fRoom').value;
+  const room = (storeData?.rooms || []).find(r => r.id === roomId);
+  const rate = room ? room.nightlyRate : 0;
+  const total = rate * nights;
+  const label = nights === 1 ? t('hotel.night') : t('hotel.nights');
+  el.textContent = `${nights} ${label}${rate ? ` · ${room.currency} ${total} ${t('hotel.totalStay')}` : ''}`;
+}
+
+function resetModal() {
+  document.getElementById('modalBookingId').value = '';
+  document.getElementById('fGuestName').value  = '';
+  document.getElementById('fPartySize').value  = '1';
+  document.getElementById('fGuestPhone').value = '';
+  document.getElementById('fGuestEmail').value = '';
+  document.getElementById('fNotes').value      = '';
+  document.getElementById('nightsPreview').textContent = '';
+  document.getElementById('modalError').textContent   = '';
+  document.getElementById('checkinBtn').style.display  = 'none';
+  document.getElementById('checkoutBtn').style.display = 'none';
+  document.getElementById('cancelBookingBtn').style.display = 'none';
+}
+
+function closeModal() {
+  document.getElementById('bookingModal').classList.remove('open');
+}
+
+// ── Save booking ─────────────────────────────────────────────────────────────
+document.getElementById('saveBookingBtn').addEventListener('click', async () => {
+  const errEl = document.getElementById('modalError');
+  const guestName = document.getElementById('fGuestName').value.trim();
+  const checkIn   = document.getElementById('fCheckIn').value;
+  const checkOut  = document.getElementById('fCheckOut').value;
+  if (!guestName)  { errEl.textContent = t('hotel.errorGuestName'); return; }
+  if (!checkIn || !checkOut) { errEl.textContent = t('hotel.errorDates'); return; }
+  if (checkOut <= checkIn)   { errEl.textContent = t('hotel.errorDateOrder'); return; }
+  errEl.textContent = '';
+
+  const roomId = document.getElementById('fRoom').value;
+  const room   = (storeData?.rooms || []).find(r => r.id === roomId);
+  const bookingId = document.getElementById('modalBookingId').value;
+  const body = {
+    resourceType:  'room',
+    resourceId:    roomId || '',
+    resourceLabel: room ? room.label : '',
+    guestName,
+    guestPhone:  document.getElementById('fGuestPhone').value.trim(),
+    guestEmail:  document.getElementById('fGuestEmail').value.trim(),
+    partySize:   parseInt(document.getElementById('fPartySize').value) || 1,
+    startAt:     new Date(checkIn  + 'T12:00:00').toISOString(),
+    endAt:       new Date(checkOut + 'T12:00:00').toISOString(),
+    notes:       document.getElementById('fNotes').value.trim(),
+  };
+
+  try {
+    const url    = bookingId ? `${API_BASE}/api/bookings/${bookingId}` : `${API_BASE}/api/bookings`;
+    const method = bookingId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(body) });
+    if (!r.ok) {
+      const e = await r.json();
+      errEl.textContent = e.error === 'overlap' ? t('hotel.overlapError') : (e.error || 'Error');
+      return;
+    }
+    closeModal();
+    toast(bookingId ? t('hotel.toastUpdated') : t('hotel.toastCreated'), 'var(--green)');
+    await loadBookings();
+  } catch { errEl.textContent = t('hotel.errorNetwork'); }
+});
+
+// ── Cancel booking ────────────────────────────────────────────────────────────
+document.getElementById('cancelBookingBtn').addEventListener('click', async () => {
+  if (!confirm(t('hotel.confirmCancel'))) return;
+  const bookingId = document.getElementById('modalBookingId').value;
+  try {
+    const r = await fetch(`${API_BASE}/api/bookings/${bookingId}`, { method: 'DELETE', headers: authHeaders() });
+    if (!r.ok) { toast('Error', 'var(--red)'); return; }
+    closeModal();
+    toast(t('hotel.toastCancelled'));
+    await loadBookings();
+  } catch { toast(t('hotel.errorNetwork'), 'var(--red)'); }
+});
+
+// ── Status transitions ─────────────────────────────────────────────────────────
+async function doTransition(bookingId, action) {
+  try {
+    const r = await fetch(`${API_BASE}/api/bookings/${bookingId}/${action}`, { method: 'PATCH', headers: authHeaders() });
+    if (!r.ok) { const e = await r.json(); toast(e.error || 'Error', 'var(--red)'); return; }
+    const labels = { checkin: t('hotel.toastCheckedIn'), checkout: t('hotel.toastCheckedOut') };
+    toast(labels[action] || 'OK', 'var(--green)');
+    await loadBookings();
+  } catch { toast(t('hotel.errorNetwork'), 'var(--red)'); }
+}
+
+async function doTransitionFromModal(bookingId, action) {
+  closeModal();
+  await doTransition(bookingId, action);
+}
+
+// ── Window navigation ─────────────────────────────────────────────────────────
+document.getElementById('prevWindow').addEventListener('click', () => {
+  windowStart = addDays(windowStart, -CAL_DAYS);
+  loadBookings();
+});
+document.getElementById('nextWindow').addEventListener('click', () => {
+  windowStart = addDays(windowStart, CAL_DAYS);
+  loadBookings();
+});
+document.getElementById('todayBtn').addEventListener('click', () => {
+  windowStart = new Date(); windowStart.setHours(0,0,0,0);
+  loadBookings();
+});
+document.getElementById('newBookingBtn').addEventListener('click', () => openCreateModal());
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'guests') loadGuestList();
+  });
+});
+
+document.getElementById('guestSearch').addEventListener('input', e => {
+  loadGuestList(e.target.value);
+});
+
+// Update nights preview on date/room change
+['fCheckIn','fCheckOut','fRoom'].forEach(id => {
+  document.getElementById(id).addEventListener('change', updateNightsPreview);
+});
+
+// ── Escape helpers ─────────────────────────────────────────────────────────────
+function escHtml(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s ?? '').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  authToken = getToken();
+  if (!authToken) { window.location.href = 'login.html'; return; }
+  i18n.init();
+  try {
+    const r = await fetch(`${API_BASE}/api/store`, { headers: { Authorization: 'Bearer ' + authToken } });
+    if (r.ok) storeData = await r.json();
+  } catch {}
+  await loadBookings();
+}
+
+init();
+</script>
+</body>
+</html>

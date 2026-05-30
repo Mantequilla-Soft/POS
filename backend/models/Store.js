@@ -25,6 +25,7 @@ const storeSchema = new mongoose.Schema({
     kitchenDisplay: { type: Boolean, default: false },
     discountCodes:  { type: Boolean, default: false },
     reservations:   { type: Boolean, default: false },
+    hotel:          { type: Boolean, default: false },
   },
 
   // Generic payment plugin storage.
@@ -43,6 +44,19 @@ const storeSchema = new mongoose.Schema({
     }],
     default: [],
   },
+  rooms: {
+    type: [{
+      _id:         false,
+      id:          { type: String,  required: true },
+      label:       { type: String,  required: true },
+      description: { type: String,  default: '' },
+      capacity:    { type: Number,  default: 1 },
+      nightlyRate: { type: Number,  default: 0 },
+      currency:    { type: String,  default: 'HBD' },
+      active:      { type: Boolean, default: true },
+    }],
+    default: [],
+  },
   tax: {
     enabled:   { type: Boolean, default: false },
     rate:      { type: Number,  default: 0 },
@@ -55,7 +69,8 @@ const storeSchema = new mongoose.Schema({
     reminderSubject: { type: String, default: '' },
     reminderBody:    { type: String, default: '' },
   },
-  ownerEmail:  { type: String,  default: '' },
+  ownerEmail:    { type: String, default: '' },
+  contactPhone:  { type: String, default: '' },
   backupEmail: { type: Boolean, default: true },
   published:   { type: Boolean, default: false },
   items:       { type: [itemSchema], default: [] },
