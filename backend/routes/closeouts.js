@@ -35,16 +35,23 @@ function computeTotals(closeout) {
   return { totalTipsCash, totalTipsTransfer, totalDeductions, cashDelivered, bankTotal };
 }
 
-// GET /api/closeouts/sales-summary?date=YYYY-MM-DD
+// GET /api/closeouts/sales-summary?from=ISO&to=ISO  (preferred — respects client timezone)
+// GET /api/closeouts/sales-summary?date=YYYY-MM-DD  (legacy fallback — UTC midnight)
 router.get('/sales-summary', roleOnly('store_owner', 'cashier'), async (req, res) => {
   try {
     const sid = getStoreId(req);
     if (!sid) return res.status(400).json({ error: 'No store' });
 
-    const dateStr = req.query.date || new Date().toISOString().slice(0, 10);
-    const d     = new Date(dateStr);
-    const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    const end   = new Date(start.getTime() + 86400000);
+    let start, end;
+    if (req.query.from && req.query.to) {
+      start = new Date(req.query.from);
+      end   = new Date(req.query.to);
+    } else {
+      const dateStr = req.query.date || new Date().toISOString().slice(0, 10);
+      const d = new Date(dateStr);
+      start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      end   = new Date(start.getTime() + 86400000);
+    }
 
     const sales = await Sale.find({
       storeId:   sid,

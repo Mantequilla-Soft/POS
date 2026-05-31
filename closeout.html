@@ -220,8 +220,14 @@ async function loadData(date) {
     document.getElementById('totTipsCashRow').style.display    = tipsEnabled ? '' : 'none';
     document.getElementById('totTipsTransferRow').style.display = tipsEnabled ? '' : 'none';
 
-    // Load sales summary
-    const sumRes = await fetch(`${API_BASE}/closeouts/sales-summary?date=${date}`, { headers: { 'Authorization': 'Bearer ' + token } });
+    // Load sales summary — send local-midnight boundaries so UTC-offset stores
+    // get correct results regardless of server timezone.
+    const localStart = new Date(`${date}T00:00:00`);
+    const localEnd   = new Date(localStart.getTime() + 86400000);
+    const sumRes = await fetch(
+      `${API_BASE}/closeouts/sales-summary?from=${encodeURIComponent(localStart.toISOString())}&to=${encodeURIComponent(localEnd.toISOString())}`,
+      { headers: { 'Authorization': 'Bearer ' + token } }
+    );
     const summary = sumRes.ok ? await sumRes.json() : { totalSales: 0, transferAmount: 0, cashSales: 0 };
 
     // Check for existing closeout
@@ -296,7 +302,7 @@ function buildShifts(savedShifts) {
   }
   container.innerHTML = activeShifts.map(shift => {
     const saved = savedShifts ? savedShifts.find(s => s.shiftId === shift.id) : null;
-    const staffForShift = (closeoutCfg.staff || []).filter(s => s.active !== false && (s.defaultShiftIds || []).includes(shift.id));
+    const staffForShift = (closeoutCfg.staff || []).filter(s => s.active !== false);
     // Merge saved staff rows with config
     let staffRows = saved ? saved.staff : staffForShift.map(s => ({ staffId: s.id, staffName: s.name, tipCash: 0, tipTransfer: 0 }));
     return `<div class="shift-block" data-shift-id="${escHtml(shift.id)}">
