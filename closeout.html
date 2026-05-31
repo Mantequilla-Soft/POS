@@ -46,6 +46,17 @@
     .chip-submitted { background: var(--amber, #f59e0b)22; color: var(--amber, #f59e0b); }
     .chip-reviewed  { background: var(--green)22; color: var(--green); }
     input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+    .history-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 1.25rem; overflow: hidden; box-shadow: var(--sh-sm); }
+    .history-panel-header { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.1rem; cursor: pointer; user-select: none; }
+    .history-panel-header h2 { margin: 0; font-size: .95rem; }
+    .history-panel-body { border-top: 1px solid var(--border); }
+    .history-row { display: flex; align-items: center; gap: .5rem; padding: .55rem 1.1rem; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .12s; font-size: .88em; }
+    .history-row:last-child { border-bottom: none; }
+    .history-row:hover { background: var(--bg); }
+    .history-row .hr-date { font-weight: 600; flex: 1; }
+    .history-row .hr-by { color: var(--text-3); font-size: .82em; flex: 1; }
+    .history-row .hr-cash { text-align: right; min-width: 70px; }
+    .history-row .hr-chip { font-size: .72em; font-weight: 700; padding: .12rem .45rem; border-radius: 20px; flex-shrink: 0; }
     @media (max-width: 480px) {
       .field-row label { font-size: .82em; }
       .field-row input[type=number], .field-row .calc-val { width: 95px; }
@@ -78,6 +89,21 @@
 
 <div class="page-wrap">
   <div id="featureOffMsg" style="display:none;text-align:center;padding:3rem 1rem;color:var(--text-3)" data-i18n="closeout.featureOff">Closeout is not enabled for this store.</div>
+
+  <!-- History panel — owner only -->
+  <div id="historyPanel" class="history-panel" style="display:none">
+    <div class="history-panel-header" onclick="toggleHistoryPanel()">
+      <h2>📋 <span data-i18n="closeout.historyTitle">Closeout History</span></h2>
+      <span id="historyChevron" style="font-size:.8em;color:var(--text-3)">▼</span>
+    </div>
+    <div id="historyPanelBody" class="history-panel-body" style="display:none">
+      <div id="historyList" style="max-height:260px;overflow-y:auto">
+        <p style="padding:.75rem 1.1rem;color:var(--text-3);font-size:.85em" data-i18n="common.loading">Loading…</p>
+      </div>
+      <div id="historyPager" style="display:flex;gap:.4rem;justify-content:center;padding:.5rem;border-top:1px solid var(--border)"></div>
+    </div>
+  </div>
+
   <div id="submittedBanner" class="submitted-banner" style="display:none" data-i18n="closeout.submitted">✅ Submitted — awaiting owner review</div>
   <div id="reviewedBanner" class="submitted-banner" style="display:none;border-color:var(--green);" data-i18n="closeout.readOnly">This closeout has been reviewed and is read-only.</div>
   <div id="reviewedComment" style="display:none;margin-bottom:1rem;padding:.6rem .9rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);font-size:.88em"></div>
@@ -224,6 +250,7 @@ async function loadData(date) {
 
     closeoutCfg = cfg.closeoutConfig || { shifts: [], staff: [], deductionCategories: [], tipsEnabled: false };
     tipsEnabled = closeoutCfg.tipsEnabled || false;
+    if (isOwner) document.getElementById('historyPanel').style.display = '';
     document.getElementById('sectionShifts').style.display = tipsEnabled ? '' : 'none';
     document.getElementById('totTipsCashRow').style.display    = tipsEnabled ? '' : 'none';
     document.getElementById('totTipsTransferRow').style.display = tipsEnabled ? '' : 'none';
@@ -482,6 +509,50 @@ document.getElementById('saveDraftBtn').onclick = async function() {
   this.disabled = false;
   if (saved) setStatus('draft');
 };
+
+// ── History panel (owner only) ───────────────────────────────────────────────
+let _historyOpen = false;
+let _historyPage = 1;
+
+function toggleHistoryPanel() {
+  _historyOpen = !_historyOpen;
+  document.getElementById('historyPanelBody').style.display = _historyOpen ? '' : 'none';
+  document.getElementById('historyChevron').textContent = _historyOpen ? '▲' : '▼';
+  if (_historyOpen && document.getElementById('historyList').querySelector('p')) loadHistory(1);
+}
+
+async function loadHistory(page) {
+  _historyPage = page || 1;
+  const list  = document.getElementById('historyList');
+  const pager = document.getElementById('historyPager');
+  list.innerHTML = `<p style="padding:.75rem 1.1rem;color:var(--text-3);font-size:.85em">${t('common.loading')}</p>`;
+  try {
+    const r = await fetch(`${API_BASE}/closeouts?page=${_historyPage}&limit=15`, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!r.ok) throw new Error();
+    const { closeouts, pages } = await r.json();
+    if (!closeouts.length) {
+      list.innerHTML = `<p style="padding:.75rem 1.1rem;color:var(--text-3);font-size:.85em">${t('closeout.noHistory')}</p>`;
+      pager.innerHTML = '';
+      return;
+    }
+    const chipColors = { draft: ['#88888830','#888'], submitted: ['#f59e0b22','#f59e0b'], reviewed: ['var(--green)22','var(--green)'] };
+    list.innerHTML = closeouts.map(c => {
+      const [bg, fg] = chipColors[c.status] || ['#88888830','#888'];
+      const label = t('closeout.status' + c.status.charAt(0).toUpperCase() + c.status.slice(1));
+      return `<div class="history-row" onclick="loadData('${escHtml(c.date)}');document.getElementById('inputDate').value='${escHtml(c.date)}';toggleHistoryPanel()">
+        <span class="hr-date">${escHtml(c.date)}</span>
+        <span class="hr-by">${escHtml(c.submittedBy || '—')}</span>
+        <span class="hr-cash">${(c.cashDelivered || 0).toFixed(2)}</span>
+        <span class="hr-chip" style="background:${bg};color:${fg}">${escHtml(label)}</span>
+      </div>`;
+    }).join('');
+    pager.innerHTML = pages <= 1 ? '' : Array.from({ length: pages }, (_, i) => i + 1).map(p =>
+      `<button type="button" class="btn btn-sm ${p === _historyPage ? '' : 'btn-secondary'}" onclick="loadHistory(${p})" style="padding:.2rem .5rem;font-size:.8em">${p}</button>`
+    ).join('');
+  } catch(e) {
+    list.innerHTML = `<p style="padding:.75rem 1.1rem;color:var(--text-3);font-size:.85em">${t('closeout.loadFail')}</p>`;
+  }
+}
 
 document.getElementById('approveCloseoutBtn').onclick = async function() {
   if (!confirm(t('closeout.approveConfirm'))) return;
