@@ -1545,6 +1545,8 @@
 
             document.getElementById('postSaleNewBtn').onclick = function() {
                 cart = [];
+                pendingDiscount = null;
+                document.getElementById('cartFoot').innerHTML = '';
                 renderCart();
                 renderMenu();
             };
