@@ -1,8 +1,13 @@
 'use strict';
-const router   = require('express').Router();
+const router     = require('express').Router();
+const mongoose   = require('mongoose');
 const { authenticate, roleOnly } = require('../middleware/auth');
-const Closeout = require('../models/Closeout');
-const Sale     = require('../models/Sale');
+const Closeout   = require('../models/Closeout');
+const Sale       = require('../models/Sale');
+
+function toObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
+}
 
 router.use(authenticate);
 
@@ -82,7 +87,7 @@ router.get('/report', roleOnly('store_owner'), async (req, res) => {
     if (!from || !to) return res.status(400).json({ error: 'from and to required' });
 
     const match = {
-      storeId: sid,
+      storeId: toObjectId(sid),
       status:  { $in: ['submitted', 'reviewed'] },
       date:    { $gte: from, $lte: to },
     };
