@@ -57,13 +57,13 @@ router.get('/sales-summary', roleOnly('store_owner', 'cashier'), async (req, res
       storeId:   sid,
       status:    { $ne: 'open' },
       createdAt: { $gte: start, $lt: end },
-    }).select('total method');
+    }).select('total paymentMethod');
 
     let totalSales = 0, transferAmount = 0;
     sales.forEach(s => {
       const amt = Number(s.total) || 0;
       totalSales += amt;
-      if (TRANSFER_METHODS.has(s.method)) transferAmount += amt;
+      if (TRANSFER_METHODS.has(s.paymentMethod)) transferAmount += amt;
     });
 
     const cashSales = totalSales - transferAmount;

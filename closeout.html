@@ -315,7 +315,7 @@ function buildShifts(savedShifts) {
           <th></th>
         </tr></thead>
         <tbody class="staff-tbody">
-          ${staffRows.map(sr => staffRowHtml(sr)).join('')}
+          ${staffRows.map(sr => `<tr>${staffRowHtml(sr)}</tr>`).join('')}
         </tbody>
       </table>
       <button type="button" class="btn btn-sm btn-secondary add-staff-row-btn" data-shift="${escHtml(shift.id)}" style="margin:.4rem;font-size:.8em" data-i18n="closeout.addPerson">${t('closeout.addPerson')}</button>
