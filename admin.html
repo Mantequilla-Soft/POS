@@ -2700,7 +2700,7 @@
                                 <span style="font-size:.75em;font-weight:600;padding:.15rem .5rem;border-radius:20px;background:${statusColors[c.status]}22;color:${statusColors[c.status]}">${t('closeout.status' + c.status.charAt(0).toUpperCase() + c.status.slice(1))}</span>
                             </td>
                             <td style="padding:.35rem .4rem">
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCloseoutDetail('${c._id}')" style="font-size:.78em;padding:.2rem .5rem">▼</button>
+                                <button type="button" class="btn btn-sm ${c.status === 'submitted' ? '' : 'btn-secondary'}" onclick="toggleCloseoutDetail('${c._id}')" style="font-size:.78em;padding:.2rem .5rem${c.status === 'submitted' ? ';background:var(--green);color:#fff' : ''}">${c.status === 'submitted' ? t('closeout.markReviewed') : '▼'}</button>
                             </td>
                         </tr>
                         <tr id="co-detail-${c._id}" style="display:none">
@@ -2709,6 +2709,8 @@
                             </td>
                         </tr>`).join('')}
                     </tbody></table>`;
+                // Auto-expand submitted rows so approve button is immediately visible
+                closeouts.filter(c => c.status === 'submitted').forEach(c => toggleCloseoutDetail(c._id));
                 // Pager
                 pager.innerHTML = pages <= 1 ? '' :
                     Array.from({ length: pages }, (_, i) => i + 1).map(p =>

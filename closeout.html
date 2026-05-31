@@ -82,6 +82,14 @@
   <div id="reviewedBanner" class="submitted-banner" style="display:none;border-color:var(--green);" data-i18n="closeout.readOnly">This closeout has been reviewed and is read-only.</div>
   <div id="reviewedComment" style="display:none;margin-bottom:1rem;padding:.6rem .9rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);font-size:.88em"></div>
 
+  <!-- Owner approve panel — visible only to owner when status = submitted -->
+  <div id="ownerApprovePanel" style="display:none;background:#fef3c711;border:2px solid var(--amber,#f59e0b);border-radius:var(--r-lg);padding:1rem 1.25rem;margin-bottom:1.25rem">
+    <h3 style="margin:0 0 .4rem;font-size:.95rem;color:var(--amber,#f59e0b)" data-i18n="closeout.pendingReview">⏳ Pending Your Approval</h3>
+    <p style="font-size:.84em;color:var(--text-2);margin:0 0 .75rem" data-i18n="closeout.reviewInstructions">Review the figures above, add a note if needed, then approve.</p>
+    <textarea id="ownerReviewComment" rows="2" style="width:100%;box-sizing:border-box;padding:.45rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:.9em;resize:vertical;margin-bottom:.65rem"></textarea>
+    <button type="button" id="approveCloseoutBtn" class="btn" style="background:var(--green);color:#fff;width:100%;font-size:1rem;padding:.7rem 1rem;border-radius:var(--r)" data-i18n="closeout.approve">✅ Approve &amp; Archive</button>
+  </div>
+
   <!-- Section 1: Sales Summary -->
   <div class="section-card">
     <h2 data-i18n="closeout.sectionSales">Sales Summary</h2>
@@ -276,10 +284,11 @@ function setStatus(status) {
   chip.textContent = t('closeout.status' + status.charAt(0).toUpperCase() + status.slice(1));
   chip.className   = `status-chip chip-${status}`;
 
-  document.getElementById('submittedBanner').style.display = status === 'submitted' ? '' : 'none';
-  document.getElementById('reviewedBanner').style.display  = status === 'reviewed'  ? '' : 'none';
-  document.getElementById('submitBtn').style.display       = (status === 'draft') ? '' : 'none';
-  document.getElementById('saveDraftBtn').style.display    = (status === 'draft') ? '' : 'none';
+  document.getElementById('submittedBanner').style.display  = (status === 'submitted' && !isOwner) ? '' : 'none';
+  document.getElementById('reviewedBanner').style.display   = status === 'reviewed'  ? '' : 'none';
+  document.getElementById('ownerApprovePanel').style.display = (isOwner && status === 'submitted') ? '' : 'none';
+  document.getElementById('submitBtn').style.display        = (status === 'draft') ? '' : 'none';
+  document.getElementById('saveDraftBtn').style.display     = (status === 'draft') ? '' : 'none';
 
   if (readOnly) lockForm();
 }
@@ -472,6 +481,30 @@ document.getElementById('saveDraftBtn').onclick = async function() {
   const saved = await saveCloseout('draft');
   this.disabled = false;
   if (saved) setStatus('draft');
+};
+
+document.getElementById('approveCloseoutBtn').onclick = async function() {
+  if (!confirm(t('closeout.approveConfirm'))) return;
+  this.disabled = true;
+  const comment = document.getElementById('ownerReviewComment').value;
+  try {
+    const r = await fetch(`${API_BASE}/closeouts/${closeoutId}/review`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ reviewComment: comment }),
+    });
+    if (!r.ok) throw new Error();
+    document.getElementById('ownerApprovePanel').style.display = 'none';
+    if (comment) {
+      const rc = document.getElementById('reviewedComment');
+      rc.style.display = '';
+      rc.textContent = '💬 ' + comment;
+    }
+    setStatus('reviewed');
+  } catch(e) {
+    alert(t('closeout.reviewFail'));
+    this.disabled = false;
+  }
 };
 
 document.getElementById('submitBtn').onclick = async function() {

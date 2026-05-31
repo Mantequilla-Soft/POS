@@ -454,7 +454,23 @@
             }
             if (userStore.features?.closeout) {
                 const btn = document.getElementById('closeoutNavBtn');
-                if (btn) btn.style.display = 'inline-flex';
+                if (btn) {
+                    btn.style.display = 'inline-flex';
+                    // Badge: count submitted cierres awaiting approval
+                    const token = localStorage.getItem('pos_admin_token');
+                    if (token) {
+                        fetch(`${API_BASE}/closeouts?status=submitted&limit=1`, { headers: { 'Authorization': 'Bearer ' + token } })
+                            .then(r => r.ok ? r.json() : null)
+                            .then(data => {
+                                if (data && data.total > 0) {
+                                    const badge = document.createElement('span');
+                                    badge.textContent = data.total;
+                                    badge.style.cssText = 'background:#ef4444;color:#fff;border-radius:50%;min-width:1.1em;height:1.1em;line-height:1.1em;text-align:center;padding:0 .25em;font-size:.72em;font-weight:700;margin-left:.35rem;flex-shrink:0';
+                                    btn.appendChild(badge);
+                                }
+                            }).catch(() => {});
+                    }
+                }
             }
 
             const storeName = userStore.settings?.businessName || userStore.businessName || userStore.name || 'Unnamed Store';
