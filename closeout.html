@@ -232,10 +232,18 @@ async function loadData(date) {
     if (existing) {
       closeoutId = existing._id;
       populateForm(existing);
+      // For drafts, always refresh sales figures from live DB — the cashier
+      // may have made more sales since the draft was last saved.
+      // Submitted/reviewed totals are locked snapshots, leave them alone.
+      if (existing.status === 'draft') {
+        document.getElementById('inputTotalSales').value     = fmt(summary.totalSales);
+        document.getElementById('inputTransferAmount').value = fmt(summary.transferAmount);
+        recalc();
+      }
       setStatus(existing.status);
     } else {
-      // Pre-fill from sales summary
-      document.getElementById('inputTotalSales').value    = fmt(summary.totalSales);
+      // No existing closeout — pre-fill from live sales summary
+      document.getElementById('inputTotalSales').value     = fmt(summary.totalSales);
       document.getElementById('inputTransferAmount').value = fmt(summary.transferAmount);
       buildShifts(null);
       buildDeductions(null);
