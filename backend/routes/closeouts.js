@@ -73,6 +73,42 @@ router.get('/sales-summary', roleOnly('store_owner', 'cashier'), async (req, res
   }
 });
 
+// GET /api/closeouts/report?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/report', roleOnly('store_owner'), async (req, res) => {
+  try {
+    const sid = getStoreId(req);
+    if (!sid) return res.status(400).json({ error: 'No store' });
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'from and to required' });
+
+    const match = {
+      storeId: sid,
+      status:  { $in: ['submitted', 'reviewed'] },
+      date:    { $gte: from, $lte: to },
+    };
+
+    const [agg] = await Closeout.aggregate([
+      { $match: match },
+      { $group: {
+        _id:           null,
+        count:         { $sum: 1 },
+        totalSales:    { $sum: '$totalSales' },
+        cashDelivered: { $sum: '$cashDelivered' },
+        bankTotal:     { $sum: '$bankTotal' },
+        tipsCash:      { $sum: '$totalTipsCash' },
+        tipsTransfer:  { $sum: '$totalTipsTransfer' },
+        deductions:    { $sum: '$totalDeductions' },
+        transferSales: { $sum: '$transferAmount' },
+        cashSales:     { $sum: '$cashSales' },
+      }},
+    ]);
+
+    res.json(agg || { count: 0, totalSales: 0, cashDelivered: 0, bankTotal: 0, tipsCash: 0, tipsTransfer: 0, deductions: 0, transferSales: 0, cashSales: 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/closeouts/by-date/:date — must come before /:id
 router.get('/by-date/:date', roleOnly('store_owner', 'cashier'), async (req, res) => {
   try {

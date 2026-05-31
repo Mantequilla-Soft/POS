@@ -46,6 +46,20 @@
     .chip-submitted { background: var(--amber, #f59e0b)22; color: var(--amber, #f59e0b); }
     .chip-reviewed  { background: var(--green)22; color: var(--green); }
     input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+    .report-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 1.25rem; overflow: hidden; box-shadow: var(--sh-sm); }
+    .report-panel-header { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.1rem; cursor: pointer; user-select: none; }
+    .report-panel-header h2 { margin: 0; font-size: .95rem; }
+    .report-panel-body { border-top: 1px solid var(--border); padding: .9rem 1rem 1rem; }
+    .range-btns { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem; }
+    .range-btns button { font-size: .8em; padding: .3rem .7rem; }
+    .custom-range { display: flex; gap: .5rem; align-items: center; margin-bottom: .85rem; flex-wrap: wrap; }
+    .custom-range input[type=date] { border: 1px solid var(--border); border-radius: var(--r-sm); padding: .3rem .5rem; font-size: .85em; background: var(--bg); color: var(--text); }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .6rem; }
+    .stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: .65rem .8rem; }
+    .stat-card .sc-label { font-size: .75em; color: var(--text-3); margin-bottom: .2rem; }
+    .stat-card .sc-value { font-size: 1.15em; font-weight: 700; color: var(--text); }
+    .stat-card.sc-highlight { border-color: var(--primary, var(--ink)); }
+    .stat-card.sc-highlight .sc-value { color: var(--primary, var(--ink)); }
     .history-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 1.25rem; overflow: hidden; box-shadow: var(--sh-sm); }
     .history-panel-header { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.1rem; cursor: pointer; user-select: none; }
     .history-panel-header h2 { margin: 0; font-size: .95rem; }
@@ -101,6 +115,28 @@
         <p style="padding:.75rem 1.1rem;color:var(--text-3);font-size:.85em" data-i18n="common.loading">Loading…</p>
       </div>
       <div id="historyPager" style="display:flex;gap:.4rem;justify-content:center;padding:.5rem;border-top:1px solid var(--border)"></div>
+    </div>
+  </div>
+
+  <!-- Reports panel — owner only -->
+  <div id="reportPanel" class="report-panel" style="display:none">
+    <div class="report-panel-header" onclick="toggleReportPanel()">
+      <h2 data-i18n="closeout.reportTitle">📊 Period Report</h2>
+      <span id="reportChevron" style="font-size:.8em;color:var(--text-3)">▼</span>
+    </div>
+    <div id="reportPanelBody" class="report-panel-body" style="display:none">
+      <div class="range-btns">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="applyRange('week')" data-i18n="closeout.rangeThisWeek">This Week</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="applyRange('month')" data-i18n="closeout.rangeThisMonth">This Month</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="applyRange('lastmonth')" data-i18n="closeout.rangeLastMonth">Last Month</button>
+      </div>
+      <div class="custom-range">
+        <input type="date" id="reportFrom">
+        <span style="color:var(--text-3);font-size:.85em">→</span>
+        <input type="date" id="reportTo">
+        <button type="button" class="btn btn-sm" onclick="runReport()" data-i18n="closeout.rangeCustom">Custom</button>
+      </div>
+      <div id="reportResults"></div>
     </div>
   </div>
 
@@ -250,7 +286,10 @@ async function loadData(date) {
 
     closeoutCfg = cfg.closeoutConfig || { shifts: [], staff: [], deductionCategories: [], tipsEnabled: false };
     tipsEnabled = closeoutCfg.tipsEnabled || false;
-    if (isOwner) document.getElementById('historyPanel').style.display = '';
+    if (isOwner) {
+      document.getElementById('historyPanel').style.display  = '';
+      document.getElementById('reportPanel').style.display   = '';
+    }
     document.getElementById('sectionShifts').style.display = tipsEnabled ? '' : 'none';
     document.getElementById('totTipsCashRow').style.display    = tipsEnabled ? '' : 'none';
     document.getElementById('totTipsTransferRow').style.display = tipsEnabled ? '' : 'none';
@@ -509,6 +548,73 @@ document.getElementById('saveDraftBtn').onclick = async function() {
   this.disabled = false;
   if (saved) setStatus('draft');
 };
+
+// ── Reports panel (owner only) ──────────────────────────────────────────────
+let _reportOpen = false;
+
+function toggleReportPanel() {
+  _reportOpen = !_reportOpen;
+  document.getElementById('reportPanelBody').style.display = _reportOpen ? '' : 'none';
+  document.getElementById('reportChevron').textContent = _reportOpen ? '▲' : '▼';
+  if (_reportOpen && !document.getElementById('reportFrom').value) applyRange('month');
+}
+
+function applyRange(preset) {
+  const now   = new Date();
+  const pad   = n => String(n).padStart(2, '0');
+  const ymd   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  let from, to;
+  if (preset === 'week') {
+    const day = now.getDay(); // 0=Sun
+    const mon = new Date(now); mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    from = ymd(mon); to = ymd(now);
+  } else if (preset === 'month') {
+    from = `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`;
+    to   = ymd(now);
+  } else if (preset === 'lastmonth') {
+    const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+    from = ymd(first); to = ymd(last);
+  }
+  document.getElementById('reportFrom').value = from;
+  document.getElementById('reportTo').value   = to;
+  runReport();
+}
+
+async function runReport() {
+  const from = document.getElementById('reportFrom').value;
+  const to   = document.getElementById('reportTo').value;
+  const el   = document.getElementById('reportResults');
+  if (!from || !to) return;
+  el.innerHTML = `<p style="color:var(--text-3);font-size:.85em">${t('common.loading')}</p>`;
+  try {
+    const r = await fetch(`${API_BASE}/closeouts/report?from=${from}&to=${to}`, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (!d.count) {
+      el.innerHTML = `<p style="color:var(--text-3);font-size:.85em">${t('closeout.reportEmpty')}</p>`;
+      return;
+    }
+    const stat = (label, value, highlight) => `
+      <div class="stat-card${highlight ? ' sc-highlight' : ''}">
+        <div class="sc-label">${escHtml(label)}</div>
+        <div class="sc-value">${value}</div>
+      </div>`;
+    el.innerHTML = `<div class="stat-grid">
+      ${stat(t('closeout.reportCierres'),       d.count, false)}
+      ${stat(t('closeout.reportTotalSales'),    fmt(d.totalSales),    true)}
+      ${stat(t('closeout.reportCashSales'),     fmt(d.cashSales),     false)}
+      ${stat(t('closeout.reportTransfers'),     fmt(d.transferSales), false)}
+      ${stat(t('closeout.reportCashDelivered'), fmt(d.cashDelivered), true)}
+      ${stat(t('closeout.reportBankTotal'),     fmt(d.bankTotal),     false)}
+      ${stat(t('closeout.reportTipsCash'),      fmt(d.tipsCash),      false)}
+      ${stat(t('closeout.reportTipsTransfer'),  fmt(d.tipsTransfer),  false)}
+      ${stat(t('closeout.reportDeductions'),    fmt(d.deductions),    false)}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--text-3);font-size:.85em">${t('closeout.loadFail')}</p>`;
+  }
+}
 
 // ── History panel (owner only) ───────────────────────────────────────────────
 let _historyOpen = false;
