@@ -1508,9 +1508,40 @@
             cartFoot.innerHTML = `
                 <div style="text-align:center;padding:0.25rem 0 0.75rem;color:var(--green);font-weight:600;font-size:0.9rem;">✓ ${t('pos.saleComplete')}</div>
                 <div id="postSaleActionsRow" style="display:flex;flex-direction:column;gap:0.5rem;">
+                    <button id="postSaleShareBtn" class="btn btn-secondary btn-block">${t('pos.shareReceipt')}</button>
                     <button id="postSalePrintBtn" class="btn btn-secondary btn-block">${t('pos.printReceipt')}</button>
                     <button id="postSaleNewBtn" class="btn btn-success btn-block">${t('common.newSale')}</button>
                 </div>`;
+
+            document.getElementById('postSaleShareBtn').onclick = function() {
+                const settings = getStoreSettings();
+                const now = new Date();
+                const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const methodLabel = paymentType === 'bank_transfer' ? 'Transferencia' : paymentType === 'cash' ? 'Efectivo' : paymentType.toUpperCase();
+                const lines = saleCart.map(i => `  ${i.name}${i.qty > 1 ? ' x' + i.qty : ''} — $${(i.price * i.qty).toFixed(2)}`).join('\n');
+                const taxLine = (taxAmount && taxAmount > 0) ? `\nImpuesto: $${taxAmount.toFixed(2)}` : '';
+                const text = [
+                    `🧾 ${settings.businessName || 'HIVE POS'}`,
+                    `${dateStr}`,
+                    `─────────────────`,
+                    lines,
+                    `─────────────────`,
+                    taxLine ? `Subtotal: $${(subtotal || 0).toFixed(2)}${taxLine}` : '',
+                    `Total: $${saleTotal.toFixed(2)}`,
+                    `Pago: ${methodLabel}`,
+                    hiveFrom ? `Desde: @${hiveFrom}` : '',
+                    `\n¡Gracias! 🙏`,
+                ].filter(Boolean).join('\n');
+
+                if (navigator.share) {
+                    navigator.share({ title: `Recibo — ${settings.businessName || 'HIVE POS'}`, text }).catch(() => {});
+                } else {
+                    navigator.clipboard.writeText(text).then(() => {
+                        const btn = document.getElementById('postSaleShareBtn');
+                        if (btn) { const orig = btn.textContent; btn.textContent = '✓ ' + t('pos.receiptCopied'); setTimeout(() => { if (btn) btn.textContent = orig; }, 2500); }
+                    }).catch(() => {});
+                }
+            };
 
             document.getElementById('postSalePrintBtn').onclick = function() {
                 const now = new Date();
