@@ -12,6 +12,7 @@ const storeSchema = new mongoose.Schema({
   ownerId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
   businessName: { type: String, default: '' },
   hiveAccount:  { type: String, default: '' },   // kept at root — used in emails + Hive plugin
+  logoUrl:      { type: String, default: '' },
   bannerUrl:    { type: String, default: '' },
   categories:   { type: [String], default: [] },
   currency:     { type: String, default: 'HBD' },

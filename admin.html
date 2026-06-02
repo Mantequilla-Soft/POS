@@ -269,12 +269,30 @@
         <label><span data-i18n="admin.businessName">Business Name:</span>
             <input type="text" id="businessName" placeholder="e.g. Sweet Treats Bakery" style="width:100%;margin-bottom:0.5rem;">
         </label>
+        <!-- Logo upload -->
+        <label><span data-i18n="admin.logoImage">Store Logo:</span></label>
+        <div style="display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.5rem;">
+            <div id="logoPreviewBox" style="width:72px;height:72px;flex-shrink:0;border-radius:var(--r);border:2px dashed var(--border);background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.7em;text-align:center;">
+                <img id="logoPreviewImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
+                <span id="logoPreviewPlaceholder">Logo</span>
+            </div>
+            <div style="flex:1">
+                <div style="display:flex;gap:.4rem;margin-bottom:.4rem;">
+                    <input type="text" id="logoUrl" placeholder="—" style="width:100%;margin-bottom:0;" readonly>
+                    <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
+                    <button type="button" id="selectLogoBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0;white-space:nowrap" data-i18n="admin.selectImage">Select Image</button>
+                </div>
+                <p style="font-size:.78em;color:var(--text-2);margin:0;line-height:1.4" data-i18n="admin.logoTips">💡 Square image, min 400×400px, PNG with transparent background. Replaces store name text in POS.</p>
+            </div>
+        </div>
+        <!-- Banner upload -->
         <label><span data-i18n="admin.bannerImage">Banner Image:</span>
             <div style="display:flex;align-items:center;gap:0.5rem;">
                 <input type="text" id="bannerUrl" placeholder="e.g. images/banner.png" style="width:100%;margin-bottom:0.5rem;" readonly>
                 <input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
                 <button type="button" id="selectBannerBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0" data-i18n="admin.selectImage">Select Image</button>
             </div>
+            <p style="font-size:.78em;color:var(--text-2);margin:-.25rem 0 .5rem;line-height:1.4" data-i18n="admin.bannerTips">💡 Wide landscape image (3:1 ratio), min 1200×400px. Shown as cover photo.</p>
         </label>
         <label>Categories:
             <div id="categoryTags" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;"></div>
@@ -1015,6 +1033,7 @@
             items: [],
             settings: {
                 businessName: '',
+                logoUrl: '',
                 bannerUrl: '',
                 categories: ['drink', 'pastry', 'bread', 'other'],
                 hiveAccount: '',
@@ -1299,6 +1318,55 @@
             }
         }
 
+        // Square-crop version: center-crops to 1:1 then resizes to 400×400
+        async function compressAndUploadSquare(file, targetInput, onSuccess) {
+            targetInput.value = t('admin.uploading') || 'Uploading…';
+            try {
+                const blob = await compressImageSquare(file, 400, 0.88);
+                const formData = new FormData();
+                formData.append('image', blob, file.name.replace(/\.[^.]+$/, '.jpg'));
+                const token = localStorage.getItem('pos_admin_token');
+                const apiBase = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+                const res  = await fetch(`${apiBase}/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData,
+                });
+                const data = await res.json();
+                if (res.ok && data.url) {
+                    targetInput.value = data.url;
+                    if (onSuccess) onSuccess(data.url);
+                } else {
+                    targetInput.value = '';
+                    alert(data.error || t('admin.imageUploadFail'));
+                }
+            } catch (err) {
+                targetInput.value = '';
+                alert(t('admin.imageUploadFail'));
+            }
+        }
+
+        function compressImageSquare(file, size, quality) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    const { width, height } = img;
+                    const sq  = Math.min(width, height);  // largest square that fits
+                    const sx  = (width  - sq) / 2;        // center-crop offsets
+                    const sy  = (height - sq) / 2;
+                    const out = Math.min(sq, size);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = out; canvas.height = out;
+                    canvas.getContext('2d').drawImage(img, sx, sy, sq, sq, 0, 0, out, out);
+                    canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+                };
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
         function compressImage(file, maxPx, quality) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -1329,6 +1397,8 @@
         async function renderStoreSettings() {
             const settings = await getStoreSettings();
             document.getElementById('businessName').value = settings.businessName || '';
+            document.getElementById('logoUrl').value = settings.logoUrl || '';
+            updateLogoPreview(settings.logoUrl || '');
             document.getElementById('bannerUrl').value = settings.bannerUrl || '';
             renderCategoryTags(settings.categories || []);
         }
@@ -1394,6 +1464,25 @@
             categoryInput.value = '';
         };
 
+        // Logo image selection logic (square crop)
+        function updateLogoPreview(url) {
+            const img = document.getElementById('logoPreviewImg');
+            const placeholder = document.getElementById('logoPreviewPlaceholder');
+            if (url) { img.src = url; img.style.display = ''; placeholder.style.display = 'none'; }
+            else      { img.style.display = 'none'; placeholder.style.display = ''; }
+        }
+        document.getElementById('selectLogoBtn').onclick = () => document.getElementById('logoFileInput').click();
+        document.getElementById('logoFileInput').onchange = async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            await compressAndUploadSquare(file, document.getElementById('logoUrl'), async (url) => {
+                const settings = await getStoreSettings();
+                settings.logoUrl = url;
+                await saveStoreSettings(settings);
+                updateLogoPreview(url);
+            });
+        };
+
         // Banner image selection logic
         const selectBannerBtn = document.getElementById('selectBannerBtn');
         const bannerFileInput = document.getElementById('bannerFileInput');
@@ -1452,7 +1541,8 @@
                 items: [],
                 settings: {
                     businessName: '',
-                    bannerUrl: '',
+                    logoUrl: '',
+                bannerUrl: '',
                     categories: ['drink', 'pastry', 'bread', 'other'],
                     hiveAccount: '',
                     bitcoinLightningEnabled: false,
@@ -1551,7 +1641,8 @@
                     currentData.items = apiConfig.items || [];
                     currentData.settings = apiConfig.settings || {
                         businessName: '',
-                        bannerUrl: '',
+                        logoUrl: '',
+                bannerUrl: '',
                         categories: ['drink', 'pastry', 'bread', 'other'],
                         hiveAccount: '',
                         bitcoinLightningEnabled: false,

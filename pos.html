@@ -260,6 +260,7 @@
 <div class="pos-page">
     <!-- Top bar -->
     <header class="pos-topbar">
+        <img id="storeLogoHeader" src="" alt="" style="display:none;width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;">
         <span id="businessNameHeader" class="pos-biz-name">Point of Sale</span>
         <span id="langToggleContainer"></span>
         <button id="logoutBtn" class="btn btn-secondary btn-sm" data-i18n="common.logout" style="margin-left:auto;min-width:72px;">Logout</button>
@@ -372,7 +373,7 @@
         }
         // --- Banner and Business Name Logic ---
         function getStoreSettings() {
-            return JSON.parse(localStorage.getItem('pos_settings') || '{"businessName":"","bannerUrl":"","categories":["drink","pastry","bread","other"],"hiveAccount":""}');
+            return JSON.parse(localStorage.getItem('pos_settings') || '{"businessName":"","logoUrl":"","bannerUrl":"","categories":["drink","pastry","bread","other"],"hiveAccount":""}');
         }
         function calculateCartTotals() {
             const itemsTotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
@@ -394,8 +395,19 @@
             // Banner
             const bannerDiv = document.getElementById('bannerContainer');
             bannerDiv.innerHTML = settings.bannerUrl ? `<img src="${settings.bannerUrl}" alt="Banner" style="max-width:100%;max-height:120px;border-radius:8px;">` : '';
-            // Business Name
-            document.getElementById('businessNameHeader').textContent = settings.businessName || t('pos.title');
+            // Logo or business name
+            const logoEl = document.getElementById('storeLogoHeader');
+            const nameEl = document.getElementById('businessNameHeader');
+            if (settings.logoUrl) {
+                logoEl.src = settings.logoUrl;
+                logoEl.alt = settings.businessName || '';
+                logoEl.style.display = '';
+                nameEl.style.display = 'none';
+            } else {
+                logoEl.style.display = 'none';
+                nameEl.style.display = '';
+                nameEl.textContent = settings.businessName || t('pos.title');
+            }
             // Cashier badge
             const cashierUser = JSON.parse(localStorage.getItem('pos_cashier_user') || 'null');
             const cashierBadge = document.getElementById('cashierBadge');
@@ -1222,6 +1234,7 @@
                         localStorage.setItem('pos_items', JSON.stringify(store.items || []));
                         localStorage.setItem('pos_settings', JSON.stringify({
                             businessName: store.businessName || '',
+                            logoUrl: store.logoUrl || '',
                             bannerUrl: store.bannerUrl || '',
                             categories: store.categories || [],
                             hiveAccount: store.hiveAccount || '',

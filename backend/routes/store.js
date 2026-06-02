@@ -89,6 +89,7 @@ router.get('/config', async (req, res) => {
       items:    store.items,
       settings: {
         businessName:           store.businessName,
+        logoUrl:                store.logoUrl,
         bannerUrl:              store.bannerUrl,
         categories:             store.categories,
         hiveAccount:            store.hiveAccount,
@@ -133,6 +134,7 @@ router.post('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
 
     if (settings) {
       if (settings.businessName !== undefined)  data.businessName = settings.businessName;
+      if (settings.logoUrl      !== undefined)  data.logoUrl      = settings.logoUrl;
       if (settings.bannerUrl    !== undefined)  data.bannerUrl    = settings.bannerUrl;
       if (settings.categories   !== undefined)  data.categories   = settings.categories;
       if (settings.hiveAccount  !== undefined)  data.hiveAccount  = settings.hiveAccount;
