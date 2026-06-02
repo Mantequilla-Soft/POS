@@ -8,16 +8,30 @@
   <link rel="stylesheet" href="theme.css">
   <script src="theme-loader.js"></script>
   <style>
-    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: var(--sh-xs); }
-    .header-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .header h1 { color: var(--text); font-size: 1.4rem; }
-    .nav-links { display: flex; gap: .75rem; align-items: center; }
-    .nav-links a { color: var(--text-2); text-decoration: none; font-size: .9rem; }
-    .nav-links a:hover { color: var(--text); }
-    .main { max-width: 1100px; margin: 1.5rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-    .toolbar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
-    .search-input { flex: 1; min-width: 200px; }
-    .filter-select { padding: .6rem .9rem; border: 1.5px solid var(--border); border-radius: var(--r); font-size: .9rem; background: var(--surface); font-family: var(--font); color: var(--text); }
+    /* ── Header ── */
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: .75rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: var(--sh-xs); }
+    .header-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: .4rem; }
+    .header-row1 { display: flex; align-items: center; gap: .75rem; }
+    .header h1 { color: var(--text); font-size: 1.2rem; font-weight: 700; flex: 1; }
+    .nav-links { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+    .nav-links a {
+      color: var(--text-2); text-decoration: none; font-size: .82rem; font-weight: 500;
+      padding: .3rem .75rem; border-radius: var(--r-full);
+      border: 1px solid var(--border); background: var(--bg);
+      transition: var(--ease); white-space: nowrap;
+    }
+    .nav-links a:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+
+    /* ── Main layout ── */
+    .main { max-width: 1100px; margin: 1.25rem auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; flex-direction: column; gap: .6rem; }
+    .toolbar-search { display: flex; gap: .5rem; }
+    .search-input { flex: 1; }
+    .toolbar-filters { display: flex; gap: .5rem; }
+    .toolbar-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .filter-select { flex: 1; padding: .6rem .9rem; border: 1.5px solid var(--border); border-radius: var(--r); font-size: .9rem; background: var(--surface); font-family: var(--font); color: var(--text); }
     .btn-outline { background: var(--surface); color: var(--ink); border: 1.5px solid var(--ink); }
     .actions { display: flex; gap: .4rem; flex-wrap: wrap; }
     .empty { text-align: center; color: var(--text-2); padding: 2.5rem; }
@@ -46,7 +60,13 @@
     #toast.show { opacity: 1; }
 
     @media (max-width: 640px) {
-      .main { padding: 0 .75rem; }
+      .header { padding: .6rem 1rem; }
+      .header h1 { font-size: 1.05rem; }
+      .nav-links { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      .nav-links::-webkit-scrollbar { display: none; }
+      .nav-links a { font-size: .78rem; padding: .28rem .65rem; }
+      .main { padding: 0 .75rem; margin-top: .9rem; }
+      .toolbar-actions .btn { flex: 1; font-size: .84rem; padding: .5rem .6rem; text-align: center; }
       th:nth-child(2), td:nth-child(2) { display: none; }
       .actions { flex-wrap: wrap; }
       .form-row { flex-direction: column; gap: 0; }
@@ -59,35 +79,43 @@
 
 <div class="header">
   <div class="header-inner">
-    <h1 data-i18n="members.title">Members</h1>
-    <div class="nav-links">
+    <div class="header-row1">
+      <h1 data-i18n="members.title">Members</h1>
+      <span id="langToggleContainer"></span>
+    </div>
+    <nav class="nav-links">
       <a href="dashboard.html" data-i18n="common.dashboard" id="navDashboard">Dashboard</a>
       <a href="pos.html" data-i18n="common.pos">POS</a>
       <a href="campaigns.html" data-i18n="campaigns.navLink" id="navCampaigns" style="display:none">📧 Campaigns</a>
       <a href="admin.html" data-i18n="common.settings" id="navSettings">Settings</a>
-      <span id="langToggleContainer"></span>
-    </div>
+    </nav>
   </div>
 </div>
 
 <div class="main">
   <div class="toolbar">
-    <input class="search-input" type="text" id="searchInput" data-i18n-placeholder="members.searchPlaceholder" placeholder="Search name, phone, Hive account…" oninput="debounceLoad()">
-    <select class="filter-select" id="statusFilter" onchange="loadMembers()">
-      <option value="" data-i18n="members.allStatuses">All statuses</option>
-      <option value="active" data-i18n="common.active">Active</option>
-      <option value="overdue" data-i18n="common.overdue">Overdue</option>
-      <option value="suspended" data-i18n="common.suspended">Suspended</option>
-      <option value="expired" data-i18n="common.expired">Expired</option>
-    </select>
-    <select class="filter-select" id="passFilter" onchange="loadMembers()">
-      <option value="" data-i18n="pass.filterAll">All</option>
-      <option value="members" data-i18n="pass.filterMembers">Members only</option>
-      <option value="passes" data-i18n="pass.filterPasses">Passes only</option>
-    </select>
-    <button class="btn btn-primary" onclick="openAddModal()" data-i18n="members.addBtn">+ Add Member</button>
-    <button class="btn btn-outline" id="exportCsvBtn" style="display:none" onclick="exportMembers('csv')" data-i18n="export.csvBtn">⬇ Export CSV</button>
-    <button class="btn btn-outline" id="exportPdfBtn" style="display:none" onclick="exportMembers('pdf')" data-i18n="export.pdfBtn">⬇ Export PDF</button>
+    <div class="toolbar-search">
+      <input class="search-input" type="text" id="searchInput" data-i18n-placeholder="members.searchPlaceholder" placeholder="Search name, phone, Hive account…" oninput="debounceLoad()">
+    </div>
+    <div class="toolbar-filters">
+      <select class="filter-select" id="statusFilter" onchange="loadMembers()">
+        <option value="" data-i18n="members.allStatuses">All statuses</option>
+        <option value="active" data-i18n="common.active">Active</option>
+        <option value="overdue" data-i18n="common.overdue">Overdue</option>
+        <option value="suspended" data-i18n="common.suspended">Suspended</option>
+        <option value="expired" data-i18n="common.expired">Expired</option>
+      </select>
+      <select class="filter-select" id="passFilter" onchange="loadMembers()">
+        <option value="" data-i18n="pass.filterAll">All</option>
+        <option value="members" data-i18n="pass.filterMembers">Members only</option>
+        <option value="passes" data-i18n="pass.filterPasses">Passes only</option>
+      </select>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-primary" onclick="openAddModal()" data-i18n="members.addBtn">+ Add Member</button>
+      <button class="btn btn-outline" id="exportCsvBtn" style="display:none" onclick="exportMembers('csv')" data-i18n="export.csvBtn">⬇ Export CSV</button>
+      <button class="btn btn-outline" id="exportPdfBtn" style="display:none" onclick="exportMembers('pdf')" data-i18n="export.pdfBtn">⬇ Export PDF</button>
+    </div>
   </div>
 
   <div class="card">
