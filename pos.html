@@ -54,6 +54,45 @@
             }
             #bannerContainer { display: none !important; }
             #logoutBtn { margin-left: auto !important; }
+            /* Banner-as-background on mobile */
+            .pos-topbar.has-banner {
+                background-image: var(--pos-banner-url);
+                background-size: cover;
+                background-position: center;
+                min-height: 72px;
+                position: relative;
+            }
+            .pos-topbar.has-banner::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 100%);
+                pointer-events: none;
+                z-index: 0;
+            }
+            .pos-topbar.has-banner > * { position: relative; z-index: 1; }
+            .pos-topbar.has-banner .pos-biz-name {
+                color: #fff;
+                text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+            }
+            .pos-topbar.has-banner .pos-hive-badge {
+                background: rgba(0,0,0,0.35);
+                color: #fff;
+                border-color: rgba(255,255,255,0.3);
+            }
+            .pos-topbar.has-banner #cashierBadge {
+                background: rgba(0,0,0,0.35) !important;
+                color: #fff !important;
+                border-color: rgba(255,255,255,0.3) !important;
+            }
+            .pos-topbar.has-banner #storeLogoHeader {
+                box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            }
+            .pos-topbar.has-banner .btn-secondary {
+                background: rgba(0,0,0,0.35);
+                color: #fff;
+                border-color: rgba(255,255,255,0.35);
+            }
         }
         .pos-biz-name {
             font-size: 1.1rem;
@@ -392,9 +431,17 @@
         }
         function renderBannerAndName() {
             const settings = getStoreSettings();
-            // Banner
+            // Banner — desktop: image in topbar secondary; mobile: used as topbar bg
             const bannerDiv = document.getElementById('bannerContainer');
             bannerDiv.innerHTML = settings.bannerUrl ? `<img src="${settings.bannerUrl}" alt="Banner" style="max-width:100%;max-height:120px;border-radius:8px;">` : '';
+            const topbar = document.querySelector('.pos-topbar');
+            if (settings.bannerUrl) {
+                topbar.classList.add('has-banner');
+                topbar.style.setProperty('--pos-banner-url', `url(${settings.bannerUrl})`);
+            } else {
+                topbar.classList.remove('has-banner');
+                topbar.style.removeProperty('--pos-banner-url');
+            }
             // Logo or business name
             const logoEl = document.getElementById('storeLogoHeader');
             const nameEl = document.getElementById('businessNameHeader');
