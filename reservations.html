@@ -94,8 +94,8 @@
   <div class="header-inner">
     <h1 data-i18n="reservations.title">Reservations</h1>
     <div class="nav-links">
-      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
-      <a href="admin.html" data-i18n="common.settings">Settings</a>
+      <a href="dashboard.html" data-i18n="common.dashboard" id="navResDashboard">Dashboard</a>
+      <a href="admin.html" data-i18n="common.settings" id="navResSettings">Settings</a>
       <a href="pos.html" data-i18n="common.pos">POS</a>
     </div>
   </div>
@@ -197,9 +197,8 @@ function getToken() {
   return localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
 }
 function getRole() {
-  const t = localStorage.getItem('pos_admin_token');
-  if (t) return 'store_owner';
-  return localStorage.getItem('pos_cashier_token') ? 'cashier' : null;
+  const tok = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+  try { return JSON.parse(atob(tok.split('.')[1])).role; } catch { return null; }
 }
 function authHeaders() {
   return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken };
@@ -531,6 +530,8 @@ async function init() {
   } catch {}
 
   if (userRole === 'cashier') {
+    document.getElementById('navResDashboard')?.remove();
+    document.getElementById('navResSettings')?.remove();
     document.getElementById('cashierView').style.display = 'block';
     document.getElementById('ownerView').style.display   = 'none';
   } else {

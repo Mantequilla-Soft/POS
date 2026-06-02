@@ -251,7 +251,8 @@
 <script>
 const API_BASE = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
 const token    = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
-const isOwner  = !!localStorage.getItem('pos_admin_token');
+function _jwtRole(tok) { try { return JSON.parse(atob(tok.split('.')[1])).role; } catch { return null; } }
+const isOwner  = _jwtRole(token) !== 'cashier';
 
 let closeoutId   = null;
 let closeoutCfg  = null;

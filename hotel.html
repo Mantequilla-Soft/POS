@@ -110,8 +110,8 @@
   <div class="header-inner">
     <h1 data-i18n="hotel.title">Hotel</h1>
     <div class="nav-links">
-      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
-      <a href="admin.html" data-i18n="common.settings">Settings</a>
+      <a href="dashboard.html" data-i18n="common.dashboard" id="navHotelDashboard">Dashboard</a>
+      <a href="admin.html" data-i18n="common.settings" id="navHotelSettings">Settings</a>
       <a href="pos.html" data-i18n="common.pos">POS</a>
     </div>
   </div>
@@ -249,7 +249,8 @@ function getToken() {
   return localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
 }
 function getRole() {
-  return localStorage.getItem('pos_admin_token') ? 'store_owner' : 'cashier';
+  const tok = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+  try { return JSON.parse(atob(tok.split('.')[1])).role; } catch { return null; }
 }
 function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }; }
 
@@ -674,8 +675,10 @@ async function init() {
   userRole = getRole();
   i18n.init();
 
-  // Cashiers cannot cancel bookings — hide that button
+  // Cashiers cannot cancel bookings and cannot access admin/dashboard
   if (userRole === 'cashier') {
+    document.getElementById('navHotelDashboard')?.remove();
+    document.getElementById('navHotelSettings')?.remove();
     document.getElementById('cancelBookingBtn').style.display = 'none';
   }
 
