@@ -180,6 +180,7 @@ router.put('/', roleOnly('store_owner', 'superadmin'), async (req, res) => {
 
     if (settings) {
       if (settings.businessName !== undefined) update.businessName = settings.businessName;
+      if (settings.logoUrl      !== undefined) update.logoUrl      = settings.logoUrl;
       if (settings.bannerUrl    !== undefined) update.bannerUrl    = settings.bannerUrl;
       if (settings.categories   !== undefined) update.categories   = settings.categories;
       if (settings.hiveAccount  !== undefined) update.hiveAccount  = settings.hiveAccount;
@@ -230,6 +231,7 @@ router.put('/:id', roleOnly('store_owner', 'superadmin'), async (req, res) => {
     if (items)                   update.items     = items;
     if (settings) {
       if (settings.businessName !== undefined) update.businessName = settings.businessName;
+      if (settings.logoUrl      !== undefined) update.logoUrl      = settings.logoUrl;
       if (settings.bannerUrl    !== undefined) update.bannerUrl    = settings.bannerUrl;
       if (settings.categories   !== undefined) update.categories   = settings.categories;
       if (settings.hiveAccount  !== undefined) update.hiveAccount  = settings.hiveAccount;
