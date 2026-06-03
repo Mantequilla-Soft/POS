@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIVE POS - Login</title>
+    <title>Pangoli Pay</title>
     <script src="i18n.js"></script>
     <link rel="stylesheet" href="theme.css">
-  <script src="theme-loader.js"></script>
+    <script src="theme-loader.js"></script>
     <style>
         body {
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            gap: 1rem;
         }
 
         .login-container {
@@ -24,7 +26,6 @@
             overflow: hidden;
             width: 100%;
             max-width: 400px;
-            position: relative;
         }
 
         .login-header {
@@ -36,38 +37,43 @@
 
         .login-header h1 {
             font-size: 2rem;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
+            margin: 0 0 0.4rem;
+            font-weight: 700;
             color: var(--ink-text);
+            letter-spacing: -.02em;
         }
 
         .login-header p {
-            opacity: 0.85;
-            font-size: 0.95rem;
+            opacity: 0.75;
+            font-size: 0.9rem;
             color: var(--ink-text);
+            margin: 0;
         }
 
         .form-container {
-            padding: 2rem 1.5rem;
+            padding: 2rem 1.5rem 1.5rem;
         }
 
+        /* ── Tabs ── */
         .form-toggle {
             display: flex;
-            margin-bottom: 2rem;
+            margin-bottom: 1.75rem;
             background: var(--surface-2);
             border-radius: var(--r);
             padding: 4px;
+            gap: 2px;
         }
 
         .toggle-btn {
             flex: 1;
-            padding: 12px;
+            padding: 10px 8px;
             text-align: center;
             border: none;
             background: transparent;
             cursor: pointer;
             border-radius: var(--r-sm);
             font-weight: 500;
+            font-size: 0.88rem;
             transition: var(--ease);
             color: var(--text-2);
             font-family: var(--font);
@@ -77,6 +83,19 @@
             background: var(--ink);
             color: var(--ink-text);
             box-shadow: var(--sh-xs);
+        }
+
+        /* ── Inputs ── */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-2);
+            margin-bottom: 0.35rem;
         }
 
         .form-input {
@@ -89,16 +108,13 @@
             background: var(--surface);
             font-family: var(--font);
             color: var(--text);
+            box-sizing: border-box;
         }
 
         .form-input:focus {
             outline: none;
             border-color: var(--ink);
             box-shadow: 0 0 0 3px rgba(28,25,23,0.07);
-        }
-
-        .form-input:invalid {
-            border-color: var(--red);
         }
 
         .password-container {
@@ -118,9 +134,17 @@
             padding: 4px;
         }
 
+        .requirements {
+            font-size: 0.78rem;
+            color: var(--text-3);
+            margin-top: 0.4rem;
+            line-height: 1.4;
+        }
+
+        /* ── Submit button ── */
         .submit-btn {
             width: 100%;
-            padding: 14px;
+            padding: 13px;
             background: var(--ink);
             color: var(--ink-text);
             border: none;
@@ -129,7 +153,8 @@
             font-weight: 600;
             cursor: pointer;
             transition: var(--ease);
-            margin-bottom: 1.5rem;
+            margin-top: 0.25rem;
+            margin-bottom: 1.25rem;
             font-family: var(--font);
         }
 
@@ -146,797 +171,536 @@
             transform: none;
         }
 
-        .loading {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            color: var(--text-2);
-            font-size: 0.9rem;
-        }
-
-        .loading.show {
-            display: flex;
-        }
-
-        .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--border);
-            border-top: 2px solid var(--ink);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
+        /* ── Messages ── */
         .error-message {
             background: var(--red-light);
             color: var(--red);
-            padding: 12px 16px;
+            padding: 11px 14px;
             border-radius: var(--r);
             margin-bottom: 1rem;
-            font-size: 0.9rem;
-            border-left: 4px solid var(--red);
+            font-size: 0.88rem;
+            border-left: 3px solid var(--red);
             display: none;
         }
 
         .success-message {
             background: var(--green-light);
             color: var(--green);
-            padding: 12px 16px;
+            padding: 11px 14px;
             border-radius: var(--r);
             margin-bottom: 1rem;
-            font-size: 0.9rem;
-            border-left: 4px solid var(--green);
+            font-size: 0.88rem;
+            border-left: 3px solid var(--green);
             display: none;
         }
 
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-2);
+            font-size: 0.88rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .loading.show { display: flex; }
+
+        .spinner {
+            width: 15px;
+            height: 15px;
+            border: 2px solid var(--border);
+            border-top-color: var(--ink);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Form sections ── */
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+
+        /* ── Forgot password ── */
         .forgot-password {
             text-align: center;
-            margin-top: 1rem;
+            margin-top: -0.5rem;
+            margin-bottom: 0.5rem;
         }
 
         .forgot-password a {
-            color: var(--ink);
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .forgot-password a:hover {
-            text-decoration: underline;
-        }
-
-        .form-section {
-            display: none;
-        }
-
-        .form-section.active {
-            display: block;
-        }
-
-        .requirements {
-            font-size: 0.8rem;
-            color: var(--text-3);
-            margin-top: 0.5rem;
-            line-height: 1.4;
-        }
-
-        /* Debug Features */
-        .debug-section {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: var(--surface-2);
-            border-radius: var(--r);
-            border: 1px solid var(--border);
-        }
-
-        .debug-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .debug-header h3 {
-            margin: 0;
             color: var(--text-2);
-            font-size: 1rem;
+            text-decoration: none;
+            font-size: 0.82rem;
         }
 
-        .service-status-btn {
-            background: var(--blue);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: var(--r-sm);
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-family: var(--font);
-            transition: var(--ease);
+        .forgot-password a:hover { color: var(--ink); text-decoration: underline; }
+
+        /* ── Card footer (always visible) ── */
+        .card-footer {
+            border-top: 1px solid var(--border);
+            padding: 1.1rem 1.5rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.85rem;
         }
 
-        .service-status-btn:hover {
-            opacity: 0.85;
-        }
-
-        .service-status-btn:disabled {
-            background: var(--text-2);
-            cursor: not-allowed;
-        }
-
-        .status-indicator {
+        /* Status pill */
+        .status-pill {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-left: 1rem;
-            font-size: 0.9rem;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--text-2);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-full);
+            padding: 0.25em 0.75em;
         }
 
-        .debug-console {
-            background: #2d3748;
-            color: #e2e8f0;
-            padding: 1rem;
-            border-radius: var(--r-sm);
-            font-family: var(--mono);
-            font-size: 0.8rem;
-            max-height: 200px;
-            overflow-y: auto;
-            line-height: 1.4;
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--border);
+            flex-shrink: 0;
         }
 
-        .debug-entry {
-            margin-bottom: 0.5rem;
-            padding: 0.25rem 0;
-            border-bottom: 1px solid #4a5568;
-        }
+        .status-dot.online  { background: var(--green, #16a34a); }
+        .status-dot.offline { background: var(--red,   #dc2626); }
 
-        .debug-entry:last-child {
-            border-bottom: none;
-        }
-
-        .debug-timestamp {
-            color: #cbd5e0;
-            font-size: 0.7rem;
-        }
-
-        .debug-method {
-            color: #68d391;
-            font-weight: bold;
-        }
-
-        .debug-url {
-            color: #90cdf4;
-        }
-
-        .debug-status {
-            font-weight: bold;
-        }
-
-        .debug-status.success {
-            color: #68d391;
-        }
-
-        .debug-status.error {
-            color: #f56565;
-        }
-
-        .debug-clear {
-            background: var(--red);
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: var(--r-sm);
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-left: 1rem;
+        /* Register business button */
+        .register-business-btn {
+            background: none;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r);
+            color: var(--text-2);
+            font-size: 0.88rem;
+            font-weight: 600;
             font-family: var(--font);
+            padding: 0.6rem 1.25rem;
+            cursor: pointer;
+            transition: var(--ease);
+            width: 100%;
         }
 
-        .debug-clear:hover {
-            background: #b91c1c;
+        .register-business-btn:hover {
+            border-color: var(--ink);
+            color: var(--ink);
+            background: var(--surface-2);
+        }
+
+        /* ── Register overlay (shown instead of tabs when registering) ── */
+        #registerSection { display: none; }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.82rem;
+            color: var(--text-2);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: var(--font);
+            padding: 0;
+            margin-bottom: 1.25rem;
+        }
+        .back-link:hover { color: var(--ink); }
+
+        /* ── Page footer ── */
+        .page-footer {
+            font-size: 0.78rem;
+            color: var(--text-3);
+            text-align: center;
+        }
+
+        .page-footer a {
+            color: var(--text-2);
+            text-decoration: none;
+        }
+
+        .page-footer a:hover { text-decoration: underline; }
+
+        /* ── Lang toggle position ── */
+        .lang-wrap {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1.25rem;
         }
 
         @media (max-width: 480px) {
-            .login-container {
-                margin: 10px;
-            }
-
-            .form-container {
-                padding: 1.5rem 1rem;
-            }
-
-            .login-header {
-                padding: 1.5rem 1rem 1rem;
-            }
-
-            .debug-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: stretch;
-            }
-
-            .debug-console {
-                font-size: 0.7rem;
-            }
+            body { padding: 12px; }
+            .form-container { padding: 1.5rem 1rem 1rem; }
+            .login-header  { padding: 1.5rem 1rem 1rem; }
+            .card-footer   { padding: 1rem 1rem 1.1rem; }
         }
+
+        /*
+         * ── DEBUG SECTION (commented out — keep for future reference) ──────────
+         *
+         * .debug-section { ... }
+         * .debug-header  { ... }
+         * .debug-console { background:#2d3748; color:#e2e8f0; ... }
+         * .debug-entry   { ... }
+         * .debug-clear   { ... }
+         *
+         */
     </style>
-  <link rel="manifest" href="manifest.json">
-  <script src="pwa.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <script src="pwa.js"></script>
 </head>
 <body>
     <div class="login-container">
+        <!-- Header -->
         <div class="login-header">
-            <h1>HIVE POS</h1>
-            <p data-i18n="login.subtitle">Point of Sale Administration</p>
+            <h1>Pangoli Pay</h1>
+            <p data-i18n="login.subtitle">Point of Sale</p>
         </div>
-        
+
         <div class="form-container">
-            <div class="form-toggle">
-                <button class="toggle-btn active" id="loginToggle" data-i18n="login.tabLogin">Login</button>
-                <button class="toggle-btn" id="cashierToggle" data-i18n="login.tabCashier">Cashier</button>
-                <button class="toggle-btn" id="registerToggle" data-i18n="login.tabRegister">Register</button>
-            </div>
-
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
-            <div class="loading" id="loadingMessage">
-                <div class="spinner"></div>
-                <span>Processing...</span>
-            </div>
-
-            <!-- Login Form -->
-            <form class="form-section active" id="loginForm">
-                <div class="form-group">
-                    <label for="loginUsername" data-i18n="login.usernameLabel">Username</label>
-                    <input type="text" id="loginUsername" class="form-input" required autocomplete="username">
-                </div>
-
-                <div class="form-group">
-                    <label for="loginPassword" data-i18n="login.passwordLabel">Password</label>
-                    <div class="password-container">
-                        <input type="password" id="loginPassword" class="form-input" required autocomplete="current-password">
-                        <button type="button" class="password-toggle" data-target="loginPassword">👁️</button>
-                    </div>
-                </div>
-
-                <button type="submit" class="submit-btn" id="loginBtn" data-i18n="login.signIn">Sign In</button>
-
-                <div class="forgot-password">
-                    <a href="#" id="forgotPasswordLink" data-i18n="login.forgotPassword">Forgot your password?</a>
-                </div>
-            </form>
-
-            <!-- Cashier Login Form -->
-            <form class="form-section" id="cashierForm">
-                <div class="form-group">
-                    <label for="cashierUsername" data-i18n="login.usernameLabel">Username</label>
-                    <input type="text" id="cashierUsername" class="form-input" required autocomplete="username">
-                </div>
-                <div class="form-group">
-                    <label for="cashierPassword" data-i18n="login.passwordLabel">Password</label>
-                    <div class="password-container">
-                        <input type="password" id="cashierPassword" class="form-input" required autocomplete="current-password">
-                        <button type="button" class="password-toggle" data-target="cashierPassword">👁️</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="cashierStoreHive" data-i18n="login.storeHiveLabel">Store Hive Account <span style="font-weight:400;color:var(--text-3)" data-i18n="login.hiveOptional">(optional)</span></label>
-                    <input type="text" id="cashierStoreHive" class="form-input" autocomplete="off" placeholder="e.g. mybakery">
-                    <div class="requirements" data-i18n="login.storeHiveHelp">Only needed if multiple stores share the same cashier username</div>
-                </div>
-                <button type="submit" class="submit-btn" id="cashierBtn" data-i18n="login.goToPOS">Go to POS</button>
-            </form>
-
-            <!-- Register Form -->
-            <form class="form-section" id="registerForm">
-                <div class="form-group">
-                    <label for="registerUsername" data-i18n="login.usernameLabel">Username</label>
-                    <input type="text" id="registerUsername" class="form-input" required autocomplete="username" minlength="3">
-                    <div class="requirements" data-i18n="login.minChars3">At least 3 characters</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="registerHive"><span data-i18n="login.hiveLabel">Hive Account</span> <span style="font-weight:400;color:var(--text-3)" data-i18n="login.hiveOptional">(optional)</span></label>
-                    <input type="text" id="registerHive" class="form-input" autocomplete="off" data-i18n-placeholder="login.hivePlaceholder" placeholder="yourhiveaccount">
-                </div>
-
-                <div class="form-group">
-                    <label for="registerPassword" data-i18n="login.passwordLabel">Password</label>
-                    <div class="password-container">
-                        <input type="password" id="registerPassword" class="form-input" required autocomplete="new-password" minlength="6">
-                        <button type="button" class="password-toggle" data-target="registerPassword">👁️</button>
-                    </div>
-                    <div class="requirements" data-i18n="login.minChars6">At least 6 characters</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="confirmPassword" data-i18n="login.confirmPassword">Confirm Password</label>
-                    <div class="password-container">
-                        <input type="password" id="confirmPassword" class="form-input" required autocomplete="new-password">
-                        <button type="button" class="password-toggle" data-target="confirmPassword">👁️</button>
-                    </div>
-                </div>
-
-                <button type="submit" class="submit-btn" id="registerBtn" data-i18n="login.requestAccess">Request Access</button>
-            </form>
-
-            <!-- Language Toggle + Debug Section -->
-            <div style="text-align:right;margin-bottom:1rem">
+            <!-- Lang toggle -->
+            <div class="lang-wrap">
                 <span id="langToggleContainer"></span>
             </div>
-            <div class="debug-section">
-                <div class="debug-header">
-                    <h3 data-i18n="login.debugTools">🔧 Debug Tools</h3>
-                    <div>
-                        <button class="service-status-btn" id="checkServiceBtn" data-i18n="login.checkService">Check Service Status</button>
-                        <span class="status-indicator" id="serviceStatus">
-                            <span class="status-dot" id="statusDot"></span>
-                            <span id="statusText">Unknown</span>
-                        </span>
-                        <button class="debug-clear" id="clearDebugBtn">Clear</button>
-                    </div>
+
+            <!-- ── Tab toggle (2 tabs only) ── -->
+            <div class="form-toggle" id="tabToggle">
+                <button class="toggle-btn active" id="cashierToggle" data-i18n="login.tabCashier">Cashier Login</button>
+                <button class="toggle-btn"        id="loginToggle"   data-i18n="login.tabLogin">Admin Login</button>
+            </div>
+
+            <!-- Feedback -->
+            <div class="error-message"   id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            <div class="loading"         id="loadingMessage"><div class="spinner"></div></div>
+
+            <!-- ── Normal login content (tabs) ── -->
+            <div id="loginContent">
+                <!-- Cashier Login (default active) -->
+                <div class="form-section active" id="cashierSection">
+                    <form id="cashierForm">
+                        <div class="form-group">
+                            <label for="cashierUsername" data-i18n="login.usernameLabel">Username</label>
+                            <input type="text" id="cashierUsername" class="form-input" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="cashierPassword" data-i18n="login.passwordLabel">Password</label>
+                            <div class="password-container">
+                                <input type="password" id="cashierPassword" class="form-input" required autocomplete="current-password">
+                                <button type="button" class="password-toggle" data-target="cashierPassword">👁️</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cashierStoreHive" data-i18n="login.storeHiveLabel">Store Hive Account <span style="font-weight:400;color:var(--text-3)" data-i18n="login.hiveOptional">(optional)</span></label>
+                            <input type="text" id="cashierStoreHive" class="form-input" autocomplete="off">
+                            <div class="requirements" data-i18n="login.storeHiveHelp">Only needed if multiple stores share the same cashier username</div>
+                        </div>
+                        <button type="submit" class="submit-btn" id="cashierBtn" data-i18n="login.goToPOS">Go to POS</button>
+                    </form>
                 </div>
-                <div class="debug-console" id="debugConsole">
-                    <div class="debug-entry">
-                        <span class="debug-timestamp">Debug console initialized...</span>
-                    </div>
+
+                <!-- Admin Login -->
+                <div class="form-section" id="adminSection">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="loginUsername" data-i18n="login.usernameLabel">Username</label>
+                            <input type="text" id="loginUsername" class="form-input" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword" data-i18n="login.passwordLabel">Password</label>
+                            <div class="password-container">
+                                <input type="password" id="loginPassword" class="form-input" required autocomplete="current-password">
+                                <button type="button" class="password-toggle" data-target="loginPassword">👁️</button>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn" id="loginBtn" data-i18n="login.signIn">Sign In</button>
+                        <div class="forgot-password">
+                            <a href="#" id="forgotPasswordLink" data-i18n="login.forgotPassword">Forgot your password?</a>
+                        </div>
+                    </form>
                 </div>
             </div>
+
+            <!-- ── Register section (shown when "Register your Business" is clicked) ── -->
+            <div id="registerSection">
+                <button class="back-link" id="backToLoginBtn" data-i18n="login.backToLogin">← Back to Login</button>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerUsername" data-i18n="login.usernameLabel">Username</label>
+                        <input type="text" id="registerUsername" class="form-input" required autocomplete="username" minlength="3">
+                        <div class="requirements" data-i18n="login.minChars3">At least 3 characters</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerHive"><span data-i18n="login.hiveLabel">Hive Account</span> <span style="font-weight:400;color:var(--text-3)" data-i18n="login.hiveOptional">(optional)</span></label>
+                        <input type="text" id="registerHive" class="form-input" autocomplete="off" placeholder="yourhiveaccount">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword" data-i18n="login.passwordLabel">Password</label>
+                        <div class="password-container">
+                            <input type="password" id="registerPassword" class="form-input" required autocomplete="new-password" minlength="6">
+                            <button type="button" class="password-toggle" data-target="registerPassword">👁️</button>
+                        </div>
+                        <div class="requirements" data-i18n="login.minChars6">At least 6 characters</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword" data-i18n="login.confirmPassword">Confirm Password</label>
+                        <div class="password-container">
+                            <input type="password" id="confirmPassword" class="form-input" required autocomplete="new-password">
+                            <button type="button" class="password-toggle" data-target="confirmPassword">👁️</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn" id="registerBtn" data-i18n="login.requestAccess">Request Access</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ── Card footer — always visible ── -->
+        <div class="card-footer">
+            <!-- System status -->
+            <div class="status-pill" id="statusPill">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">…</span>
+            </div>
+
+            <!-- Register your Business — always visible, discoverable -->
+            <button class="register-business-btn" id="registerBusinessBtn" data-i18n="login.registerBusiness">
+                Register your Business
+            </button>
         </div>
     </div>
 
+    <!-- Page footer -->
+    <p class="page-footer">
+        <span data-i18n="login.builtWith">Built with Love by</span>
+        <a href="https://snapie.io/@meno" target="_blank" rel="noopener">@meno</a>
+    </p>
+
     <script>
-        // API Configuration — set 'pos_api_base' in localStorage to override
         const API_BASE_URL = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
 
         document.addEventListener('DOMContentLoaded', () => {
             i18n.init();
             i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+            checkAuthStatus();
+            checkServiceStatus();
         });
-        
-        // DOM Elements
-        const loginToggle    = document.getElementById('loginToggle');
-        const cashierToggle  = document.getElementById('cashierToggle');
-        const registerToggle = document.getElementById('registerToggle');
-        const loginForm    = document.getElementById('loginForm');
-        const cashierForm  = document.getElementById('cashierForm');
-        const registerForm = document.getElementById('registerForm');
-        const errorMessage = document.getElementById('errorMessage');
+
+        // ── DOM refs ────────────────────────────────────────────────────────────
+        const cashierToggle = document.getElementById('cashierToggle');
+        const loginToggle   = document.getElementById('loginToggle');
+        const cashierSection = document.getElementById('cashierSection');
+        const adminSection   = document.getElementById('adminSection');
+        const loginContent   = document.getElementById('loginContent');
+        const registerSection = document.getElementById('registerSection');
+        const errorMessage   = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         const loadingMessage = document.getElementById('loadingMessage');
 
-        // Debug Elements
-        const checkServiceBtn = document.getElementById('checkServiceBtn');
-        const serviceStatus = document.getElementById('serviceStatus');
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        const debugConsole = document.getElementById('debugConsole');
-        const clearDebugBtn = document.getElementById('clearDebugBtn');
+        // ── Tabs ─────────────────────────────────────────────────────────────
+        cashierToggle.addEventListener('click', () => switchTab('cashier'));
+        loginToggle.addEventListener('click',   () => switchTab('admin'));
 
-        // Toggle between forms
-        loginToggle.addEventListener('click',    () => switchForm('login'));
-        cashierToggle.addEventListener('click',  () => switchForm('cashier'));
-        registerToggle.addEventListener('click', () => switchForm('register'));
-
-        function switchForm(formType) {
+        function switchTab(tab) {
             clearMessages();
-            [loginToggle, cashierToggle, registerToggle].forEach(b => b.classList.remove('active'));
-            [loginForm, cashierForm, registerForm].forEach(f => f.classList.remove('active'));
-            if (formType === 'login')    { loginToggle.classList.add('active');    loginForm.classList.add('active'); }
-            if (formType === 'cashier')  { cashierToggle.classList.add('active');  cashierForm.classList.add('active'); }
-            if (formType === 'register') { registerToggle.classList.add('active'); registerForm.classList.add('active'); }
+            cashierToggle.classList.toggle('active', tab === 'cashier');
+            loginToggle.classList.toggle('active',   tab === 'admin');
+            cashierSection.classList.toggle('active', tab === 'cashier');
+            adminSection.classList.toggle('active',   tab === 'admin');
         }
 
-        // Password toggle functionality
-        document.querySelectorAll('.password-toggle').forEach(button => {
-            button.addEventListener('click', () => {
-                const targetId = button.getAttribute('data-target');
-                const passwordInput = document.getElementById(targetId);
-                
-                if (passwordInput.type === 'password') {
-                    passwordInput.type = 'text';
-                    button.textContent = '🙈';
-                } else {
-                    passwordInput.type = 'password';
-                    button.textContent = '👁️';
-                }
+        // ── Register your Business ────────────────────────────────────────────
+        document.getElementById('registerBusinessBtn').addEventListener('click', () => {
+            clearMessages();
+            loginContent.style.display   = 'none';
+            registerSection.style.display = 'block';
+            document.getElementById('tabToggle').style.display = 'none';
+        });
+
+        document.getElementById('backToLoginBtn').addEventListener('click', () => {
+            clearMessages();
+            loginContent.style.display    = '';
+            registerSection.style.display = 'none';
+            document.getElementById('tabToggle').style.display = '';
+        });
+
+        // ── Password toggles ─────────────────────────────────────────────────
+        document.querySelectorAll('.password-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.getAttribute('data-target'));
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                btn.textContent = isHidden ? '🙈' : '👁️';
             });
         });
 
-        // Form submission handlers
-        loginForm.addEventListener('submit', handleLogin);
-        cashierForm.addEventListener('submit', handleCashierLogin);
-        registerForm.addEventListener('submit', handleRegister);
+        // ── Form submissions ─────────────────────────────────────────────────
+        document.getElementById('loginForm').addEventListener('submit',    handleLogin);
+        document.getElementById('cashierForm').addEventListener('submit',  handleCashierLogin);
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
 
-        // Password confirmation validation
         document.getElementById('confirmPassword').addEventListener('input', function() {
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = this.value;
-            
-            if (confirmPassword && password !== confirmPassword) {
-                this.setCustomValidity(t('login.passwordsMismatch'));
-            } else {
-                this.setCustomValidity('');
-            }
+            const pw = document.getElementById('registerPassword').value;
+            this.setCustomValidity(this.value && pw !== this.value ? t('login.passwordsMismatch') : '');
         });
 
         async function handleLogin(e) {
             e.preventDefault();
             clearMessages();
-            
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
-            
-            if (!username || !password) {
-                showError(t('login.fillAllFields'));
-                return;
-            }
-            
+            if (!username || !password) { showError(t('login.fillAllFields')); return; }
             setLoading(true);
-            
             try {
-                const { response, data } = await debugFetch(`${API_BASE_URL}/auth/login`, {
+                const { response, data } = await apiFetch(`${API_BASE_URL}/auth/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username, password })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
                 });
-                
                 if (response.ok) {
                     localStorage.setItem('pos_admin_token', data.token);
                     localStorage.setItem('pos_admin_user', JSON.stringify({
                         username: data.user?.username || username,
                         id: data.user?.id,
-                        role: data.user?.role
+                        role: data.user?.role,
                     }));
-
                     showSuccess(t('login.loginSuccess'));
-
                     setTimeout(() => {
-                        window.location.href = data.user?.role === 'superadmin'
-                            ? 'superadmin.html'
-                            : 'dashboard.html';
-                    }, 1000);
+                        window.location.href = data.user?.role === 'superadmin' ? 'superadmin.html' : 'dashboard.html';
+                    }, 900);
                 } else {
                     showError(data.error || data.message || t('login.loginFailed'));
                 }
-            } catch (error) {
-                console.error('Login error:', error);
-                showError(t('common.networkError'));
-            } finally {
-                setLoading(false);
-            }
+            } catch { showError(t('common.networkError')); }
+            finally { setLoading(false); }
         }
 
         async function handleCashierLogin(e) {
             e.preventDefault();
             clearMessages();
-
-            const username       = document.getElementById('cashierUsername').value.trim();
-            const password       = document.getElementById('cashierPassword').value;
+            const username         = document.getElementById('cashierUsername').value.trim();
+            const password         = document.getElementById('cashierPassword').value;
             const storeHiveAccount = document.getElementById('cashierStoreHive').value.trim().replace('@', '');
-
             if (!username || !password) { showError(t('login.fillAllFields')); return; }
-
             setLoading(true);
             try {
-                const { response, data } = await debugFetch(`${API_BASE_URL}/auth/cashier-login`, {
+                const { response, data } = await apiFetch(`${API_BASE_URL}/auth/cashier-login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password, storeHiveAccount: storeHiveAccount || undefined }),
                 });
-
                 if (response.ok) {
-                    // Save cashier token and store config to localStorage
                     localStorage.setItem('pos_cashier_token', data.token);
                     localStorage.setItem('pos_cashier_user', JSON.stringify({ username: data.cashier.username }));
-                    // Seed store config so the POS works immediately
                     if (data.store) {
                         localStorage.setItem('pos_items',    JSON.stringify(data.store.items || []));
                         localStorage.setItem('pos_settings', JSON.stringify({
                             businessName: data.store.businessName || '',
-                            bannerUrl:    data.store.bannerUrl || '',
-                            categories:   data.store.categories || [],
-                            hiveAccount:  data.store.hiveAccount || '',
-                            currency:     data.store.currency || 'USD',
-                            bitcoinLightningEnabled:  data.store.features?.bitcoinLightning || false,
-                            bitcoinLightningConfig:   data.store.bitcoinLightningConfig || {},
+                            logoUrl:      data.store.logoUrl      || '',
+                            bannerUrl:    data.store.bannerUrl    || '',
+                            categories:   data.store.categories   || [],
+                            hiveAccount:  data.store.hiveAccount  || '',
+                            currency:     data.store.currency     || 'USD',
                         }));
                         localStorage.setItem('pos_features', JSON.stringify(data.store.features || {}));
                     }
-                    showSuccess('Logged in! Opening POS…');
+                    showSuccess(t('login.loginSuccess'));
                     setTimeout(() => { window.location.href = 'pos.html'; }, 800);
                 } else {
                     showError(data.error || data.message || t('login.loginFailed'));
                 }
-            } catch (err) {
-                showError(t('common.networkError'));
-            } finally {
-                setLoading(false);
-            }
+            } catch { showError(t('common.networkError')); }
+            finally { setLoading(false); }
         }
 
         async function handleRegister(e) {
             e.preventDefault();
             clearMessages();
-
-            const username = document.getElementById('registerUsername').value.trim();
-            const hiveAccount = document.getElementById('registerHive').value.trim().replace('@', '');
-            const password = document.getElementById('registerPassword').value;
+            const username        = document.getElementById('registerUsername').value.trim();
+            const hiveAccount     = document.getElementById('registerHive').value.trim().replace('@', '');
+            const password        = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
-
-            if (!username || !password || !confirmPassword) {
-                showError(t('login.fillRequired'));
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                showError(t('login.passwordsMismatch'));
-                return;
-            }
-
-            if (password.length < 6) {
-                showError(t('login.passwordMin6'));
-                return;
-            }
-
-            if (username.length < 3) {
-                showError(t('login.usernameMin3'));
-                return;
-            }
-
+            if (!username || !password || !confirmPassword) { showError(t('login.fillRequired')); return; }
+            if (password !== confirmPassword) { showError(t('login.passwordsMismatch')); return; }
+            if (password.length < 6)  { showError(t('login.passwordMin6'));   return; }
+            if (username.length < 3)  { showError(t('login.usernameMin3'));   return; }
             setLoading(true);
-
             try {
-                const { response, data } = await debugFetch(`${API_BASE_URL}/auth/register`, {
+                const { response, data } = await apiFetch(`${API_BASE_URL}/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, hiveAccount, password })
+                    body: JSON.stringify({ username, hiveAccount, password }),
                 });
-
                 if (response.ok) {
                     showSuccess(t('login.registerSuccess'));
-                    registerForm.reset();
+                    document.getElementById('registerForm').reset();
                 } else {
                     showError(data.error || data.message || t('login.registerFailed'));
                 }
-            } catch (error) {
-                showError(t('common.networkError'));
-            } finally {
-                setLoading(false);
-            }
+            } catch { showError(t('common.networkError')); }
+            finally { setLoading(false); }
         }
 
-        // Utility functions
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            successMessage.style.display = 'none';
+        // ── Helpers ───────────────────────────────────────────────────────────
+        function showError(msg)   { errorMessage.textContent = msg;   errorMessage.style.display = 'block';   successMessage.style.display = 'none'; }
+        function showSuccess(msg) { successMessage.textContent = msg; successMessage.style.display = 'block'; errorMessage.style.display = 'none'; }
+        function clearMessages()  { errorMessage.style.display = 'none'; successMessage.style.display = 'none'; }
+
+        function setLoading(on) {
+            loadingMessage.classList.toggle('show', on);
+            ['loginBtn', 'cashierBtn', 'registerBtn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = on;
+            });
         }
 
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
-            errorMessage.style.display = 'none';
-        }
-
-        function clearMessages() {
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-        }
-
-        function setLoading(loading) {
-            const loginBtn = document.getElementById('loginBtn');
-            const registerBtn = document.getElementById('registerBtn');
-            
-            if (loading) {
-                loadingMessage.classList.add('show');
-                loginBtn.disabled = true;
-                registerBtn.disabled = true;
-            } else {
-                loadingMessage.classList.remove('show');
-                loginBtn.disabled = false;
-                registerBtn.disabled = false;
-            }
-        }
-
-        // Check if user is already logged in
         function checkAuthStatus() {
             if (localStorage.getItem('pos_admin_token'))   { window.location.href = 'dashboard.html'; return; }
             if (localStorage.getItem('pos_cashier_token')) { window.location.href = 'pos.html'; return; }
         }
 
-        // Forgot password handler (placeholder)
-        document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+        document.getElementById('forgotPasswordLink').addEventListener('click', e => {
             e.preventDefault();
             alert(t('login.forgotMsg'));
         });
 
-        // Debug event listeners
-        checkServiceBtn.addEventListener('click', checkServiceStatus);
-        clearDebugBtn.addEventListener('click', clearDebugConsole);
-
-        // Check auth status on page load
-        checkAuthStatus();
-
-        // Add some keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                const activeForm = document.querySelector('.form-section.active form');
-                if (activeForm) {
-                    activeForm.dispatchEvent(new Event('submit'));
-                }
-            }
-        });
-
-        // Service status check (debug feature)
-        checkServiceBtn.addEventListener('click', async () => {
-            setLoading(true);
-            statusText.textContent = 'Checking...';
-            statusDot.classList.remove('online', 'offline');
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/status`);
-                const data = await response.json();
-                
-                if (response.ok) {
-                    statusText.textContent = 'Online';
-                    statusDot.classList.add('online');
-                    logDebug('Service status checked: Online', 'success');
-                } else {
-                    statusText.textContent = 'Offline';
-                    statusDot.classList.add('offline');
-                    logDebug('Service status checked: Offline', 'error');
-                }
-            } catch (error) {
-                statusText.textContent = 'Error';
-                statusDot.classList.add('offline');
-                logDebug('Service status check error', 'error');
-            } finally {
-                setLoading(false);
-            }
-        });
-
-        // Debug console logging
-        function logDebug(message, type = 'info') {
-            const entry = document.createElement('div');
-            entry.classList.add('debug-entry');
-            
-            const timestamp = new Date().toISOString();
-            const formattedMessage = `[${timestamp}] ${message}`;
-            
-            entry.innerHTML = `<span class="debug-timestamp">${formattedMessage}</span>`;
-            
-            if (type === 'error') {
-                entry.innerHTML += ` <span class="debug-status error">ERROR</span>`;
-            } else if (type === 'success') {
-                entry.innerHTML += ` <span class="debug-status success">SUCCESS</span>`;
-            }
-            
-            debugConsole.appendChild(entry);
-            debugConsole.scrollTop = debugConsole.scrollHeight;
-        }
-
-        // Clear debug console
-        clearDebugBtn.addEventListener('click', () => {
-            debugConsole.innerHTML = '';
-            logDebug('Debug console cleared');
-        });
-
-        // Debug Functions
-        function debugLog(method, url, status, response, error = null) {
-            const timestamp = new Date().toLocaleTimeString();
-            const entry = document.createElement('div');
-            entry.className = 'debug-entry';
-            
-            const statusClass = status >= 200 && status < 300 ? 'success' : 'error';
-            const statusText = error ? 'ERROR' : status;
-            
-            entry.innerHTML = `
-                <div class="debug-timestamp">[${timestamp}]</div>
-                <div><span class="debug-method">${method}</span> <span class="debug-url">${url}</span></div>
-                <div>Status: <span class="debug-status ${statusClass}">${statusText}</span></div>
-                ${error ? `<div>Error: ${error}</div>` : ''}
-                <div>Response: ${JSON.stringify(response, null, 2)}</div>
-            `;
-            
-            debugConsole.appendChild(entry);
-            debugConsole.scrollTop = debugConsole.scrollHeight;
-        }
-
-        function clearDebugConsole() {
-            debugConsole.innerHTML = '<div class="debug-entry"><span class="debug-timestamp">Debug console cleared...</span></div>';
-        }
-
-        function updateServiceStatus(isOnline, message) {
-            if (isOnline) {
-                statusDot.className = 'status-dot online';
-                statusText.textContent = 'Online';
-            } else {
-                statusDot.className = 'status-dot offline';
-                statusText.textContent = message || 'Offline';
-            }
-        }
-
-        // Service Status Check
+        // ── Service status (auto-checks on load, no debug window) ─────────────
         async function checkServiceStatus() {
-            checkServiceBtn.disabled = true;
-            checkServiceBtn.textContent = 'Checking...';
-            
+            const dot  = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
             try {
-                const startTime = Date.now();
-                const response = await fetch(`${API_BASE_URL}/health`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const endTime = Date.now();
-                const responseTime = endTime - startTime;
-                
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    data = { message: 'Non-JSON response received' };
-                }
-                
-                debugLog('GET', `${API_BASE_URL}/health`, response.status, {
-                    ...data,
-                    responseTime: `${responseTime}ms`,
-                    headers: Object.fromEntries(response.headers.entries())
-                });
-                
-                if (response.ok) {
-                    updateServiceStatus(true, `Online (${responseTime}ms)`);
-                } else {
-                    updateServiceStatus(false, `HTTP ${response.status}`);
-                }
-                
-            } catch (error) {
-                debugLog('GET', `${API_BASE_URL}/health`, 0, {}, error.message);
-                updateServiceStatus(false, 'Connection Failed');
-            } finally {
-                checkServiceBtn.disabled = false;
-                checkServiceBtn.textContent = 'Check Service Status';
+                const res = await fetch(`${API_BASE_URL}/health`);
+                const online = res.ok;
+                dot.className  = 'status-dot ' + (online ? 'online' : 'offline');
+                text.textContent = t(online ? 'login.systemOnline' : 'login.systemOffline');
+            } catch {
+                dot.className  = 'status-dot offline';
+                text.textContent = t('login.systemOffline');
             }
         }
 
-        // Enhanced API call wrapper for debugging
-        async function debugFetch(url, options = {}) {
-            const method = options.method || 'GET';
-            const startTime = Date.now();
-            
-            try {
-                const response = await fetch(url, options);
-                const endTime = Date.now();
-                const responseTime = endTime - startTime;
-                
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    data = await response.text();
-                }
-                
-                debugLog(method, url, response.status, {
-                    data,
-                    responseTime: `${responseTime}ms`,
-                    headers: Object.fromEntries(response.headers.entries())
-                });
-                
-                return { response, data };
-            } catch (error) {
-                debugLog(method, url, 0, {}, error.message);
-                throw error;
-            }
+        // Lean fetch wrapper — no debug logging
+        async function apiFetch(url, options = {}) {
+            const response = await fetch(url, options);
+            let data;
+            try   { data = await response.json(); }
+            catch { data = await response.text(); }
+            return { response, data };
         }
+
+        /*
+         * ── DEBUG CODE (commented out — kept for future reference) ─────────────
+         *
+         * function debugLog(method, url, status, response, error) { ... }
+         * function clearDebugConsole() { ... }
+         * function updateServiceStatus(isOnline, message) { ... }
+         * async function checkServiceStatusDebug() { ... full debug version ... }
+         *
+         * To re-enable: restore the .debug-section HTML and replace apiFetch with
+         * the original debugFetch wrapper that calls debugLog().
+         *
+         */
     </script>
 </body>
 </html>
