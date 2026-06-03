@@ -126,8 +126,12 @@
           <input type="number" id="pcReservations" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
         </div>
         <div>
-          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">🏨 Hotel (future)</label>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">🏨 Hotel</label>
           <input type="number" id="pcHotel" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+        </div>
+        <div>
+          <label style="font-size:.79em;color:var(--text-2);display:block;margin-bottom:.2rem">📦 Inventory</label>
+          <input type="number" id="pcInventory" step="0.01" min="0" value="0" style="width:80px;padding:.35rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
         </div>
       </div>
       <div id="pricingPreview" style="font-size:.85em;color:var(--text-2);margin-bottom:.75rem;min-height:1.2em"></div>
@@ -450,6 +454,7 @@
       document.getElementById('pcDiscountCodes').value  = cfg.addons?.discountCodes    ?? 0;
       document.getElementById('pcReservations').value   = cfg.addons?.reservations      ?? 0;
       document.getElementById('pcHotel').value           = cfg.addons?.hotel             ?? 0;
+      document.getElementById('pcInventory').value       = cfg.addons?.inventory         ?? 0;
       updatePricingPreview();
     } catch {}
   }
@@ -462,18 +467,22 @@
     const e        = parseFloat(document.getElementById('pcEmailCampaigns').value) || 0;
     const d        = parseFloat(document.getElementById('pcDiscountCodes').value) || 0;
     const res      = parseFloat(document.getElementById('pcReservations').value) || 0;
+    const hotel    = parseFloat(document.getElementById('pcHotel').value)        || 0;
+    const inv      = parseFloat(document.getElementById('pcInventory').value)    || 0;
     const parts    = [`Base ${base}`];
-    if (r)   parts.push(`+ Restaurant ${r}`);
-    if (m)   parts.push(`+ Memberships ${m}`);
-    if (e)   parts.push(`+ Email ${e}`);
-    if (d)   parts.push(`+ Discount Codes ${d}`);
-    if (res) parts.push(`+ Reservations ${res}`);
-    const max = base + r + m + e + d + res;
+    if (r)     parts.push(`+ Restaurant ${r}`);
+    if (m)     parts.push(`+ Memberships ${m}`);
+    if (e)     parts.push(`+ Email ${e}`);
+    if (d)     parts.push(`+ Discount Codes ${d}`);
+    if (res)   parts.push(`+ Reservations ${res}`);
+    if (hotel) parts.push(`+ Hotel ${hotel}`);
+    if (inv)   parts.push(`+ Inventory ${inv}`);
+    const max = base + r + m + e + d + res + hotel + inv;
     document.getElementById('pricingPreview').textContent =
       `Preview: ${parts.join(' ')} = up to ${currency === 'HBD' || !currency ? '$' : currency + ' '}${max}/mo`;
   }
 
-  ['pcBase','pcCurrency','pcRestaurant','pcMemberships','pcEmailCampaigns','pcDiscountCodes','pcReservations','pcHotel'].forEach(id => {
+  ['pcBase','pcCurrency','pcRestaurant','pcMemberships','pcEmailCampaigns','pcDiscountCodes','pcReservations','pcHotel','pcInventory'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', updatePricingPreview);
   });
 
@@ -488,6 +497,7 @@
         discountCodes:      parseFloat(document.getElementById('pcDiscountCodes').value)  || 0,
         reservations:       parseFloat(document.getElementById('pcReservations').value)   || 0,
         hotel:              parseFloat(document.getElementById('pcHotel').value)           || 0,
+        inventory:          parseFloat(document.getElementById('pcInventory').value)       || 0,
       },
     };
     const msgEl = document.getElementById('pricingSaveMsg');
