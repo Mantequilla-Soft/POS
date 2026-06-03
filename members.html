@@ -194,6 +194,22 @@
         <label data-i18n="common.notes">Notes</label>
         <textarea id="fNotes" data-i18n-placeholder="members.notesPlaceholder" placeholder="Optional notes…"></textarea>
       </div>
+
+      <!-- Membership window — only shown when editing an existing member -->
+      <div id="membershipDatesRow" style="display:none;border-top:1px solid var(--border);margin-top:.75rem;padding-top:.75rem">
+        <label style="font-size:.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:.5rem" data-i18n="members.membershipDates">Membership Window</label>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="font-size:.8rem" data-i18n="members.startDateLabel">Start Date</label>
+            <input type="date" id="fStartDate">
+          </div>
+          <div class="form-group">
+            <label style="font-size:.8rem" data-i18n="members.expirationLabel">Expiration / Next Due</label>
+            <input type="date" id="fNextDueDate">
+          </div>
+        </div>
+        <p style="font-size:.77rem;color:var(--text-2);margin:.25rem 0 0" data-i18n="members.datesEditHint">Setting a future expiration will reactivate the member.</p>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('memberModal')" data-i18n="common.cancel">Cancel</button>
@@ -463,6 +479,7 @@ function openAddModal() {
   ['fName','fPhone','fEmail','fHive','fNotes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fGender').value = 'unspecified';
   document.getElementById('fAgeGroup').value = 'unspecified';
+  document.getElementById('membershipDatesRow').style.display = 'none';
   loadMembershipTypes();
   openModal('memberModal');
 }
@@ -487,15 +504,19 @@ async function openEditModal(id) {
   await loadMembershipTypes();
   const m = allMembers.find(x => x._id === id);
   if (!m) return;
-  document.getElementById('fName').value = m.name;
-  document.getElementById('fPhone').value = m.phone || '';
-  document.getElementById('fEmail').value = m.email || '';
-  document.getElementById('fHive').value = m.hiveAccount || '';
-  document.getElementById('fGender').value = m.gender || 'unspecified';
-  document.getElementById('fAgeGroup').value = m.ageGroup || 'unspecified';
-  document.getElementById('fNotes').value = m.notes || '';
+  document.getElementById('fName').value     = m.name;
+  document.getElementById('fPhone').value    = m.phone       || '';
+  document.getElementById('fEmail').value    = m.email       || '';
+  document.getElementById('fHive').value     = m.hiveAccount || '';
+  document.getElementById('fGender').value   = m.gender      || 'unspecified';
+  document.getElementById('fAgeGroup').value = m.ageGroup    || 'unspecified';
+  document.getElementById('fNotes').value    = m.notes       || '';
   const sel = document.getElementById('fMembershipType');
   if (m.membershipTypeId) sel.value = m.membershipTypeId._id;
+  // Show and pre-fill membership window dates
+  document.getElementById('membershipDatesRow').style.display = '';
+  document.getElementById('fStartDate').value    = m.startDate   ? m.startDate.slice(0, 10)   : '';
+  document.getElementById('fNextDueDate').value  = m.nextDueDate ? m.nextDueDate.slice(0, 10) : '';
   openModal('memberModal');
 }
 
@@ -506,14 +527,26 @@ async function saveMember() {
 
   const body = {
     name,
-    phone: document.getElementById('fPhone').value.trim(),
-    email: document.getElementById('fEmail').value.trim(),
-    hiveAccount: document.getElementById('fHive').value.trim().replace('@',''),
+    phone:            document.getElementById('fPhone').value.trim(),
+    email:            document.getElementById('fEmail').value.trim(),
+    hiveAccount:      document.getElementById('fHive').value.trim().replace('@',''),
     membershipTypeId,
-    gender:   document.getElementById('fGender').value,
-    ageGroup: document.getElementById('fAgeGroup').value,
-    notes: document.getElementById('fNotes').value.trim(),
+    gender:           document.getElementById('fGender').value,
+    ageGroup:         document.getElementById('fAgeGroup').value,
+    notes:            document.getElementById('fNotes').value.trim(),
   };
+
+  // When editing, include any adjusted membership window dates
+  if (editingMemberId) {
+    const startVal   = document.getElementById('fStartDate').value;
+    const nextDueVal = document.getElementById('fNextDueDate').value;
+    if (startVal)   body.startDate   = startVal;
+    if (nextDueVal) body.nextDueDate = nextDueVal;
+    // Auto-reactivate if the new expiration is in the future
+    if (nextDueVal && new Date(nextDueVal) > new Date()) {
+      body.status = 'active';
+    }
+  }
 
   const url = editingMemberId
     ? `${API_BASE}/api/members/${editingMemberId}`
