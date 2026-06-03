@@ -28,6 +28,7 @@ const storeSchema = new mongoose.Schema({
     reservations:   { type: Boolean, default: false },
     hotel:          { type: Boolean, default: false },
     closeout:       { type: Boolean, default: false },
+    inventory:      { type: Boolean, default: false },
   },
 
   // Generic payment plugin storage.

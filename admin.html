@@ -607,6 +607,14 @@
         <!-- Closeout / Cierre de Caja -->
         <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
             <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+                <input type="checkbox" id="enableInventory">
+                <span><strong data-i18n="admin.enableInventory">Inventory Management</strong></span>
+            </label>
+            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.inventoryHelp">Track stock purchases and run periodic reconciliations to spot shrinkage.</p>
+        </div>
+
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
                 <input type="checkbox" id="enableCloseout">
                 <span><strong data-i18n="admin.enableCloseout">End-of-Day Closeout (Cierre de Caja)</strong></span>
             </label>
@@ -1723,6 +1731,7 @@
                 if (typeof loadDiscountCodesFeature === 'function') loadDiscountCodesFeature();
                 if (typeof loadReservationsFeature  === 'function') loadReservationsFeature();
                 if (typeof loadHotelFeature === 'function') loadHotelFeature();
+                if (typeof window._loadInventoryFeature === 'function') window._loadInventoryFeature();
                 if (typeof loadTierCost === 'function') loadTierCost();
 
                 // Update UI state
@@ -1757,6 +1766,7 @@
                     if (typeof loadDiscountCodesFeature === 'function') loadDiscountCodesFeature();
                     if (typeof loadReservationsFeature  === 'function') loadReservationsFeature();
                 if (typeof loadHotelFeature === 'function') loadHotelFeature();
+                if (typeof window._loadInventoryFeature === 'function') window._loadInventoryFeature();
                     if (typeof loadTierCost === 'function') loadTierCost();
 
                     updatePublishStatus();
@@ -2579,6 +2589,24 @@
                 setTimeout(() => { btn.textContent = orig; }, 1800);
             });
         };
+
+        // ── Inventory feature ─────────────────────────────────────────────────
+        (function() {
+            const enableInventoryChk = document.getElementById('enableInventory');
+
+            function loadInventoryFeature() {
+                enableInventoryChk.checked = currentData.features?.inventory || false;
+            }
+
+            enableInventoryChk.onchange = function() {
+                if (!currentData.features) currentData.features = {};
+                currentData.features.inventory = this.checked;
+                markDirty();
+            };
+
+            // Expose for loadFeatureToggles call
+            window._loadInventoryFeature = loadInventoryFeature;
+        })();
 
         // ── Closeout Config ───────────────────────────────────────────────────
         (function() {

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="inventory.title">Inventory</title>
+  <link rel="stylesheet" href="theme.css">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); }
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: .75rem 1.5rem; position: sticky; top: 0; z-index: 100; }
+    .header-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .header-inner h1 { margin: 0; font-size: 1.15rem; font-weight: 700; flex: 1; }
+    .nav-links { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+    .nav-links a { font-size: .82rem; padding: .3rem .75rem; border-radius: var(--r-full); border: 1px solid var(--border); background: var(--bg); color: var(--text-2); text-decoration: none; }
+    .nav-links a:hover { background: var(--surface-2); color: var(--text); }
+
+    .main { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 1.25rem; }
+    .tab-btn { padding: .55rem 1.1rem; font-size: .88rem; font-weight: 600; border: none; background: none; cursor: pointer; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -2px; font-family: var(--font); transition: color .15s; }
+    .tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* Cards / panels */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .section-title { font-size: .92rem; font-weight: 700; margin: 0 0 .75rem; }
+
+    /* Stock level list */
+    .level-item { display: flex; align-items: center; gap: .75rem; padding: .55rem .75rem; border-radius: var(--r); margin-bottom: .4rem; background: var(--bg); border: 1px solid var(--border); }
+    .level-item .item-name { flex: 1; font-weight: 600; font-size: .9rem; }
+    .level-item .item-unit { font-size: .8rem; color: var(--text-2); }
+    .level-badge { font-size: .82rem; font-weight: 700; padding: .2em .65em; border-radius: var(--r-full); }
+    .badge-ok      { background: var(--green-light, #dcfce7); color: var(--green, #16a34a); }
+    .badge-low     { background: var(--amber-light, #fef3c7); color: var(--amber, #d97706); }
+    .badge-empty   { background: var(--red-light, #fee2e2); color: var(--red, #dc2626); }
+
+    /* Item management list */
+    .item-row { display: flex; align-items: center; gap: .6rem; padding: .45rem .6rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: .35rem; flex-wrap: wrap; }
+    .item-row .item-meta { flex: 1; min-width: 0; }
+    .item-row .item-meta strong { font-size: .88em; }
+    .item-row .item-meta span  { font-size: .78em; color: var(--text-2); margin-left: .4rem; }
+
+    /* Forms */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 600px) {
+      .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; }
+    }
+    .form-group { display: flex; flex-direction: column; gap: .3rem; }
+    .form-group label { font-size: .8rem; font-weight: 600; color: var(--text-2); }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: .5rem .75rem; border: 1.5px solid var(--border); border-radius: var(--r);
+      font-size: .9rem; background: var(--surface); color: var(--text); font-family: var(--font);
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--ink); }
+    .form-actions { display: flex; gap: .5rem; margin-top: .75rem; flex-wrap: wrap; }
+
+    /* Movement log table */
+    .log-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .log-table th { background: var(--surface-2); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; color: var(--text-2); }
+    .log-table th, .log-table td { padding: .45rem .65rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .log-table tbody tr:hover { background: var(--surface-2); }
+    .log-table .qty-pos { color: var(--green, #16a34a); font-weight: 700; }
+    .log-table .qty-neg { color: var(--red, #dc2626); font-weight: 700; }
+    .type-chip { font-size: .72rem; padding: .15em .5em; border-radius: var(--r-full); font-weight: 600; }
+    .type-purchase   { background: #dbeafe; color: #1d4ed8; }
+    .type-opening    { background: #f3e8ff; color: #7c3aed; }
+    .type-adjustment { background: #fef3c7; color: #b45309; }
+
+    /* Reconcile table */
+    .recon-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .recon-table th { background: var(--surface-2); font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--text-2); }
+    .recon-table th, .recon-table td { padding: .5rem .65rem; border-bottom: 1px solid var(--border); }
+    .recon-table input[type=number] { width: 80px; padding: .3rem .4rem; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-size: .88rem; text-align: right; background: var(--surface); color: var(--text); }
+    .recon-table input[type=text]   { width: 120px; padding: .3rem .4rem; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-size: .82rem; background: var(--surface); color: var(--text); }
+    .var-pos { color: var(--green, #16a34a); font-weight: 700; }
+    .var-neg { color: var(--red, #dc2626); font-weight: 700; }
+    .var-zero { color: var(--text-2); }
+
+    /* History list */
+    .count-row { display: flex; align-items: center; gap: .75rem; padding: .55rem .75rem; border-radius: var(--r); border: 1px solid var(--border); background: var(--bg); margin-bottom: .4rem; cursor: pointer; flex-wrap: wrap; }
+    .count-row:hover { background: var(--surface-2); }
+    .count-row .count-period { font-size: .85rem; font-weight: 600; flex: 1; }
+    .count-row .count-status { font-size: .75rem; padding: .15em .55em; border-radius: var(--r-full); font-weight: 700; }
+    .status-draft     { background: var(--amber-light, #fef3c7); color: var(--amber, #d97706); }
+    .status-completed { background: var(--green-light, #dcfce7); color: var(--green, #16a34a); }
+
+    /* Low-stock alert banner */
+    #lowStockBanner { display: none; background: var(--amber-light, #fef3c7); border: 1px solid var(--amber-border, #fcd34d); border-radius: var(--r); padding: .55rem .85rem; font-size: .85rem; color: var(--amber, #d97706); margin-bottom: 1rem; }
+
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--ink); color: var(--ink-text); padding: .75rem 1.25rem; border-radius: var(--r-lg); font-size: .9rem; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+    #toast.show { opacity: 1; }
+
+    @media (max-width: 640px) {
+      .header { padding: .6rem 1rem; }
+      .main { padding: 1rem .75rem 3rem; }
+      .log-table { font-size: .78rem; }
+      .log-table th, .log-table td { padding: .35rem .4rem; }
+      .tab-btn { padding: .5rem .75rem; font-size: .82rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1 data-i18n="inventory.title">Inventory</h1>
+    <span id="langToggleContainer"></span>
+    <nav class="nav-links">
+      <a href="dashboard.html" data-i18n="common.dashboard">Dashboard</a>
+      <a href="pos.html" data-i18n="common.pos">POS</a>
+      <a href="admin.html" data-i18n="common.settings" id="navSettings">Settings</a>
+    </nav>
+  </div>
+</div>
+
+<div class="main">
+  <div id="lowStockBanner"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="stock"     data-i18n="inventory.tabStock">Stock Levels</button>
+    <button class="tab-btn"        data-tab="purchases" data-i18n="inventory.tabPurchases">Purchases</button>
+    <button class="tab-btn"        data-tab="adjust"    data-i18n="inventory.tabAdjust">Adjustments</button>
+    <button class="tab-btn"        data-tab="reconcile" data-i18n="inventory.tabReconcile">Reconcile</button>
+    <button class="tab-btn"        data-tab="items"     data-i18n="inventory.tabItems">Items</button>
+  </div>
+
+  <!-- ── Tab: Stock Levels ─────────────────────────────────────────────── -->
+  <div class="tab-pane active" id="tab-stock">
+    <div id="levelsList"><p style="color:var(--text-2);font-size:.88rem" data-i18n="inventory.loading">Loading…</p></div>
+  </div>
+
+  <!-- ── Tab: Purchases ────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-purchases">
+    <div class="card">
+      <p class="section-title" data-i18n="inventory.logPurchase">Log Purchase</p>
+      <div class="form-grid cols-3">
+        <div class="form-group">
+          <label data-i18n="inventory.item">Item</label>
+          <select id="purchaseItem"></select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.qty">Quantity</label>
+          <input type="number" id="purchaseQty" min="0.001" step="any" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.unitCost">Unit Cost</label>
+          <input type="number" id="purchaseCost" min="0" step="any" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.supplier">Supplier</label>
+          <input type="text" id="purchaseSupplier" placeholder="optional">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.date">Date</label>
+          <input type="date" id="purchaseDate">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.notes">Notes</label>
+          <input type="text" id="purchaseNotes" placeholder="optional">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="savePurchase()" data-i18n="inventory.logPurchaseBtn">Log Purchase</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title" data-i18n="inventory.recentPurchases">Recent Purchases</p>
+      <div style="overflow-x:auto">
+        <table class="log-table">
+          <thead><tr>
+            <th data-i18n="inventory.date">Date</th>
+            <th data-i18n="inventory.item">Item</th>
+            <th data-i18n="inventory.qty">Qty</th>
+            <th data-i18n="inventory.unitCost">Unit Cost</th>
+            <th data-i18n="inventory.supplier">Supplier</th>
+            <th data-i18n="inventory.notes">Notes</th>
+          </tr></thead>
+          <tbody id="purchaseLog"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Adjustments ──────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-adjust">
+    <div class="card">
+      <p class="section-title" data-i18n="inventory.logAdjustment">Log Adjustment</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label data-i18n="inventory.item">Item</label>
+          <select id="adjustItem"></select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.adjustQty">Qty (negative = loss)</label>
+          <input type="number" id="adjustQty" step="any" placeholder="e.g. -3 or +5">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.reason">Reason</label>
+          <select id="adjustReason">
+            <option value="Spoilage"   data-i18n="inventory.reasonSpoilage">Spoilage</option>
+            <option value="Theft"      data-i18n="inventory.reasonTheft">Theft</option>
+            <option value="Recount"    data-i18n="inventory.reasonRecount">Recount</option>
+            <option value="Other"      data-i18n="inventory.reasonOther">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.date">Date</label>
+          <input type="date" id="adjustDate">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:.5rem">
+        <label data-i18n="inventory.notes">Notes</label>
+        <input type="text" id="adjustNotes" placeholder="optional">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveAdjustment()" data-i18n="inventory.logAdjustmentBtn">Log Adjustment</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title" data-i18n="inventory.recentAdjustments">Recent Adjustments</p>
+      <div style="overflow-x:auto">
+        <table class="log-table">
+          <thead><tr>
+            <th data-i18n="inventory.date">Date</th>
+            <th data-i18n="inventory.item">Item</th>
+            <th data-i18n="inventory.qty">Qty</th>
+            <th data-i18n="inventory.reason">Reason</th>
+            <th data-i18n="inventory.notes">Notes</th>
+          </tr></thead>
+          <tbody id="adjustLog"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Reconcile ────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-reconcile">
+    <div class="card" id="reconFormCard">
+      <p class="section-title" data-i18n="inventory.newCount">New Stock Count</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label data-i18n="inventory.periodStart">Period Start</label>
+          <input type="date" id="reconStart">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.periodEnd">Period End</label>
+          <input type="date" id="reconEnd">
+        </div>
+      </div>
+      <div style="margin-top:.75rem;overflow-x:auto">
+        <table class="recon-table" id="reconTable">
+          <thead><tr>
+            <th data-i18n="inventory.item">Item</th>
+            <th data-i18n="inventory.unit">Unit</th>
+            <th data-i18n="inventory.expected">Expected</th>
+            <th data-i18n="inventory.actual">Actual Count</th>
+            <th data-i18n="inventory.variance">Variance</th>
+            <th data-i18n="inventory.notes">Notes</th>
+          </tr></thead>
+          <tbody id="reconBody"></tbody>
+        </table>
+        <p id="reconEmpty" style="font-size:.85rem;color:var(--text-2);margin:.5rem 0" data-i18n="inventory.noItemsForCount">No active items. Add items in the Items tab first.</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary"   onclick="saveCount(false)" data-i18n="inventory.saveDraft">Save Draft</button>
+        <button class="btn"              onclick="saveCount(true)"  data-i18n="inventory.saveComplete">Complete &amp; Lock</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title" data-i18n="inventory.countHistory">Count History</p>
+      <div id="countHistory"><p style="font-size:.85rem;color:var(--text-2)" data-i18n="inventory.noHistory">No reconciliations yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Items ────────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-items">
+    <div class="card" id="itemFormCard" style="display:none">
+      <p class="section-title" id="itemFormTitle" data-i18n="inventory.addItem">Add Item</p>
+      <div class="form-grid cols-3">
+        <div class="form-group" style="grid-column:1/-1">
+          <label data-i18n="inventory.itemName">Name *</label>
+          <input type="text" id="itemName" placeholder="e.g. Coffee Beans">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.unit">Unit</label>
+          <input type="text" id="itemUnit" placeholder="each / kg / L / bottle…">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.category">Category</label>
+          <input type="text" id="itemCategory" placeholder="optional">
+        </div>
+        <div class="form-group">
+          <label data-i18n="inventory.reorderPoint">Reorder Alert</label>
+          <input type="number" id="itemReorder" min="0" step="any" placeholder="0 = off">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveItem()" data-i18n="common.save">Save</button>
+        <button class="btn btn-secondary" onclick="cancelItemForm()" data-i18n="common.cancel">Cancel</button>
+      </div>
+      <input type="hidden" id="editingItemId">
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <p class="section-title" style="margin:0" data-i18n="inventory.itemCatalog">Item Catalog</p>
+        <button class="btn btn-primary btn-sm" onclick="showItemForm()" data-i18n="inventory.addItem">+ Add Item</button>
+      </div>
+      <div id="itemsList"><p style="font-size:.85rem;color:var(--text-2)" data-i18n="inventory.noItems">No items yet.</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="i18n.js"></script>
+<script src="theme-loader.js"></script>
+<script>
+const API_BASE = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+const token    = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+function _jwtRole(tok) { try { return JSON.parse(atob(tok.split('.')[1])).role; } catch { return null; } }
+const isCashier = _jwtRole(token) === 'cashier';
+
+if (!token) { window.location.href = 'login.html'; }
+
+function authH() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }; }
+function esc(s)  { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function fmtQty(n) { return Number(n).toLocaleString(undefined, { maximumFractionDigits: 3 }); }
+function today() { return new Date().toISOString().slice(0, 10); }
+
+let allItems  = [];   // InventoryItem array
+let allLevels = [];   // levels with currentQty
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Populate item selects ─────────────────────────────────────────────────────
+function populateSelects() {
+  ['purchaseItem', 'adjustItem'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = allItems.map(i =>
+      `<option value="${esc(i._id)}">${esc(i.name)} (${esc(i.unit)})</option>`
+    ).join('');
+    if (prev) sel.value = prev;
+  });
+}
+
+// ── Stock Levels tab ──────────────────────────────────────────────────────────
+async function loadLevels() {
+  const res = await fetch(`${API_BASE}/inventory/levels`, { headers: authH() });
+  if (!res.ok) { document.getElementById('levelsList').innerHTML = `<p style="color:var(--red)">${t('inventory.errorLoad')}</p>`; return; }
+  allLevels = await res.json();
+
+  const low = allLevels.filter(l => l.lowStock);
+  const banner = document.getElementById('lowStockBanner');
+  if (low.length) {
+    banner.style.display = '';
+    banner.textContent = t('inventory.lowStockAlert', { n: low.length, items: low.map(l => l.name).join(', ') });
+  } else {
+    banner.style.display = 'none';
+  }
+
+  const el = document.getElementById('levelsList');
+  if (!allLevels.length) { el.innerHTML = `<p style="color:var(--text-2);font-size:.88rem">${t('inventory.noItems')}</p>`; return; }
+
+  el.innerHTML = allLevels.map(item => {
+    const qty = item.currentQty;
+    const badgeClass = qty <= 0 ? 'badge-empty' : item.lowStock ? 'badge-low' : 'badge-ok';
+    return `
+      <div class="level-item">
+        <div class="item-name">${esc(item.name)}</div>
+        ${item.category ? `<span class="item-unit">${esc(item.category)}</span>` : ''}
+        <span class="level-badge ${badgeClass}">${fmtQty(qty)} ${esc(item.unit)}</span>
+        ${item.reorderPoint > 0 ? `<span style="font-size:.75rem;color:var(--text-2)">${t('inventory.reorderAt')} ${item.reorderPoint}</span>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// ── Purchases tab ─────────────────────────────────────────────────────────────
+async function loadPurchaseLog() {
+  const res = await fetch(`${API_BASE}/inventory/movements?type=purchase`, { headers: authH() });
+  if (!res.ok) return;
+  const movements = await res.json();
+  renderMovementLog('purchaseLog', movements, ['date', 'item', 'qty', 'cost', 'supplier', 'notes']);
+}
+
+async function savePurchase() {
+  const itemId   = document.getElementById('purchaseItem').value;
+  const qty      = parseFloat(document.getElementById('purchaseQty').value);
+  const unitCost = parseFloat(document.getElementById('purchaseCost').value) || 0;
+  const supplier = document.getElementById('purchaseSupplier').value.trim();
+  const date     = document.getElementById('purchaseDate').value;
+  const notes    = document.getElementById('purchaseNotes').value.trim();
+
+  if (!itemId)       { toast(t('inventory.selectItem'));  return; }
+  if (!qty || qty <= 0) { toast(t('inventory.qtyPositive')); return; }
+
+  const res = await fetch(`${API_BASE}/inventory/movements`, {
+    method: 'POST', headers: authH(),
+    body: JSON.stringify({ itemId, type: 'purchase', qty, unitCost, supplier, date: date || today(), notes }),
+  });
+  if (!res.ok) { toast(t('inventory.errorSave')); return; }
+  toast(t('inventory.toastPurchaseSaved'));
+  document.getElementById('purchaseQty').value = '';
+  document.getElementById('purchaseCost').value = '';
+  document.getElementById('purchaseSupplier').value = '';
+  document.getElementById('purchaseNotes').value = '';
+  await Promise.all([loadLevels(), loadPurchaseLog()]);
+  refreshReconLevels();
+}
+
+// ── Adjustments tab ───────────────────────────────────────────────────────────
+async function loadAdjustLog() {
+  const res = await fetch(`${API_BASE}/inventory/movements?type=adjustment`, { headers: authH() });
+  if (!res.ok) return;
+  const movements = await res.json();
+  renderMovementLog('adjustLog', movements, ['date', 'item', 'qty', 'reason', 'notes']);
+}
+
+async function saveAdjustment() {
+  const itemId = document.getElementById('adjustItem').value;
+  const qty    = parseFloat(document.getElementById('adjustQty').value);
+  const reason = document.getElementById('adjustReason').value;
+  const date   = document.getElementById('adjustDate').value;
+  const notes  = [reason, document.getElementById('adjustNotes').value.trim()].filter(Boolean).join(' — ');
+
+  if (!itemId)            { toast(t('inventory.selectItem'));    return; }
+  if (isNaN(qty) || qty === 0) { toast(t('inventory.qtyNonZero')); return; }
+
+  const res = await fetch(`${API_BASE}/inventory/movements`, {
+    method: 'POST', headers: authH(),
+    body: JSON.stringify({ itemId, type: 'adjustment', qty, date: date || today(), notes }),
+  });
+  if (!res.ok) { toast(t('inventory.errorSave')); return; }
+  toast(t('inventory.toastAdjustmentSaved'));
+  document.getElementById('adjustQty').value = '';
+  document.getElementById('adjustNotes').value = '';
+  await Promise.all([loadLevels(), loadAdjustLog()]);
+  refreshReconLevels();
+}
+
+// ── Shared movement log renderer ──────────────────────────────────────────────
+function itemNameById(id) {
+  return allItems.find(i => i._id === id)?.name || id;
+}
+
+function renderMovementLog(tbodyId, movements, cols) {
+  const tbody = document.getElementById(tbodyId);
+  if (!movements.length) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--text-2);text-align:center;padding:.75rem">${t('inventory.noEntries')}</td></tr>`; return; }
+  tbody.innerHTML = movements.map(m => {
+    const qtyClass = m.qty >= 0 ? 'qty-pos' : 'qty-neg';
+    const sign     = m.qty >= 0 ? '+' : '';
+    const typeChip = `<span class="type-chip type-${m.type}">${t('inventory.type_' + m.type)}</span>`;
+    const cells = {
+      date:     `<td>${fmtDate(m.date)}</td>`,
+      item:     `<td>${esc(itemNameById(m.itemId))}</td>`,
+      qty:      `<td class="${qtyClass}">${sign}${fmtQty(m.qty)}</td>`,
+      cost:     `<td>${m.unitCost ? m.unitCost.toFixed(2) : '—'}</td>`,
+      supplier: `<td>${esc(m.supplier) || '—'}</td>`,
+      reason:   `<td>${typeChip}</td>`,
+      notes:    `<td style="font-size:.8rem;color:var(--text-2)">${esc(m.notes) || '—'}</td>`,
+    };
+    return '<tr>' + cols.map(c => cells[c]).join('') + '</tr>';
+  }).join('');
+}
+
+// ── Reconcile tab ─────────────────────────────────────────────────────────────
+function refreshReconLevels() {
+  const qtyMap = Object.fromEntries(allLevels.map(l => [l._id, l.currentQty]));
+  document.querySelectorAll('[data-recon-item-id]').forEach(row => {
+    const id = row.dataset.reconItemId;
+    const expCell = row.querySelector('.recon-expected');
+    if (expCell) expCell.textContent = fmtQty(qtyMap[id] ?? 0);
+    updateVarianceCell(row);
+  });
+}
+
+function updateVarianceCell(row) {
+  const expected = parseFloat(row.querySelector('.recon-expected')?.textContent || '0') || 0;
+  const actual   = parseFloat(row.querySelector('.recon-actual-input')?.value)    || 0;
+  const variance = actual - expected;
+  const cell = row.querySelector('.recon-variance');
+  if (!cell) return;
+  cell.textContent = (variance > 0 ? '+' : '') + fmtQty(variance);
+  cell.className = 'recon-variance ' + (variance > 0 ? 'var-pos' : variance < 0 ? 'var-neg' : 'var-zero');
+}
+
+function buildReconTable() {
+  const tbody  = document.getElementById('reconBody');
+  const empty  = document.getElementById('reconEmpty');
+  const levels = allLevels;
+  if (!levels.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = levels.map(item => `
+    <tr data-recon-item-id="${esc(item._id)}">
+      <td>${esc(item.name)}</td>
+      <td style="color:var(--text-2);font-size:.82rem">${esc(item.unit)}</td>
+      <td class="recon-expected">${fmtQty(item.currentQty)}</td>
+      <td><input type="number" class="recon-actual-input" step="any" placeholder="0"
+            oninput="updateVarianceCell(this.closest('tr'))"></td>
+      <td class="recon-variance var-zero">—</td>
+      <td><input type="text" class="recon-notes-input" placeholder="${t('inventory.notes')}"></td>
+    </tr>`).join('');
+}
+
+async function saveCount(complete) {
+  const periodStart = document.getElementById('reconStart').value;
+  const periodEnd   = document.getElementById('reconEnd').value;
+  if (!periodStart || !periodEnd) { toast(t('inventory.selectPeriod')); return; }
+
+  const lines = [];
+  document.querySelectorAll('[data-recon-item-id]').forEach(row => {
+    const itemId     = row.dataset.reconItemId;
+    const item       = allItems.find(i => i._id === itemId);
+    const expectedQty = parseFloat(row.querySelector('.recon-expected')?.textContent || '0') || 0;
+    const actualQty   = parseFloat(row.querySelector('.recon-actual-input')?.value)    ?? 0;
+    lines.push({ itemId, itemName: item?.name || '', unit: item?.unit || '', expectedQty, actualQty });
+  });
+
+  const res = await fetch(`${API_BASE}/inventory/counts`, {
+    method: 'POST', headers: authH(),
+    body: JSON.stringify({ periodStart, periodEnd, lines }),
+  });
+  if (!res.ok) { toast(t('inventory.errorSave')); return; }
+  const count = await res.json();
+
+  if (complete) {
+    const res2 = await fetch(`${API_BASE}/inventory/counts/${count._id}/complete`, {
+      method: 'PATCH', headers: authH(),
+    });
+    if (!res2.ok) { toast(t('inventory.errorSave')); return; }
+    toast(t('inventory.toastCountCompleted'));
+  } else {
+    toast(t('inventory.toastDraftSaved'));
+  }
+  await loadCountHistory();
+}
+
+async function loadCountHistory() {
+  const res = await fetch(`${API_BASE}/inventory/counts`, { headers: authH() });
+  if (!res.ok) return;
+  const counts = await res.json();
+  const el = document.getElementById('countHistory');
+  if (!counts.length) { el.innerHTML = `<p style="font-size:.85rem;color:var(--text-2)">${t('inventory.noHistory')}</p>`; return; }
+  el.innerHTML = counts.map(c => {
+    const lines = c.lines || [];
+    const variances = lines.filter(l => l.variance !== 0).length;
+    return `
+      <div class="count-row" onclick="toggleCountDetail('${esc(c._id)}')">
+        <div class="count-period">${fmtDate(c.periodStart)} — ${fmtDate(c.periodEnd)}</div>
+        ${variances ? `<span style="font-size:.78rem;color:var(--text-2)">${variances} ${t('inventory.variances')}</span>` : ''}
+        <span class="count-status status-${c.status}">${t('inventory.status_' + c.status)}</span>
+      </div>
+      <div id="detail-${esc(c._id)}" style="display:none;padding:.5rem .25rem 1rem">
+        ${renderCountDetail(c)}
+      </div>`;
+  }).join('');
+}
+
+function toggleCountDetail(id) {
+  const el = document.getElementById('detail-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function renderCountDetail(c) {
+  if (!c.lines?.length) return `<p style="font-size:.82rem;color:var(--text-2);padding-left:.25rem">${t('inventory.noLines')}</p>`;
+  return `<table class="recon-table" style="margin-top:.25rem">
+    <thead><tr>
+      <th>${t('inventory.item')}</th><th>${t('inventory.unit')}</th>
+      <th>${t('inventory.expected')}</th><th>${t('inventory.actual')}</th>
+      <th>${t('inventory.variance')}</th><th>${t('inventory.notes')}</th>
+    </tr></thead>
+    <tbody>
+      ${c.lines.map(l => {
+        const v = l.variance ?? (l.actualQty - l.expectedQty);
+        const vc = v > 0 ? 'var-pos' : v < 0 ? 'var-neg' : 'var-zero';
+        return `<tr>
+          <td>${esc(l.itemName)}</td><td style="color:var(--text-2)">${esc(l.unit)}</td>
+          <td>${fmtQty(l.expectedQty)}</td><td>${fmtQty(l.actualQty)}</td>
+          <td class="${vc}">${(v > 0 ? '+' : '') + fmtQty(v)}</td>
+          <td style="font-size:.8rem;color:var(--text-2)">${esc(l.notes) || '—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ── Items tab ─────────────────────────────────────────────────────────────────
+async function loadItems() {
+  const res = await fetch(`${API_BASE}/inventory/items`, { headers: authH() });
+  if (!res.ok) return;
+  allItems = await res.json();
+  populateSelects();
+  renderItemsList();
+}
+
+function renderItemsList() {
+  const el = document.getElementById('itemsList');
+  if (!allItems.length) { el.innerHTML = `<p style="font-size:.85rem;color:var(--text-2)">${t('inventory.noItems')}</p>`; return; }
+  el.innerHTML = allItems.map(item => `
+    <div class="item-row">
+      <div class="item-meta">
+        <strong>${esc(item.name)}</strong>
+        <span>${esc(item.unit)}</span>
+        ${item.category ? `<span>· ${esc(item.category)}</span>` : ''}
+        ${item.reorderPoint > 0 ? `<span>· ${t('inventory.reorderAt')} ${item.reorderPoint}</span>` : ''}
+      </div>
+      <button class="btn btn-sm" onclick="showItemForm('${esc(item._id)}')" data-i18n="common.edit">Edit</button>
+      <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="deleteItem('${esc(item._id)}')" data-i18n="common.delete">Delete</button>
+    </div>`).join('');
+}
+
+function showItemForm(id) {
+  const form   = document.getElementById('itemFormCard');
+  const title  = document.getElementById('itemFormTitle');
+  const idInput = document.getElementById('editingItemId');
+  form.style.display = '';
+  if (id) {
+    const item = allItems.find(i => i._id === id);
+    title.textContent = t('inventory.editItem');
+    idInput.value = id;
+    document.getElementById('itemName').value     = item?.name         || '';
+    document.getElementById('itemUnit').value     = item?.unit         || '';
+    document.getElementById('itemCategory').value = item?.category     || '';
+    document.getElementById('itemReorder').value  = item?.reorderPoint ?? 0;
+  } else {
+    title.textContent = t('inventory.addItem');
+    idInput.value = '';
+    document.getElementById('itemName').value     = '';
+    document.getElementById('itemUnit').value     = '';
+    document.getElementById('itemCategory').value = '';
+    document.getElementById('itemReorder').value  = '';
+  }
+  document.getElementById('itemName').focus();
+}
+
+function cancelItemForm() {
+  document.getElementById('itemFormCard').style.display = 'none';
+}
+
+async function saveItem() {
+  const id       = document.getElementById('editingItemId').value;
+  const name     = document.getElementById('itemName').value.trim();
+  const unit     = document.getElementById('itemUnit').value.trim() || 'each';
+  const category = document.getElementById('itemCategory').value.trim();
+  const reorder  = parseFloat(document.getElementById('itemReorder').value) || 0;
+
+  if (!name) { toast(t('inventory.nameRequired')); return; }
+
+  const url    = id ? `${API_BASE}/inventory/items/${id}` : `${API_BASE}/inventory/items`;
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method, headers: authH(),
+    body: JSON.stringify({ name, unit, category, reorderPoint: reorder }),
+  });
+  if (!res.ok) { toast(t('inventory.errorSave')); return; }
+  toast(id ? t('inventory.toastItemUpdated') : t('inventory.toastItemCreated'));
+  cancelItemForm();
+  await loadItems();
+  await loadLevels();
+  buildReconTable();
+}
+
+async function deleteItem(id) {
+  if (!confirm(t('inventory.confirmDelete'))) return;
+  const res = await fetch(`${API_BASE}/inventory/items/${id}`, { method: 'DELETE', headers: authH() });
+  if (!res.ok) { toast(t('inventory.errorSave')); return; }
+  toast(t('inventory.toastItemDeleted'));
+  await loadItems();
+  await loadLevels();
+  buildReconTable();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  i18n.init();
+  i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+
+  if (isCashier) {
+    document.getElementById('navSettings')?.remove();
+  }
+
+  // Pre-fill dates
+  document.getElementById('purchaseDate').value = today();
+  document.getElementById('adjustDate').value   = today();
+  const reconEnd = new Date();
+  const reconStart = new Date(reconEnd);
+  reconStart.setDate(reconEnd.getDate() - 6);
+  document.getElementById('reconStart').value = reconStart.toISOString().slice(0, 10);
+  document.getElementById('reconEnd').value   = reconEnd.toISOString().slice(0, 10);
+
+  await loadItems();
+  await loadLevels();
+  buildReconTable();
+  await Promise.all([loadPurchaseLog(), loadAdjustLog(), loadCountHistory()]);
+});
+</script>
+</body>
+</html>
