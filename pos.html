@@ -1778,6 +1778,55 @@
                 }
                 grid.appendChild(div);
             });
+            // Counter orders — open tabs whose tableId starts with 'counter-'
+            const counterTabs = Object.entries(openTabsByTable)
+                .filter(([tid]) => tid.startsWith('counter-'))
+                .sort(([a], [b]) => a.localeCompare(b));
+
+            const counterSection = document.getElementById('counterOrdersSection');
+            if (counterTabs.length) {
+                const wrap = counterSection || document.createElement('div');
+                wrap.id = 'counterOrdersSection';
+                wrap.innerHTML = `
+                    <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
+                        <div style="font-size:.75rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem">
+                            🧾 ${t('pos.counterOrders')}
+                        </div>
+                        <div class="tables-grid" style="margin-top:0" id="counterTilesGrid"></div>
+                    </div>`;
+                if (!counterSection) grid.parentElement.insertBefore(wrap, grid.nextSibling);
+
+                const cGrid = document.getElementById('counterTilesGrid');
+                cGrid.innerHTML = '';
+                counterTabs.forEach(([tableId, tab]) => {
+                    const ts = parseInt(tableId.replace('counter-', ''), 10);
+                    const timeStr = isNaN(ts) ? '' : new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const itemCount = tab.items?.length || 0;
+                    const runningTotal = (tab.total || 0).toFixed(2);
+                    const label = timeStr ? `${t('pos.counterLabel')} ${timeStr}` : t('pos.counterLabel');
+                    const sub = itemCount === 1
+                        ? t('pos.tableItems', { n: itemCount })
+                        : t('pos.tableItemsPlural', { n: itemCount });
+
+                    const div = document.createElement('div');
+                    div.className = 'table-tile has-tab';
+                    div.style.cssText = 'border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--bg))';
+                    div.innerHTML = `
+                        <div class="tile-label" style="font-size:.85rem">${posEscHtml(label)}</div>
+                        <div class="tile-sub open">${sub}</div>
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text);margin-top:.2rem">$${runningTotal}</div>
+                        <button class="tile-void-x" title="${t('pos.voidTab')}">×</button>`;
+                    div.onclick = () => selectTable({ id: tableId, label: label }, tab);
+                    div.querySelector('.tile-void-x').addEventListener('click', e => {
+                        e.stopPropagation();
+                        voidTabFromTile(tab._id, tableId, label);
+                    });
+                    cGrid.appendChild(div);
+                });
+            } else if (counterSection) {
+                counterSection.remove();
+            }
+
             document.getElementById('tablesOverlay').classList.add('open');
         }
 
