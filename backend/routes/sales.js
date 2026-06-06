@@ -19,7 +19,7 @@ router.post('/', async (req, res) => {
   try {
     const { items, total, subtotal, taxAmount, currency, paymentMethod, paymentNotes,
             hiveFrom, hiveTransactionId, discountCode, discountAmount,
-            transferProofUrl, transferNote } = req.body;
+            transferProofUrl, transferNote, tip } = req.body;
     const cashier = req.user.username || '';
     if (!items?.length || total == null || !paymentMethod) {
       return res.status(400).json({ error: 'items, total, and paymentMethod are required' });
@@ -54,6 +54,7 @@ router.post('/', async (req, res) => {
       discountAmount:   resolvedDiscountAmount,
       transferProofUrl: transferProofUrl || '',
       transferNote:     transferNote     || '',
+      tip:              tip > 0 ? Number(tip) : 0,
     });
     res.status(201).json(sale);
   } catch (err) {
@@ -205,7 +206,7 @@ router.patch('/:id/close', async (req, res) => {
   try {
     const { paymentMethod, paymentNotes, hiveFrom, hiveTransactionId,
             subtotal, taxAmount, total, discountCode, discountAmount,
-            transferProofUrl, transferNote } = req.body;
+            transferProofUrl, transferNote, tip } = req.body;
     if (!paymentMethod) return res.status(400).json({ error: 'paymentMethod is required' });
     const updates = {
       status: 'closed',
@@ -220,6 +221,7 @@ router.patch('/:id/close', async (req, res) => {
     if (total     != null) updates.total     = total;
     if (transferProofUrl)  updates.transferProofUrl = transferProofUrl;
     if (transferNote)      updates.transferNote     = transferNote;
+    if (tip > 0)           updates.tip              = Number(tip);
 
     if (discountCode) {
       const validation = await validateCode(req.user.storeId, discountCode, parseFloat(subtotal ?? total) || 0);
@@ -267,7 +269,7 @@ router.post('/stripe/intent', async (req, res) => {
 // POST /api/sales/stripe/confirm — verify PaymentIntent and record the sale
 router.post('/stripe/confirm', async (req, res) => {
   try {
-    const { paymentIntentId, items, total, subtotal, taxAmount, currency, cashier } = req.body;
+    const { paymentIntentId, items, total, subtotal, taxAmount, currency, cashier, tip } = req.body;
     if (!paymentIntentId) return res.status(400).json({ error: 'paymentIntentId required' });
 
     const store = await Store.findById(req.user.storeId);
@@ -296,6 +298,7 @@ router.post('/stripe/confirm', async (req, res) => {
       cashier: cashier || '',
       status: 'closed',
       closedAt: new Date(),
+      tip: tip > 0 ? Number(tip) : 0,
     });
     res.json(sale);
   } catch (err) {
