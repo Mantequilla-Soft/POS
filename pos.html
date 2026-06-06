@@ -907,9 +907,9 @@
             if (!currentTabState) {
                 const _feats = JSON.parse(localStorage.getItem('pos_features') || '{}');
                 if (_feats.tabs) {
-                    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.25rem">
-                        <button id="sendToKitchenBtn" type="button" class="btn btn-secondary" style="border-color:var(--amber);color:var(--amber);" ${dis}>🍳 ${t('pos.sendToKitchen')}</button>
-                        <button id="toGoBtn" type="button" class="btn btn-secondary" style="border-color:var(--primary);color:var(--primary);" ${dis}>${t('pos.toGoBtn')}</button>
+                    html += `<div style="display:flex;flex-direction:column;gap:.4rem;margin-top:.25rem">
+                        <button id="sendToKitchenBtn" type="button" class="btn btn-secondary btn-block" style="border-color:var(--amber);color:var(--amber);" ${dis}>🍳 ${t('pos.sendToKitchen')}</button>
+                        <button id="toGoBtn" type="button" class="btn btn-secondary btn-block" style="border-color:var(--primary);color:var(--primary);" ${dis}>📦 ${t('pos.toGoBtn')}</button>
                     </div>`;
                 }
             }
