@@ -880,6 +880,8 @@ const i18n = (() => {
       'kitchen.tablePrefix':     'Table',
       'kitchen.lessThanMin':     '< 1 min',
       'kitchen.mins':            '{n} min',
+      'kitchen.rememberPin':     'Remember PIN on this device',
+      'kitchen.useDifferentPin': 'Use a different PIN',
 
       // ── Payment plugin labels ─────────────────────────────────────────────
       'plugin.hive.name':            'Hive / HBD',
@@ -1967,6 +1969,8 @@ const i18n = (() => {
       'kitchen.tablePrefix':     'Mesa',
       'kitchen.lessThanMin':     '< 1 min',
       'kitchen.mins':            '{n} min',
+      'kitchen.rememberPin':     'Recordar PIN en este dispositivo',
+      'kitchen.useDifferentPin': 'Usar un PIN diferente',
 
       // ── Payment plugin labels ─────────────────────────────────────────────
       'plugin.hive.name':            'Hive / HBD',

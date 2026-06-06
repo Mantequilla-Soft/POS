@@ -3,20 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kitchen Display — POSHIVE</title>
+  <title>Kitchen Display — Paygolin</title>
+  <link rel="manifest" href="kitchen-manifest.json">
+  <meta name="theme-color" content="#27ae60">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kitchen">
+  <link rel="apple-touch-icon" href="images/kitchen-icon-192.png">
   <link rel="stylesheet" href="theme.css">
   <script src="i18n.js"></script>
   <style>
     body { background: #1a1a1a; color: #f0f0f0; font-family: sans-serif; margin: 0; min-height: 100vh; }
+
+    /* ── Login screen ─────────────────────────────────────────── */
     #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
     #loginScreen .card { background: #2a2a2a; border-radius: 12px; padding: 2rem; width: 100%; max-width: 360px; box-shadow: 0 4px 24px #0006; }
     #loginScreen h2 { margin: 0 0 1.5rem; text-align: center; color: var(--primary, #e07b27); }
     #loginScreen label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; color: #bbb; }
-    #loginScreen input { width: 100%; box-sizing: border-box; padding: 0.65rem 0.8rem; border-radius: 7px; border: 1px solid #444; background: #333; color: #f0f0f0; font-size: 1rem; margin-bottom: 1rem; }
+    #loginScreen input[type=url],
+    #loginScreen input[type=text],
+    #loginScreen input[type=password] { width: 100%; box-sizing: border-box; padding: 0.65rem 0.8rem; border-radius: 7px; border: 1px solid #444; background: #333; color: #f0f0f0; font-size: 1rem; margin-bottom: 1rem; }
     #loginScreen .btn { width: 100%; padding: 0.75rem; border-radius: 8px; border: none; background: var(--primary, #e07b27); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
     #loginScreen .btn:hover { opacity: 0.9; }
+    #loginScreen .btn-green { background: #27ae60; }
+    #loginScreen .btn-green:hover { background: #219a52; opacity: 1; }
     #loginScreen .err { color: #e74c3c; font-size: 0.85rem; margin-bottom: 0.75rem; min-height: 1.2em; text-align: center; }
+    .remember-row { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; font-size: .85rem; color: #bbb; cursor: pointer; }
+    .remember-row input { width: auto; margin: 0; cursor: pointer; }
+    .quick-login-icon { font-size: 3.5rem; text-align: center; margin-bottom: .75rem; }
+    .quick-login-name { font-size: .82rem; color: #888; text-align: center; margin-bottom: 1.25rem; }
+    .link-btn { background: none; border: none; color: #888; font-size: .8rem; cursor: pointer; text-decoration: underline; width: 100%; margin-top: .75rem; padding: .25rem; }
+    .link-btn:hover { color: #aaa; }
 
+    /* ── Kitchen screen ───────────────────────────────────────── */
     #kitchenScreen { display: none; padding: 0.75rem; min-height: 100vh; }
     #kitchenHeader { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem 1rem; border-bottom: 1px solid #333; margin-bottom: 1rem; }
     #kitchenHeader h1 { margin: 0; font-size: 1.3rem; color: var(--primary, #e07b27); }
@@ -57,19 +77,8 @@
 
 <!-- Login / PIN screen -->
 <div id="loginScreen">
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1.5rem;">
-      <h2 style="margin:0;" data-i18n="kitchen.title">🍳 Kitchen Display</h2>
-      <span id="loginLangToggle"></span>
-    </div>
-    <div id="loginErr" class="err"></div>
-    <label data-i18n="kitchen.apiBaseLabel">API Base URL</label>
-    <input type="url" id="apiBaseInput" placeholder="http://localhost:3001" autocomplete="off">
-    <label data-i18n="kitchen.storeIdLabel">Store ID</label>
-    <input type="text" id="storeIdInput" data-i18n-placeholder="kitchen.storeIdPlaceholder" placeholder="Paste your Store ID" autocomplete="off">
-    <label data-i18n="kitchen.pinLabel">Kitchen PIN</label>
-    <input type="password" id="pinInput" placeholder="••••" maxlength="10" inputmode="numeric" autocomplete="off">
-    <button class="btn" id="loginBtn" data-i18n="kitchen.enterBtn">Enter Kitchen</button>
+  <div class="card" id="loginCard">
+    <!-- content injected by showLoginScreen() -->
   </div>
 </div>
 
@@ -90,31 +99,32 @@
 </div>
 
 <script>
-const API_BASE_KEY  = 'kitchen_api_base';
-const STORE_ID_KEY  = 'kitchen_store_id';
-const TOKEN_KEY     = 'kitchen_token';
+const API_BASE_KEY   = 'kitchen_api_base';
+const STORE_ID_KEY   = 'kitchen_store_id';
+const TOKEN_KEY      = 'kitchen_token';
 const STORE_NAME_KEY = 'kitchen_store_name';
+const SAVED_PIN_KEY  = 'kitchen_saved_pin';
 
 let apiBase = localStorage.getItem(API_BASE_KEY) || '';
 let storeId = localStorage.getItem(STORE_ID_KEY) || '';
 let kitchenToken = localStorage.getItem(TOKEN_KEY) || '';
 let pollTimer = null;
 
-const loginScreen  = document.getElementById('loginScreen');
+const loginScreen   = document.getElementById('loginScreen');
+const loginCard     = document.getElementById('loginCard');
 const kitchenScreen = document.getElementById('kitchenScreen');
-const loginErr     = document.getElementById('loginErr');
-const apiBaseInput = document.getElementById('apiBaseInput');
-const storeIdInput = document.getElementById('storeIdInput');
-const pinInput     = document.getElementById('pinInput');
-const loginBtn     = document.getElementById('loginBtn');
-const ordersGrid   = document.getElementById('ordersGrid');
-const emptyState   = document.getElementById('emptyState');
-const pollStatus   = document.getElementById('pollStatus');
+const ordersGrid    = document.getElementById('ordersGrid');
+const emptyState    = document.getElementById('emptyState');
+const pollStatus    = document.getElementById('pollStatus');
 const storeNameLabel = document.getElementById('storeNameLabel');
 
 function getApi() { return (localStorage.getItem(API_BASE_KEY) || window.location.origin).replace(/\/$/, '') + '/api'; }
 
-// Try token from URL param (for shared kitchen URL from admin)
+function t(key, vars) {
+  return (typeof i18n !== 'undefined' && i18n.t) ? i18n.t(key, vars) : key;
+}
+
+// Prefill from URL params (shared kitchen link from admin)
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('storeId') && !storeId) {
   storeId = urlParams.get('storeId');
@@ -125,59 +135,149 @@ if (urlParams.get('apiBase') && !apiBase) {
   localStorage.setItem(API_BASE_KEY, apiBase);
 }
 
-function init() {
-  i18n.init();
-  i18n.renderLangToggle(document.getElementById('loginLangToggle'));
-  i18n.renderLangToggle(document.getElementById('kitchenLangToggle'));
-  apiBaseInput.value = apiBase || window.location.origin;
-  storeIdInput.value = storeId || '';
-  if (kitchenToken) {
-    showKitchen();
+// ── Login screen rendering ────────────────────────────────────
+
+function showLoginScreen(errMsg) {
+  loginScreen.style.display = 'flex';
+  kitchenScreen.style.display = 'none';
+
+  const savedPin = localStorage.getItem(SAVED_PIN_KEY);
+  const hasCredentials = savedPin && apiBase && storeId;
+
+  if (hasCredentials) {
+    renderQuickLogin(errMsg);
   } else {
-    loginScreen.style.display = 'flex';
-    kitchenScreen.style.display = 'none';
+    renderFullLogin(errMsg);
   }
+
+  i18n.renderLangToggle(document.getElementById('loginLangToggle'));
 }
 
-loginBtn.onclick = async () => {
-  loginErr.textContent = '';
-  const base = apiBaseInput.value.trim().replace(/\/$/, '');
-  const sid  = storeIdInput.value.trim();
-  const pin  = pinInput.value.trim();
-  if (!base || !sid || !pin) { loginErr.textContent = t('kitchen.allRequired'); return; }
-  loginBtn.disabled = true;
+function renderQuickLogin(errMsg) {
+  const storeName = localStorage.getItem(STORE_NAME_KEY) || storeId;
+  loginCard.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1rem;">
+      <span id="loginLangToggle"></span>
+    </div>
+    <div class="quick-login-icon">🍳</div>
+    <div style="font-weight:700;font-size:1.1rem;text-align:center;margin-bottom:.35rem;color:#f0f0f0">${t('kitchen.title')}</div>
+    <div class="quick-login-name">${escHtml(storeName)}</div>
+    <div id="loginErr" class="err">${errMsg ? escHtml(errMsg) : ''}</div>
+    <button class="btn btn-green" id="quickLoginBtn">${t('kitchen.enterBtn')}</button>
+    <button class="link-btn" id="showFullLoginBtn">${t('kitchen.useDifferentPin')}</button>`;
+
+  document.getElementById('quickLoginBtn').onclick = async () => {
+    const btn = document.getElementById('quickLoginBtn');
+    btn.disabled = true;
+    btn.textContent = '…';
+    const ok = await tryAutoLogin();
+    if (ok) {
+      showKitchen();
+    } else {
+      renderFullLogin(t('kitchen.invalidPin'));
+    }
+  };
+
+  document.getElementById('showFullLoginBtn').onclick = () => {
+    localStorage.removeItem(SAVED_PIN_KEY);
+    renderFullLogin();
+  };
+}
+
+function renderFullLogin(errMsg) {
+  loginCard.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1.5rem;">
+      <h2 style="margin:0;" data-i18n="kitchen.title">🍳 Kitchen Display</h2>
+      <span id="loginLangToggle"></span>
+    </div>
+    <div id="loginErr" class="err">${errMsg ? escHtml(errMsg) : ''}</div>
+    <label data-i18n="kitchen.apiBaseLabel">API Base URL</label>
+    <input type="url" id="apiBaseInput" placeholder="http://localhost:3001" autocomplete="off" value="${escHtml(apiBase || window.location.origin)}">
+    <label data-i18n="kitchen.storeIdLabel">Store ID</label>
+    <input type="text" id="storeIdInput" placeholder="${t('kitchen.storeIdPlaceholder')}" autocomplete="off" value="${escHtml(storeId)}">
+    <label data-i18n="kitchen.pinLabel">Kitchen PIN</label>
+    <input type="password" id="pinInput" placeholder="••••" maxlength="10" inputmode="numeric" autocomplete="off">
+    <label class="remember-row">
+      <input type="checkbox" id="rememberPinChk" checked>
+      <span data-i18n="kitchen.rememberPin">Remember PIN on this device</span>
+    </label>
+    <button class="btn" id="loginBtn" data-i18n="kitchen.enterBtn">Enter Kitchen</button>`;
+
+  i18n.applyTranslations(loginCard);
+  i18n.renderLangToggle(document.getElementById('loginLangToggle'));
+
+  const loginBtn = loginCard.querySelector('#loginBtn');
+  const pinInput = loginCard.querySelector('#pinInput');
+
+  loginBtn.onclick = async () => {
+    const errEl = document.getElementById('loginErr');
+    errEl.textContent = '';
+    const base = loginCard.querySelector('#apiBaseInput').value.trim().replace(/\/$/, '');
+    const sid  = loginCard.querySelector('#storeIdInput').value.trim();
+    const pin  = pinInput.value.trim();
+    const remember = loginCard.querySelector('#rememberPinChk').checked;
+    if (!base || !sid || !pin) { errEl.textContent = t('kitchen.allRequired'); return; }
+    loginBtn.disabled = true;
+    try {
+      const res = await fetch(`${base}/api/kitchen/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, storeId: sid }),
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || t('kitchen.invalidPin'); return; }
+      localStorage.setItem(API_BASE_KEY, base);
+      localStorage.setItem(STORE_ID_KEY, sid);
+      localStorage.setItem(TOKEN_KEY, data.token);
+      localStorage.setItem(STORE_NAME_KEY, data.storeName || '');
+      if (remember) {
+        localStorage.setItem(SAVED_PIN_KEY, pin);
+      } else {
+        localStorage.removeItem(SAVED_PIN_KEY);
+      }
+      kitchenToken = data.token;
+      apiBase = base;
+      storeId = sid;
+      showKitchen();
+    } catch (e) {
+      document.getElementById('loginErr').textContent = t('kitchen.connectError');
+    } finally {
+      loginBtn.disabled = false;
+    }
+  };
+
+  pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
+}
+
+// ── Auto-login with saved PIN ─────────────────────────────────
+
+async function tryAutoLogin() {
+  const savedPin = localStorage.getItem(SAVED_PIN_KEY);
+  if (!savedPin || !apiBase || !storeId) return false;
   try {
-    const res = await fetch(`${base}/api/kitchen/auth`, {
+    const res = await fetch(`${apiBase}/api/kitchen/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin, storeId: sid }),
+      body: JSON.stringify({ pin: savedPin, storeId }),
     });
     const data = await res.json();
-    if (!res.ok) { loginErr.textContent = data.error || t('kitchen.invalidPin'); return; }
-    localStorage.setItem(API_BASE_KEY, base);
-    localStorage.setItem(STORE_ID_KEY, sid);
+    if (!res.ok) return false;
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(STORE_NAME_KEY, data.storeName || '');
     kitchenToken = data.token;
-    apiBase = base;
-    storeId = sid;
-    showKitchen();
-  } catch (e) {
-    loginErr.textContent = t('kitchen.connectError');
-  } finally {
-    loginBtn.disabled = false;
+    return true;
+  } catch {
+    return false;
   }
-};
+}
 
-pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
+// ── Kitchen screen ────────────────────────────────────────────
 
 document.getElementById('logoutBtn').onclick = () => {
   clearInterval(pollTimer);
   localStorage.removeItem(TOKEN_KEY);
   kitchenToken = '';
-  kitchenScreen.style.display = 'none';
-  loginScreen.style.display = 'flex';
-  pinInput.value = '';
+  showLoginScreen();
 };
 
 function showKitchen() {
@@ -196,11 +296,11 @@ async function fetchOrders() {
     });
     if (res.status === 401) {
       clearInterval(pollTimer);
-      localStorage.removeItem(TOKEN_KEY);
+      const reloggedIn = await tryAutoLogin();
+      if (reloggedIn) { showKitchen(); return; }
       kitchenToken = '';
-      kitchenScreen.style.display = 'none';
-      loginScreen.style.display = 'flex';
-      loginErr.textContent = t('kitchen.sessionExpired');
+      localStorage.removeItem(TOKEN_KEY);
+      showLoginScreen(t('kitchen.sessionExpired'));
       return;
     }
     const orders = await res.json();
@@ -269,7 +369,6 @@ async function toggleItem(orderId, idx, newStatus) {
     });
     if (!res.ok) return;
     const updated = await res.json();
-    // Re-render just this order's items
     const listEl = document.getElementById(`items-${orderId}`);
     if (listEl) {
       listEl.innerHTML = updated.items.map((item, i) => renderItem(orderId, item, i)).join('');
@@ -284,6 +383,24 @@ async function toggleItem(orderId, idx, newStatus) {
 
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+
+function init() {
+  i18n.init();
+  i18n.renderLangToggle(document.getElementById('kitchenLangToggle'));
+  if (kitchenToken) {
+    showKitchen();
+  } else {
+    showLoginScreen();
+  }
+}
+
+// ── Service Worker ────────────────────────────────────────────
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').catch(() => {});
 }
 
 init();
