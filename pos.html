@@ -845,7 +845,7 @@
 
         function renderPaymentButtons() {
             const cartFoot = document.getElementById('cartFoot');
-            ['paymentButtonsRow', 'discountCodeRow', 'cashPaymentSection', 'externalPaymentSection', 'bankTransferSection', 'tabSaveRow', 'sendToKitchenBtn', 'postSaleRow'].forEach(id => {
+            ['paymentButtonsRow', 'discountCodeRow', 'cashPaymentSection', 'externalPaymentSection', 'bankTransferSection', 'tabSaveRow', 'sendToKitchenBtn', 'toGoBtn', 'postSaleRow'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.remove();
             });
@@ -903,11 +903,14 @@
 
             html += `</div>`;
 
-            // Counter-to-kitchen
+            // Counter-to-kitchen + To-Go
             if (!currentTabState) {
                 const _feats = JSON.parse(localStorage.getItem('pos_features') || '{}');
                 if (_feats.tabs) {
-                    html += `<button id="sendToKitchenBtn" type="button" class="btn btn-secondary btn-block" style="border-color:var(--amber);color:var(--amber);margin-top:.25rem;" ${dis}>🍳 ${t('pos.sendToKitchen')}</button>`;
+                    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.25rem">
+                        <button id="sendToKitchenBtn" type="button" class="btn btn-secondary" style="border-color:var(--amber);color:var(--amber);" ${dis}>🍳 ${t('pos.sendToKitchen')}</button>
+                        <button id="toGoBtn" type="button" class="btn btn-secondary" style="border-color:var(--primary);color:var(--primary);" ${dis}>📦 ${t('pos.toGoBtn')}</button>
+                    </div>`;
                 }
             }
 
@@ -1066,9 +1069,11 @@
             const backToTablesBtn  = document.getElementById('backToTablesBtn');
             const voidTabBtn_      = document.getElementById('voidTabBtn');
             const sendToKitchenBtn = document.getElementById('sendToKitchenBtn');
+            const toGoBtn_         = document.getElementById('toGoBtn');
             if (saveTabBtn)       saveTabBtn.onclick      = saveTab;
             if (voidTabBtn_)      voidTabBtn_.onclick     = voidTab;
             if (sendToKitchenBtn) sendToKitchenBtn.onclick = sendToKitchen;
+            if (toGoBtn_)         toGoBtn_.onclick        = openToGoSheet;
             if (backToTablesBtn)  backToTablesBtn.onclick  = function() {
                 stopKitchenPoll();
                 cart = []; currentTabState = null;
@@ -1778,9 +1783,9 @@
                 }
                 grid.appendChild(div);
             });
-            // Counter orders — open tabs whose tableId starts with 'counter-'
+            // Counter orders — open tabs whose tableId starts with 'counter-' or 'togo-'
             const counterTabs = Object.entries(openTabsByTable)
-                .filter(([tid]) => tid.startsWith('counter-'))
+                .filter(([tid]) => tid.startsWith('counter-') || tid.startsWith('togo-'))
                 .sort(([a], [b]) => a.localeCompare(b));
 
             const counterSection = document.getElementById('counterOrdersSection');
@@ -1799,24 +1804,36 @@
                 const cGrid = document.getElementById('counterTilesGrid');
                 cGrid.innerHTML = '';
                 counterTabs.forEach(([tableId, tab]) => {
-                    const ts = parseInt(tableId.replace('counter-', ''), 10);
-                    const timeStr = isNaN(ts) ? '' : new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const isToGo = tableId.startsWith('togo-');
+                    let label, timeStr;
+                    if (isToGo) {
+                        // label is stored in tab.tableLabel: "📦 Maria – 3:00pm"
+                        label = tab.tableLabel || tableId;
+                        timeStr = '';
+                    } else {
+                        const ts = parseInt(tableId.replace('counter-', ''), 10);
+                        timeStr = isNaN(ts) ? '' : new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        label = timeStr ? `${t('pos.counterLabel')} ${timeStr}` : t('pos.counterLabel');
+                    }
                     const itemCount = tab.items?.length || 0;
                     const runningTotal = (tab.total || 0).toFixed(2);
-                    const label = timeStr ? `${t('pos.counterLabel')} ${timeStr}` : t('pos.counterLabel');
                     const sub = itemCount === 1
                         ? t('pos.tableItems', { n: itemCount })
                         : t('pos.tableItemsPlural', { n: itemCount });
 
                     const div = document.createElement('div');
                     div.className = 'table-tile has-tab';
-                    div.style.cssText = 'border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--bg))';
+                    if (isToGo) {
+                        div.style.cssText = 'border-color:var(--primary);background:color-mix(in srgb,var(--primary) 10%,var(--bg))';
+                    } else {
+                        div.style.cssText = 'border-color:var(--amber);background:color-mix(in srgb,var(--amber) 8%,var(--bg))';
+                    }
                     div.innerHTML = `
-                        <div class="tile-label" style="font-size:.85rem">${posEscHtml(label)}</div>
+                        <div class="tile-label" style="font-size:.82rem">${posEscHtml(label)}</div>
                         <div class="tile-sub open">${sub}</div>
                         <div style="font-size:.78rem;font-weight:700;color:var(--text);margin-top:.2rem">$${runningTotal}</div>
                         <button class="tile-void-x" title="${t('pos.voidTab')}">×</button>`;
-                    div.onclick = () => selectTable({ id: tableId, label: label }, tab);
+                    div.onclick = () => selectTable({ id: tableId, label }, tab);
                     div.querySelector('.tile-void-x').addEventListener('click', e => {
                         e.stopPropagation();
                         voidTabFromTile(tab._id, tableId, label);
@@ -2050,6 +2067,79 @@
             }
         }
         window.sendToKitchen = sendToKitchen;
+
+        // ── To-Go orders ─────────────────────────────────────────────────
+        function openToGoSheet() {
+            if (!cart.length) return;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9500;display:flex;align-items:flex-end;justify-content:center';
+            overlay.innerHTML = `
+                <div style="background:var(--surface);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:520px;padding:1.25rem 1.25rem 1.75rem;box-shadow:0 -4px 24px rgba(0,0,0,.18)">
+                    <div style="font-weight:700;font-size:1rem;margin-bottom:1rem;color:var(--text)">📦 ${t('pos.toGoBtn')}</div>
+                    <div class="form-group" style="margin-bottom:.75rem">
+                        <label style="font-size:.88rem;font-weight:600">${t('pos.toGoName')} *</label>
+                        <input id="toGoNameInput" type="text" placeholder="${t('pos.toGoNamePlaceholder')}"
+                            style="width:100%;box-sizing:border-box;border:1.5px solid var(--primary);border-radius:var(--r);padding:.6rem .75rem;font-size:1rem;font-family:inherit;background:var(--bg);color:var(--text);margin-top:.3rem" autocomplete="off" />
+                    </div>
+                    <div class="form-group" style="margin-bottom:1rem">
+                        <label style="font-size:.88rem;font-weight:600">${t('pos.toGoPickupTime')}</label>
+                        <input id="toGoTimeInput" type="time"
+                            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:var(--r);padding:.6rem .75rem;font-size:1rem;font-family:inherit;background:var(--bg);color:var(--text);margin-top:.3rem" />
+                    </div>
+                    <div style="display:flex;gap:.6rem">
+                        <button id="toGoCancelBtn" class="btn btn-secondary" style="flex:1">${t('common.cancel')}</button>
+                        <button id="toGoConfirmBtn" class="btn" style="flex:1;background:var(--primary);color:#fff;border-color:var(--primary)">${t('pos.sendToKitchen')}</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+
+            const nameInput = overlay.querySelector('#toGoNameInput');
+            nameInput.focus();
+
+            function close() { overlay.remove(); }
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            overlay.querySelector('#toGoCancelBtn').onclick = close;
+            overlay.querySelector('#toGoConfirmBtn').onclick = async function() {
+                const name = nameInput.value.trim();
+                if (!name) { nameInput.style.borderColor = 'var(--red,#e74c3c)'; nameInput.focus(); return; }
+                const timeVal = overlay.querySelector('#toGoTimeInput').value;
+                close();
+                await sendToGo(name, timeVal);
+            };
+        }
+
+        async function sendToGo(name, pickupTime) {
+            if (!cart.length) return;
+            const token = localStorage.getItem('pos_admin_token') || localStorage.getItem('pos_cashier_token');
+            const apiB = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
+            const { subtotal, taxAmount, total } = calculateCartTotals();
+            const items = cart.map(i => ({ id: i.id, name: i.name, category: i.category, price: i.price, qty: i.qty, notes: i.notes || '' }));
+            const toGoId = 'togo-' + Date.now();
+            const timeLabel = pickupTime ? ` – ${pickupTime}` : '';
+            const tableLabel = `📦 ${name}${timeLabel}`;
+            try {
+                const res = await fetch(`${apiB}/sales/open`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        items, subtotal, taxAmount, total,
+                        currency: getStoreSettings().currency || 'HBD',
+                        tableId: toGoId,
+                        tableLabel,
+                    }),
+                });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Error');
+                const savedTab = await res.json();
+                currentTabState = { tabId: savedTab._id, tableId: toGoId, tableLabel };
+                openTabsByTable[toGoId] = savedTab;
+                renderTabBadge();
+                renderCart();
+                renderMenu();
+            } catch (e) {
+                alert(t('pos.voidTabError', { error: e.message }));
+            }
+        }
 
         // ── Per-item notes (bottom-sheet modal) ──────────────────────────
         function editItemNote(idx) {
