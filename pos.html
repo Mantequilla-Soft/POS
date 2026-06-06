@@ -845,7 +845,7 @@
 
         function renderPaymentButtons() {
             const cartFoot = document.getElementById('cartFoot');
-            ['paymentButtonsRow', 'discountCodeRow', 'cashPaymentSection', 'externalPaymentSection', 'tabSaveRow', 'sendToKitchenBtn', 'postSaleRow'].forEach(id => {
+            ['paymentButtonsRow', 'discountCodeRow', 'cashPaymentSection', 'externalPaymentSection', 'bankTransferSection', 'tabSaveRow', 'sendToKitchenBtn', 'postSaleRow'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.remove();
             });
@@ -1090,7 +1090,7 @@
                 if (!tipDisplay) return;
                 if (isNaN(received) || received <= 0) { tipDisplay.textContent = ''; return; }
                 const tip = received - billTotal;
-                tipDisplay.textContent = tip > 0.005 ? t('pos.tipLabel') + ': ' + billTotal.toFixed(2) + ' + ' + t('pos.tipAmount', { amount: tip.toFixed(2) }) : '';
+                tipDisplay.textContent = tip > 0.005 ? t('pos.tipBreakdown', { bill: billTotal.toFixed(2), tip: tip.toFixed(2), total: received.toFixed(2) }) : '';
             });
 
             // Proof photo preview
@@ -1374,16 +1374,24 @@
             oldCashSection[i].remove();
           }
         }
-        // Call setupPaymentButtons after renderMenu and renderCart
+        // Call setupPaymentButtons after renderMenu and renderCart,
+        // but SKIP if the user is currently in an active payment flow or post-sale screen.
+        function _inPaymentFlow() {
+            if (document.getElementById('postSaleActionsRow')) return true;
+            return ['cashPaymentSection','bankTransferSection','externalPaymentSection'].some(id => {
+                const el = document.getElementById(id);
+                return el && el.style.display !== 'none';
+            });
+        }
         const originalRenderMenu = renderMenu;
         renderMenu = function() {
             originalRenderMenu();
-            setupPaymentButtons();
+            if (!_inPaymentFlow()) setupPaymentButtons();
         };
         const originalRenderCart = renderCart;
         renderCart = function() {
             originalRenderCart();
-            setupPaymentButtons();
+            if (!_inPaymentFlow()) setupPaymentButtons();
         };
         function changeQty(idx, delta) {
             if (cart[idx]) {
