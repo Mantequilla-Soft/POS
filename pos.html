@@ -2085,15 +2085,13 @@
                         <input id="toGoNameInput" type="text" placeholder="${t('pos.toGoNamePlaceholder')}"
                             style="width:100%;box-sizing:border-box;border:1.5px solid var(--primary);border-radius:var(--r);padding:.6rem .75rem;font-size:1rem;font-family:inherit;background:var(--bg);color:var(--text);margin-top:.3rem" autocomplete="off" />
                     </div>
-                    <div class="form-group" style="margin-bottom:1rem">
+                    <div class="form-group" style="margin-bottom:1.25rem">
                         <label style="font-size:.88rem;font-weight:600">${t('pos.toGoPickupTime')}</label>
-                        <input id="toGoTimeInput" type="time"
-                            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:var(--r);padding:.6rem .75rem;font-size:1rem;font-family:inherit;background:var(--bg);color:var(--text);margin-top:.3rem" />
+                        <input id="toGoTimeInput" type="text" inputmode="text" placeholder="${t('pos.toGoPickupTimePlaceholder')}"
+                            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:var(--r);padding:.6rem .75rem;font-size:1rem;font-family:inherit;background:var(--bg);color:var(--text);margin-top:.3rem" autocomplete="off" />
                     </div>
-                    <div style="display:flex;gap:.6rem">
-                        <button id="toGoCancelBtn" class="btn btn-secondary" style="flex:1">${t('common.cancel')}</button>
-                        <button id="toGoConfirmBtn" class="btn" style="flex:1;background:var(--primary);color:#fff;border-color:var(--primary)">${t('pos.sendToKitchen')}</button>
-                    </div>
+                    <button id="toGoConfirmBtn" class="btn btn-block" style="background:var(--primary);color:#fff;border-color:var(--primary);font-size:1.05rem;padding:.8rem">${t('pos.toGoConfirm')}</button>
+                    <button id="toGoCancelBtn" class="btn btn-ghost btn-block" style="margin-top:.5rem;color:var(--text-3)">${t('common.cancel')}</button>
                 </div>`;
             document.body.appendChild(overlay);
 
