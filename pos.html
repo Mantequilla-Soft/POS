@@ -909,7 +909,7 @@
                 if (_feats.tabs) {
                     html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.25rem">
                         <button id="sendToKitchenBtn" type="button" class="btn btn-secondary" style="border-color:var(--amber);color:var(--amber);" ${dis}>🍳 ${t('pos.sendToKitchen')}</button>
-                        <button id="toGoBtn" type="button" class="btn btn-secondary" style="border-color:var(--primary);color:var(--primary);" ${dis}>📦 ${t('pos.toGoBtn')}</button>
+                        <button id="toGoBtn" type="button" class="btn btn-secondary" style="border-color:var(--primary);color:var(--primary);" ${dis}>${t('pos.toGoBtn')}</button>
                     </div>`;
                 }
             }
@@ -2075,8 +2075,11 @@
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9500;display:flex;align-items:flex-end;justify-content:center';
             overlay.innerHTML = `
-                <div style="background:var(--surface);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:520px;padding:1.25rem 1.25rem 1.75rem;box-shadow:0 -4px 24px rgba(0,0,0,.18)">
-                    <div style="font-weight:700;font-size:1rem;margin-bottom:1rem;color:var(--text)">📦 ${t('pos.toGoBtn')}</div>
+                <div style="background:var(--surface);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:520px;padding:1.25rem 1.25rem calc(1.75rem + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,.18);max-height:85dvh;overflow-y:auto">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+                        <div style="font-weight:700;font-size:1rem;color:var(--text)">${t('pos.toGoBtn')}</div>
+                        <button id="toGoCloseBtn" style="background:none;border:none;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--text-3);padding:.1rem .3rem">×</button>
+                    </div>
                     <div class="form-group" style="margin-bottom:.75rem">
                         <label style="font-size:.88rem;font-weight:600">${t('pos.toGoName')} *</label>
                         <input id="toGoNameInput" type="text" placeholder="${t('pos.toGoNamePlaceholder')}"
@@ -2099,6 +2102,7 @@
 
             function close() { overlay.remove(); }
             overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            overlay.querySelector('#toGoCloseBtn').onclick = close;
             overlay.querySelector('#toGoCancelBtn').onclick = close;
             overlay.querySelector('#toGoConfirmBtn').onclick = async function() {
                 const name = nameInput.value.trim();
