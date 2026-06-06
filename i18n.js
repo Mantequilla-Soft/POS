@@ -943,6 +943,7 @@ const i18n = (() => {
       // ── Item notes ────────────────────────────────────────────────────────
       'pos.addNote':             'Add note',
       'pos.noteFor':             'Note for "{item}":',
+      'pos.notePlaceholder':     'e.g. no onions, extra sauce, allergy note…',
 
       // ── Counter-to-kitchen ────────────────────────────────────────────────
       'pos.sendToKitchen':       'Send to Kitchen',
@@ -2023,6 +2024,7 @@ const i18n = (() => {
       // ── Item notes ────────────────────────────────────────────────────────
       'pos.addNote':             'Agregar nota',
       'pos.noteFor':             'Nota para "{item}":',
+      'pos.notePlaceholder':     'ej. sin cebolla, salsa extra, alergias…',
 
       // ── Counter-to-kitchen ────────────────────────────────────────────────
       'pos.sendToKitchen':       'Enviar a Cocina',
