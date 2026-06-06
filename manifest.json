@@ -1,7 +1,7 @@
 {
-  "name": "POSHIVE",
-  "short_name": "POSHIVE",
-  "description": "Hive blockchain point-of-sale and membership management.",
+  "name": "Paygolin",
+  "short_name": "Paygolin",
+  "description": "Paygolin — Point of Sale & membership management.",
   "start_url": "login.html",
   "scope": "/",
   "display": "standalone",
