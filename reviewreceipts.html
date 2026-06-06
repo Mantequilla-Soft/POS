@@ -62,6 +62,13 @@
         .summary-value { font-size: 1.75rem; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 0.3rem; }
         .summary-label { font-size: 0.72rem; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 
+        /* Payment method filter chips */
+        .method-filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.75rem 0 1rem; align-items: center; }
+        .method-filter-row .filter-label { font-size: 0.75rem; font-weight: 600; color: var(--text-2); margin-right: 0.2rem; }
+        .method-filter-chip { cursor: pointer; user-select: none; transition: opacity .15s; padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+        .method-filter-chip input { display: none; }
+        .method-filter-chip.off { opacity: 0.3; }
+
         /* Method breakdown */
         .method-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
         .method-chip {
@@ -120,8 +127,9 @@
             .page-body { padding: 1rem; }
             .filter-bar { flex-direction: column; align-items: stretch; }
             .filter-bar label { width: 100%; }
-            .filter-bar input[type="date"],
-            .filter-bar select { width: 100%; box-sizing: border-box; }
+            .filter-bar input[type="date"] { width: 100%; box-sizing: border-box; }
+            .method-filter-row { gap: 0.4rem; }
+            .method-filter-chip { font-size: 0.75rem; padding: 0.28rem 0.6rem; }
             .filter-actions { width: 100%; }
             .filter-actions .btn { flex: 1; }
             thead th:nth-child(4), tbody td:nth-child(4) { display: none; }
@@ -151,25 +159,15 @@
             <label><span data-i18n="sales.filterTo">To</span>
                 <input type="date" id="filterTo">
             </label>
-            <label><span data-i18n="sales.filterPayment">Payment</span>
-                <select id="filterMethod">
-                    <option value="" data-i18n="sales.allMethods">All methods</option>
-                    <option value="hbd"           data-i18n="pay.method_hbd">HBD (Hive)</option>
-                    <option value="cash"          data-i18n="pay.method_cash">Cash</option>
-                    <option value="bank_transfer" data-i18n="pay.method_bank_transfer">Bank Transfer</option>
-                    <option value="card"          data-i18n="pay.method_card">Credit / Debit Card</option>
-                    <option value="check"         data-i18n="pay.method_check">Check</option>
-                    <option value="other"         data-i18n="pay.method_other">Other</option>
-                    <option value="lightning"     data-i18n="pay.method_lightning">Bitcoin Lightning</option>
-                    <option value="hive"          data-i18n="pay.method_hive">HIVE</option>
-                </select>
-            </label>
             <div class="filter-actions">
                 <button class="btn btn-primary" id="applyFilterBtn" data-i18n="sales.apply">Apply</button>
                 <button class="btn" id="todayBtn" data-i18n="sales.today">Today</button>
                 <button class="btn" id="thisMonthBtn" data-i18n="sales.thisMonth">This Month</button>
             </div>
         </div>
+
+        <!-- Method filter chips (built dynamically after load) -->
+        <div id="methodFilterRow" class="method-filter-row"></div>
 
         <!-- Summary -->
         <div class="summary-grid" id="summaryGrid">
@@ -216,15 +214,16 @@
 
     const API_BASE = (localStorage.getItem('pos_api_base') || window.location.origin) + '/api';
     const token    = localStorage.getItem('pos_admin_token');
-    let currentPage = 1;
+    let allSales   = [];
+    let activeMethods = new Set();
 
     function authHeaders() {
         return { 'Authorization': 'Bearer ' + token };
     }
 
-    document.getElementById('applyFilterBtn').onclick  = () => loadData(1);
-    document.getElementById('todayBtn').onclick        = () => setRange(0)  && loadData(1);
-    document.getElementById('thisMonthBtn').onclick    = () => setRange('month') && loadData(1);
+    document.getElementById('applyFilterBtn').onclick  = () => loadData();
+    document.getElementById('todayBtn').onclick        = () => setRange(0)  && loadData();
+    document.getElementById('thisMonthBtn').onclick    = () => setRange('month') && loadData();
 
     function setRange(preset) {
         const now = new Date();
@@ -240,18 +239,16 @@
         return true;
     }
 
-    async function loadData(page) {
+    async function loadData() {
         if (!token) {
             document.getElementById('salesBody').innerHTML =
-                `<tr><td colspan="5" class="state-msg">No admin token found. Please log in from the Dashboard first.</td></tr>`;
+                `<tr><td colspan="5" class="state-msg">${t('sales.loginRequired')}</td></tr>`;
             return;
         }
 
         const fromYmd = document.getElementById('filterFrom').value;
         const toYmd   = document.getElementById('filterTo').value;
-        const method  = document.getElementById('filterMethod').value;
 
-        // Convert YYYY-MM-DD picker values to local-midnight ISO strings
         function ymdToLocalISO(ymd, end) {
             const [y, m, d] = ymd.split('-').map(Number);
             return end
@@ -262,47 +259,89 @@
         const from = fromYmd ? ymdToLocalISO(fromYmd, false) : '';
         const to   = toYmd   ? ymdToLocalISO(toYmd,   true)  : '';
 
-        const params = new URLSearchParams({ page, limit: 50 });
-        if (from)   params.set('from', from);
-        if (to)     params.set('to', to);
-        if (method) params.set('method', method);
+        const params = new URLSearchParams({ page: 1, limit: 500 });
+        if (from) params.set('from', from);
+        if (to)   params.set('to', to);
 
         document.getElementById('salesBody').innerHTML =
-            `<tr><td colspan="5" class="state-msg">Loading…</td></tr>`;
+            `<tr><td colspan="5" class="state-msg">${t('sales.loading')}</td></tr>`;
+        document.getElementById('methodFilterRow').innerHTML = '';
+        document.getElementById('paginationRow').innerHTML   = '';
 
         try {
-            const [listRes, sumRes] = await Promise.all([
-                fetch(`${API_BASE}/sales?${params}`, { headers: authHeaders() }),
-                fetch(`${API_BASE}/sales/summary?${new URLSearchParams({ from, to })}`, { headers: authHeaders() }),
-            ]);
+            const res = await fetch(`${API_BASE}/sales?${params}`, { headers: authHeaders() });
+            if (!res.ok) throw new Error(res.status);
+            const { sales, total } = await res.json();
+            allSales = sales;
 
-            if (!listRes.ok || !sumRes.ok) throw new Error('Auth failed or server error');
+            buildMethodFilters();
+            applyFilter();
 
-            const { sales, total, pages } = await listRes.json();
-            const summary = await sumRes.json();
-
-            renderSummary(summary);
-            renderTable(sales);
-            renderPagination(page, pages);
-            currentPage = page;
+            // Show a note if the result was capped at 500
+            if (total > 500) {
+                const el = document.getElementById('paginationRow');
+                el.innerHTML = `<span style="font-size:.8rem;color:var(--text-2)">${t('sales.resultsCapped', { total })}</span>`;
+            }
         } catch (err) {
             document.getElementById('salesBody').innerHTML =
                 `<tr><td colspan="5" class="state-msg">${t('sales.loadFailed')}</td></tr>`;
         }
     }
 
-    function renderSummary(s) {
-        document.getElementById('sumRevenue').textContent = '$' + (s.revenue || 0).toFixed(2);
-        document.getElementById('sumCount').textContent   = s.count || 0;
-        document.getElementById('sumAvg').textContent     = s.count
-            ? '$' + (s.revenue / s.count).toFixed(2) : '$0.00';
+    function buildMethodFilters() {
+        const methods = [...new Set(allSales.map(s => s.paymentMethod).filter(Boolean))];
+        activeMethods = new Set(methods);
+
+        const row = document.getElementById('methodFilterRow');
+        if (!methods.length) { row.innerHTML = ''; return; }
+
+        row.innerHTML = `<span class="filter-label">${t('sales.filterPayment')}:</span>` +
+            methods.map(m =>
+                `<label class="method-filter-chip method-badge method-${m}" data-method="${m}">
+                    <input type="checkbox" value="${m}" checked>
+                    ${t('pay.method_' + m) || m.replace(/_/g,' ')}
+                </label>`
+            ).join('');
+
+        row.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', function() {
+                if (this.checked) activeMethods.add(this.value);
+                else              activeMethods.delete(this.value);
+                this.closest('.method-filter-chip').classList.toggle('off', !this.checked);
+                applyFilter();
+            });
+        });
+    }
+
+    function applyFilter() {
+        const filtered = activeMethods.size === 0
+            ? allSales
+            : allSales.filter(s => activeMethods.has(s.paymentMethod));
+        renderSummary(filtered);
+        renderTable(filtered);
+    }
+
+    function renderSummary(sales) {
+        const revenue = sales.reduce((s, x) => s + (Number(x.total) || 0), 0);
+        const count   = sales.length;
+        document.getElementById('sumRevenue').textContent = '$' + revenue.toFixed(2);
+        document.getElementById('sumCount').textContent   = count;
+        document.getElementById('sumAvg').textContent     = count
+            ? '$' + (revenue / count).toFixed(2) : '$0.00';
+
+        const byMethod = {};
+        sales.forEach(s => {
+            if (!byMethod[s.paymentMethod]) byMethod[s.paymentMethod] = { revenue: 0, count: 0 };
+            byMethod[s.paymentMethod].revenue += Number(s.total) || 0;
+            byMethod[s.paymentMethod].count++;
+        });
 
         const methodRow = document.getElementById('methodRow');
-        methodRow.innerHTML = (s.byMethod || []).map(m =>
+        methodRow.innerHTML = Object.entries(byMethod).map(([m, v]) =>
             `<div class="method-chip">
-                <span class="chip-label">${t('pay.method_' + m._id) || m._id.replace(/_/g,' ').toUpperCase()}</span>
-                <span class="chip-val">$${m.revenue.toFixed(2)}</span>
-                <span class="chip-label">(${m.count})</span>
+                <span class="chip-label">${t('pay.method_' + m) || m.replace(/_/g,' ').toUpperCase()}</span>
+                <span class="chip-val">$${v.revenue.toFixed(2)}</span>
+                <span class="chip-label">(${v.count})</span>
             </div>`
         ).join('');
     }
@@ -315,23 +354,24 @@
         }
         tbody.innerHTML = sales.map((s, idx) => {
             const dt   = new Date(s.createdAt).toLocaleString();
-            const meth = s.paymentMethod;
-            const methLabel = meth.replace(/_/g, ' ').toUpperCase();
+            const meth = s.paymentMethod || 'other';
+            const methLabel = t('pay.method_' + meth) || meth.replace(/_/g, ' ').toUpperCase();
             const itemsSummary = s.items.map(i => `${i.qty}× ${i.name}`).join(', ');
             const from = s.hiveFrom ? `@${s.hiveFrom}` : '—';
             const notesTooltip = s.paymentNotes ? ` title="${s.paymentNotes.replace(/"/g,'&quot;')}"` : '';
             const proofThumb = s.transferProofUrl
-                ? `<a href="${s.transferProofUrl}" target="_blank" title="View transfer proof" style="display:inline-block;margin-top:.25rem">
-                    <img src="${s.transferProofUrl}" alt="proof" style="height:36px;width:48px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle">
+                ? `<a href="${s.transferProofUrl}" target="_blank" style="display:inline-block;margin-top:.25rem">
+                    <img src="${s.transferProofUrl}" alt="" style="height:36px;width:48px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle">
                   </a>` : '';
             const transferInfo = (s.transferNote ? `<br><span style="font-size:.72rem;color:var(--text-2)">Ref: ${s.transferNote}</span>` : '') + proofThumb;
+            const tipBadge = s.tip > 0 ? `<br><span style="font-size:.72rem;color:var(--green,#27ae60);font-weight:600">${t('pos.tipLabel')}: $${Number(s.tip).toFixed(2)}</span>` : '';
             return `
                 <tr data-idx="${idx}" onclick="toggleItems(this, ${idx})">
                     <td>${dt}</td>
-                    <td><span class="method-badge method-${meth}"${notesTooltip}>${methLabel}</span>${s.paymentNotes ? `<br><span style="font-size:.72rem;color:var(--text-2)">${s.paymentNotes}</span>` : ''}${meth === 'bank_transfer' ? transferInfo : ''}</td>
+                    <td><span class="method-badge method-${meth}"${notesTooltip}>${methLabel}</span>${s.paymentNotes ? `<br><span style="font-size:.72rem;color:var(--text-2)">${s.paymentNotes}</span>` : ''}${meth === 'bank_transfer' ? transferInfo : ''}${tipBadge}</td>
                     <td style="color:var(--text-2);font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itemsSummary}</td>
                     <td style="color:var(--text-2);font-size:0.8rem">${from}</td>
-                    <td class="amount" style="text-align:right">$${s.total.toFixed(2)}</td>
+                    <td class="amount" style="text-align:right">$${Number(s.total).toFixed(2)}</td>
                 </tr>
                 <tr class="items-row" id="items-${idx}" style="display:none">
                     <td colspan="5">
@@ -342,23 +382,12 @@
                 </tr>`;
         }).join('');
 
-        // store sales for printing
         window._salesData = sales;
     }
 
     function toggleItems(row, idx) {
         const detailRow = document.getElementById('items-' + idx);
         detailRow.style.display = detailRow.style.display === 'none' ? '' : 'none';
-    }
-
-    function renderPagination(page, pages) {
-        const el = document.getElementById('paginationRow');
-        if (pages <= 1) { el.innerHTML = ''; return; }
-        let html = '';
-        if (page > 1) html += `<button class="btn btn-sm" onclick="loadData(${page-1})">← Prev</button>`;
-        html += `<span style="padding:0.4rem 0.75rem;font-size:0.85rem;color:var(--text-2)">Page ${page} of ${pages}</span>`;
-        if (page < pages) html += `<button class="btn btn-sm" onclick="loadData(${page+1})">Next →</button>`;
-        el.innerHTML = html;
     }
     </script>
 </body>

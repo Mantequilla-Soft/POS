@@ -528,6 +528,9 @@ const i18n = (() => {
       'sales.noSales':           'No sales found for this period.',
       'sales.selectRange':       'Select a date range and press Apply.',
       'sales.loadFailed':        'Failed to load sales.',
+      'sales.loading':           'Loading…',
+      'sales.loginRequired':     'No admin token found. Please log in first.',
+      'sales.resultsCapped':     'Showing first 500 of ${total} results. Narrow your date range for complete filtering.',
       'sales.cashier':           'Cashier',
       'sales.allMethods':        'All methods',
 
@@ -1605,6 +1608,9 @@ const i18n = (() => {
       'sales.noSales':           'Sin ventas en este período.',
       'sales.selectRange':       'Selecciona un rango de fechas y presiona Aplicar.',
       'sales.loadFailed':        'Error al cargar las ventas.',
+      'sales.loading':           'Cargando…',
+      'sales.loginRequired':     'Token de administrador no encontrado. Por favor inicia sesión.',
+      'sales.resultsCapped':     'Mostrando los primeros 500 de ${total} resultados. Acorta el rango de fechas para filtrar completamente.',
       'sales.cashier':           'Cajero',
       'sales.allMethods':        'Todos los métodos',
 
