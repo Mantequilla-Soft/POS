@@ -12,7 +12,7 @@
     <style>
         body { margin: 2rem; background: var(--bg); color: var(--text); }
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        h1 { color: var(--ink); margin: 0; }
+        h1 { color: var(--ink); margin: 0; font-size: 1.4rem; }
         .logout-btn {
             background: var(--red);
             color: #fff;
@@ -209,13 +209,17 @@
 
         @media (max-width: 640px) {
             body { margin: 1rem 0.75rem; }
-            .header-container { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+            .header-container { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+            .header-container > div:first-child { flex-wrap: wrap; gap: 0.5rem; }
+            h1 { font-size: 1.1rem; }
             .header-buttons { flex-wrap: wrap; }
             .item-card { width: calc(50% - 0.5rem); }
             #storeSettings, #membershipSettingsSection, #bitcoinLightningSettings, #emailReminderSettings { max-width: 100%; }
+            .settings-card { max-width: 100%; }
         }
         @media (max-width: 400px) {
             .item-card { width: 100%; }
+            h1 { font-size: 1rem; }
         }
     </style>
   <link rel="manifest" href="manifest.json">
@@ -239,7 +243,9 @@
     <!-- TAB NAVIGATION                                                    -->
     <!-- ═══════════════════════════════════════════════════════════ -->
     <style>
-        .admin-tabs { display:flex; gap:0; margin-bottom:1.5rem; border-bottom:2px solid var(--border); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+        .admin-tabs-wrap { position:relative; margin-bottom:1.5rem; }
+        .admin-tabs-wrap::after { content:''; position:absolute; right:0; top:0; bottom:2px; width:2.5rem; background:linear-gradient(to right, transparent, var(--bg)); pointer-events:none; }
+        .admin-tabs { display:flex; gap:0; border-bottom:2px solid var(--border); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin-bottom:0; }
         .admin-tabs::-webkit-scrollbar { display:none; }
         .tab-btn {
             flex-shrink:0; padding:.6rem 1rem; background:none; border:none; border-bottom:3px solid transparent;
@@ -281,15 +287,17 @@
         }
     </style>
 
-    <nav class="admin-tabs" id="adminTabs">
-        <button class="tab-btn active" data-tab="store"    onclick="switchTab('store')"    data-i18n="admin.tabStore">🏪 Store</button>
-        <button class="tab-btn"        data-tab="products" onclick="switchTab('products')" data-i18n="admin.tabProducts">🛍️ Products</button>
-        <button class="tab-btn"        data-tab="payments" onclick="switchTab('payments')" data-i18n="admin.tabPayments">💳 Payments</button>
-        <button class="tab-btn"        data-tab="members"  onclick="switchTab('members')"  data-i18n="admin.tabMembers">👥 Members</button>
-        <button class="tab-btn"        data-tab="staff"    onclick="switchTab('staff')"    data-i18n="admin.tabStaff">👤 Staff</button>
-        <button class="tab-btn"        data-tab="features" onclick="switchTab('features')" data-i18n="admin.tabFeatures">🍽️ Features</button>
-        <button class="tab-btn"        data-tab="settings" onclick="switchTab('settings')" data-i18n="admin.tabSettings">⚙️ Settings</button>
-    </nav>
+    <div class="admin-tabs-wrap">
+        <nav class="admin-tabs" id="adminTabs">
+            <button class="tab-btn active" data-tab="store"    onclick="switchTab('store')"    data-i18n="admin.tabStore">🏪 Store</button>
+            <button class="tab-btn"        data-tab="products" onclick="switchTab('products')" data-i18n="admin.tabProducts">🛍️ Products</button>
+            <button class="tab-btn"        data-tab="payments" onclick="switchTab('payments')" data-i18n="admin.tabPayments">💳 Payments</button>
+            <button class="tab-btn"        data-tab="members"  onclick="switchTab('members')"  data-i18n="admin.tabMembers">👥 Members</button>
+            <button class="tab-btn"        data-tab="staff"    onclick="switchTab('staff')"    data-i18n="admin.tabStaff">👤 Staff</button>
+            <button class="tab-btn"        data-tab="features" onclick="switchTab('features')" data-i18n="admin.tabFeatures">🍽️ Features</button>
+            <button class="tab-btn"        data-tab="settings" onclick="switchTab('settings')" data-i18n="admin.tabSettings">⚙️ Settings</button>
+        </nav>
+    </div>
 
     <!-- ═══════════════ TAB: STORE ═══════════════════════════════ -->
     <div class="tab-panel active" id="tab-store">
