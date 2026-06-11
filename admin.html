@@ -422,6 +422,17 @@
                     <label data-i18n="admin.price">Price</label>
                     <input type="number" id="itemPrice" min="0" step="0.01" required>
                 </div>
+                <div class="feature-row" style="padding:.6rem 0;border-top:1px solid var(--border);margin-top:.5rem;border-bottom:none">
+                    <input type="checkbox" id="itemTrackStock" style="flex-shrink:0;width:1.1rem;height:1.1rem;cursor:pointer;margin-top:2px" onchange="document.getElementById('stockQtyGroup').style.display=this.checked?'':'none'">
+                    <div class="feature-row-body">
+                        <strong data-i18n="admin.trackStock">Track stock</strong>
+                        <p data-i18n="admin.trackStockHelp">Stock goes down by 1 unit each time this item is sold.</p>
+                    </div>
+                </div>
+                <div class="field-group" id="stockQtyGroup" style="display:none">
+                    <label data-i18n="admin.stockQty">Current stock (units)</label>
+                    <input type="number" id="itemStockQty" min="0" step="1" placeholder="0">
+                </div>
                 <div style="display:flex;gap:.5rem;margin-top:.25rem">
                     <button type="submit" id="saveBtn" style="background:var(--ink);color:var(--ink-text);border:none;padding:.65rem 1.5rem;border-radius:var(--r);cursor:pointer;font-weight:600;margin-top:0" data-i18n="admin.addItem">Add Item</button>
                     <button type="button" id="cancelEditBtn" style="display:none;background:#888;color:#fff;border:none;padding:.65rem 1.25rem;border-radius:var(--r);cursor:pointer;margin-top:0" data-i18n="common.cancel">Cancel</button>
@@ -1278,11 +1289,17 @@
             items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
+                const stockBadge = item.trackStock
+                    ? `<p style="margin:.2rem 0 0;font-size:.8rem;color:${item.stockQty <= 0 ? 'var(--red)' : item.stockQty <= 3 ? 'var(--amber)' : 'var(--green,#16a34a)'}">
+                         ${item.stockQty <= 0 ? t('pos.outOfStock') : item.stockQty + ' ' + t('pos.stockLeft')}
+                       </p>`
+                    : '';
                 card.innerHTML = `
                     <img src="${item.image}" alt="${item.name}">
                     <h3>${item.name}</h3>
                     <p><b>Category:</b> ${item.category}</p>
                     <p><b>Price:</b> $${item.price.toFixed(2)}</p>
+                    ${stockBadge}
                     <div class="item-actions">
                         <button onclick="editItem('${item.id}')">Edit</button>
                         <button onclick="deleteItem('${item.id}')" style="background:var(--red);color:#fff;">Delete</button>
@@ -1300,13 +1317,15 @@
             const category = document.getElementById('itemCategory').value;
             const image = document.getElementById('itemImage').value.trim();
             const price = parseFloat(document.getElementById('itemPrice').value);
+            const trackStock = document.getElementById('itemTrackStock').checked;
+            const stockQty = trackStock ? Math.max(0, parseInt(document.getElementById('itemStockQty').value) || 0) : 0;
             let items = await getItems();
             if (id) {
                 // Edit mode
-                items = items.map(item => item.id === id ? { ...item, name, category, image, price } : item);
+                items = items.map(item => item.id === id ? { ...item, name, category, image, price, trackStock, stockQty } : item);
             } else {
                 // Add mode
-                items.push({ id: generateId(), name, category, image, price });
+                items.push({ id: generateId(), name, category, image, price, trackStock, stockQty });
             }
             await saveItems(items);
             this.reset();
@@ -1327,6 +1346,11 @@
             document.getElementById('itemCategory').value = item.category || '';
             document.getElementById('itemImage').value = item.image;
             document.getElementById('itemPrice').value = item.price;
+            const ts = document.getElementById('itemTrackStock');
+            ts.checked = !!item.trackStock;
+            const sqg = document.getElementById('stockQtyGroup');
+            sqg.style.display = item.trackStock ? '' : 'none';
+            document.getElementById('itemStockQty').value = item.stockQty || 0;
             document.getElementById('saveBtn').textContent = t('admin.updateItem');
             document.getElementById('cancelEditBtn').style.display = '';
         };
@@ -1334,6 +1358,8 @@
         document.getElementById('cancelEditBtn').onclick = function() {
             document.getElementById('itemForm').reset();
             document.getElementById('itemId').value = '';
+            document.getElementById('itemTrackStock').checked = false;
+            document.getElementById('stockQtyGroup').style.display = 'none';
             document.getElementById('saveBtn').textContent = t('admin.addItem');
             this.style.display = 'none';
         };

@@ -5,6 +5,7 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const app = require('../server');
 const db = require('./helpers/db');
+const Store = require('../models/Store');
 const { createUser, createStore, tokenFor, authHeader } = require('./helpers/factories');
 
 beforeAll(() => db.connect());
@@ -225,5 +226,106 @@ describe('GET /api/sales/summary', () => {
     expect(res.status).toBe(200);
     expect(res.body.revenue).toBe(0);
     expect(res.body.count).toBe(0);
+  });
+});
+
+// ── Stock decrement ───────────────────────────────────────────────────────────
+
+describe('stock decrement on sale', () => {
+  async function setupWithItems() {
+    const owner = await createUser({ username: 'stockowner' });
+    const store = await createStore(owner._id, {
+      items: [
+        { id: 'cola',  name: 'Coca-Cola', category: 'drinks', price: 2, trackStock: true,  stockQty: 10 },
+        { id: 'water', name: 'Water',     category: 'drinks', price: 1, trackStock: false, stockQty: 99 },
+      ],
+    });
+    const token = tokenFor(owner, store._id);
+    return { owner, store, token };
+  }
+
+  it('decrements stockQty for a tracked item after immediate sale', async () => {
+    const { store, token } = await setupWithItems();
+
+    await request(app).post('/api/sales').set(authHeader(token)).send({
+      items: [{ id: 'cola', name: 'Coca-Cola', price: 2, qty: 3 }],
+      total: 6,
+      paymentMethod: 'cash',
+    });
+
+    const updated = await Store.findById(store._id);
+    expect(updated.items.find(i => i.id === 'cola').stockQty).toBe(7);
+  });
+
+  it('does not change stockQty for untracked items', async () => {
+    const { store, token } = await setupWithItems();
+
+    await request(app).post('/api/sales').set(authHeader(token)).send({
+      items: [{ id: 'water', name: 'Water', price: 1, qty: 5 }],
+      total: 5,
+      paymentMethod: 'cash',
+    });
+
+    const updated = await Store.findById(store._id);
+    expect(updated.items.find(i => i.id === 'water').stockQty).toBe(99);
+  });
+
+  it('handles mixed tracked and untracked items in the same sale', async () => {
+    const { store, token } = await setupWithItems();
+
+    await request(app).post('/api/sales').set(authHeader(token)).send({
+      items: [
+        { id: 'cola',  name: 'Coca-Cola', price: 2, qty: 2 },
+        { id: 'water', name: 'Water',     price: 1, qty: 1 },
+      ],
+      total: 5,
+      paymentMethod: 'cash',
+    });
+
+    const updated = await Store.findById(store._id);
+    expect(updated.items.find(i => i.id === 'cola').stockQty).toBe(8);
+    expect(updated.items.find(i => i.id === 'water').stockQty).toBe(99);
+  });
+
+  it('decrements by qty when selling multiple units', async () => {
+    const { store, token } = await setupWithItems();
+
+    await request(app).post('/api/sales').set(authHeader(token)).send({
+      items: [{ id: 'cola', name: 'Coca-Cola', price: 2, qty: 10 }],
+      total: 20,
+      paymentMethod: 'cash',
+    });
+
+    const updated = await Store.findById(store._id);
+    expect(updated.items.find(i => i.id === 'cola').stockQty).toBe(0);
+  });
+
+  it('decrements on tab close', async () => {
+    const { store, token } = await setupWithItems();
+
+    const open = await request(app).post('/api/sales/open').set(authHeader(token)).send({
+      items: [{ id: 'cola', name: 'Coca-Cola', price: 2, qty: 1 }],
+      total: 2,
+    });
+    expect(open.status).toBe(201);
+
+    await request(app).patch(`/api/sales/${open.body._id}/close`).set(authHeader(token)).send({
+      paymentMethod: 'cash',
+    });
+
+    const updated = await Store.findById(store._id);
+    expect(updated.items.find(i => i.id === 'cola').stockQty).toBe(9);
+  });
+
+  it('ignores items with no id (does not crash)', async () => {
+    const { token } = await setupWithItems();
+
+    const res = await request(app).post('/api/sales').set(authHeader(token)).send({
+      items: [{ name: 'Mystery Item', price: 5, qty: 1 }], // no id
+      total: 5,
+      paymentMethod: 'cash',
+    });
+
+    expect(res.status).toBe(201);
   });
 });

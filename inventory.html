@@ -122,6 +122,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="stock"     data-i18n="inventory.tabStock">Stock Levels</button>
+    <button class="tab-btn"        data-tab="menu-stock" data-i18n="inventory.tabMenuStock" onclick="renderMenuStock()">Menu Stock</button>
     <button class="tab-btn"        data-tab="purchases" data-i18n="inventory.tabPurchases">Purchases</button>
     <button class="tab-btn"        data-tab="adjust"    data-i18n="inventory.tabAdjust">Adjustments</button>
     <button class="tab-btn"        data-tab="reconcile" data-i18n="inventory.tabReconcile">Reconcile</button>
@@ -276,6 +277,15 @@
     <div class="card">
       <p class="section-title" data-i18n="inventory.countHistory">Count History</p>
       <div id="countHistory"><p style="font-size:.85rem;color:var(--text-2)" data-i18n="inventory.noHistory">No reconciliations yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Menu Stock ─────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-menu-stock">
+    <div class="card">
+      <p class="section-title" data-i18n="inventory.menuStockTitle">Menu Item Stock</p>
+      <p style="font-size:.83rem;color:var(--text-2);margin-bottom:1rem" data-i18n="inventory.menuStockHelp">Items with "Track stock" enabled. Click a row to adjust the count after a physical count or restock.</p>
+      <div id="menuStockList"><p style="font-size:.85rem;color:var(--text-2)" data-i18n="inventory.loading">Loading…</p></div>
     </div>
   </div>
 
@@ -725,6 +735,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   buildReconTable();
   await Promise.all([loadPurchaseLog(), loadAdjustLog(), loadCountHistory()]);
 });
+
+// ── Menu Stock tab ────────────────────────────────────────────────────────────
+function renderMenuStock() {
+  const storeItems = JSON.parse(localStorage.getItem('pos_items') || '[]');
+  const tracked = storeItems.filter(i => i.trackStock);
+  const list = document.getElementById('menuStockList');
+  if (!tracked.length) {
+    list.innerHTML = `<p style="font-size:.85rem;color:var(--text-2)">${i18n.t('inventory.noMenuStock')}</p>`;
+    return;
+  }
+  list.innerHTML = tracked.map(item => {
+    const qty = item.stockQty ?? 0;
+    const badgeClass = qty <= 0 ? 'badge-empty' : qty <= 3 ? 'badge-low' : 'badge-ok';
+    return `
+      <div class="level-item" style="cursor:pointer" onclick="openMenuStockAdjust('${esc(item.id)}','${esc(item.name)}',${qty})">
+        <span class="item-name">${esc(item.name)}</span>
+        <span class="item-unit">${esc(item.category || '')}</span>
+        <span class="level-badge ${badgeClass}">${qty <= 0 ? i18n.t('pos.outOfStock') : qty + ' ' + i18n.t('pos.stockLeft')}</span>
+        <span style="font-size:.8rem;color:var(--text-2);margin-left:.25rem">✏️</span>
+      </div>`;
+  }).join('');
+}
+
+function openMenuStockAdjust(itemId, itemName, currentQty) {
+  const overlay = document.createElement('div');
+  overlay.id = '_menuStockOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;padding:1.5rem;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+      <p style="font-weight:700;font-size:1rem;margin:0 0 .25rem">${esc(itemName)}</p>
+      <p style="font-size:.83rem;color:var(--text-2);margin:0 0 1rem">${i18n.t('inventory.adjustMenuStockHelp')}</p>
+      <input type="number" id="_menuStockQtyInput" min="0" step="1" value="${currentQty}"
+        style="width:100%;box-sizing:border-box;padding:.6rem .75rem;border:1.5px solid var(--border);border-radius:var(--r);font-size:1.1rem;font-weight:700;text-align:center;background:var(--bg);color:var(--text);margin-bottom:.75rem">
+      <div style="display:flex;gap:.5rem">
+        <button onclick="saveMenuStock('${esc(itemId)}')" style="flex:1;padding:.7rem;background:#b45309;color:#fff;border:none;border-radius:var(--r);font-weight:700;cursor:pointer;font-size:.95rem;font-family:inherit">${i18n.t('common.save')}</button>
+        <button onclick="document.getElementById('_menuStockOverlay').remove()" style="flex:1;padding:.7rem;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:var(--r);font-weight:600;cursor:pointer;font-size:.95rem;font-family:inherit">${i18n.t('common.cancel')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('_menuStockQtyInput').focus();
+}
+
+async function saveMenuStock(itemId) {
+  const qty = parseInt(document.getElementById('_menuStockQtyInput').value) || 0;
+  const res = await fetch(`${API_BASE}/store/items/${encodeURIComponent(itemId)}/stock`, {
+    method: 'PATCH',
+    headers: authH(),
+    body: JSON.stringify({ qty }),
+  });
+  if (!res.ok) { toast('Error saving'); return; }
+
+  // Update localStorage so POS picks it up on next sync
+  const items = JSON.parse(localStorage.getItem('pos_items') || '[]');
+  const updated = items.map(i => i.id === itemId ? { ...i, stockQty: qty } : i);
+  localStorage.setItem('pos_items', JSON.stringify(updated));
+
+  document.getElementById('_menuStockOverlay').remove();
+  renderMenuStock();
+  toast(i18n.t('inventory.stockAdjusted'));
+}
 </script>
 </body>
 </html>

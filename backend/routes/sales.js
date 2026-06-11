@@ -6,6 +6,24 @@ const Store = require('../models/Store');
 const DiscountCode = require('../models/DiscountCode');
 const { validateCode } = require('./discountCodes');
 
+// Atomically decrement stockQty for every tracked item in a completed sale
+async function decrementStock(storeId, saleItems) {
+  const byId = {};
+  for (const si of saleItems) {
+    if (!si.id) continue;
+    byId[si.id] = (byId[si.id] || 0) + (si.qty || 1);
+  }
+  await Promise.all(
+    Object.entries(byId).map(([id, qty]) =>
+      Store.updateOne(
+        { _id: storeId },
+        { $inc: { 'items.$[el].stockQty': -qty } },
+        { arrayFilters: [{ 'el.id': id, 'el.trackStock': true }] }
+      )
+    )
+  );
+}
+
 // All sales routes require auth + a storeId in the token
 router.use(authenticate);
 router.use((req, res, next) => {
@@ -56,6 +74,7 @@ router.post('/', async (req, res) => {
       transferNote:     transferNote     || '',
       tip:              tip > 0 ? Number(tip) : 0,
     });
+    decrementStock(req.user.storeId, items).catch(() => {});
     res.status(201).json(sale);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -238,6 +257,7 @@ router.patch('/:id/close', async (req, res) => {
       { new: true }
     );
     if (!tab) return res.status(404).json({ error: 'Open tab not found' });
+    decrementStock(req.user.storeId, tab.items).catch(() => {});
     res.json(tab);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -300,6 +320,7 @@ router.post('/stripe/confirm', async (req, res) => {
       closedAt: new Date(),
       tip: tip > 0 ? Number(tip) : 0,
     });
+    decrementStock(req.user.storeId, items || []).catch(() => {});
     res.json(sale);
   } catch (err) {
     res.status(500).json({ error: err.message });

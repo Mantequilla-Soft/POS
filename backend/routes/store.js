@@ -255,4 +255,23 @@ router.put('/:id', roleOnly('store_owner', 'superadmin'), async (req, res) => {
   }
 });
 
+// PATCH /api/store/items/:itemId/stock — set stockQty for a single tracked item
+router.patch('/items/:itemId/stock', roleOnly('store_owner'), async (req, res) => {
+  try {
+    const { qty } = req.body;
+    if (qty == null || isNaN(Number(qty)) || Number(qty) < 0) {
+      return res.status(400).json({ error: 'qty must be a non-negative number' });
+    }
+    const result = await Store.updateOne(
+      { ownerId: req.user.userId },
+      { $set: { 'items.$[el].stockQty': Math.round(Number(qty)) } },
+      { arrayFilters: [{ 'el.id': req.params.itemId, 'el.trackStock': true }] }
+    );
+    if (result.matchedCount === 0) return res.status(404).json({ error: 'Store not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

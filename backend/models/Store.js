@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
 
 const itemSchema = new mongoose.Schema({
-  id: String,
-  name: String,
-  category: String,
-  image: String,
-  price: Number,
+  id:         String,
+  name:       String,
+  category:   String,
+  image:      String,
+  price:      Number,
+  trackStock: { type: Boolean, default: false },
+  stockQty:   { type: Number,  default: 0 },
 }, { _id: false });
 
 const storeSchema = new mongoose.Schema({
