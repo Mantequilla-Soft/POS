@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale</title>
     <script src="i18n.js"></script>
+  <script src="auth-utils.js"></script>
     <script src="payment-plugins.js"></script>
     <meta name="theme-color" content="#b5651d">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1601,7 +1602,7 @@
                             ...(transferNote     ? { transferNote }     : {}),
                             ...(tip > 0          ? { tip }              : {}),
                           };
-                    const saleRes = await fetch(fetchUrl, {
+                    const saleRes = await authFetch(fetchUrl, {
                         method: isTabClose ? 'PATCH' : 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(fetchBody),

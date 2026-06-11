@@ -2,6 +2,9 @@ const i18n = (() => {
   const translations = {
     en: {
       // ── Common ──────────────────────────────────────────────────────────
+      'auth.sessionExpired':      'Your session has expired. Please log in again.',
+      'auth.loginAgain':          'Log In Again',
+
       'common.save':             'Save',
       'common.cancel':           'Cancel',
       'common.close':            'Close',
@@ -1093,6 +1096,9 @@ const i18n = (() => {
 
     es: {
       // ── Common ──────────────────────────────────────────────────────────
+      'auth.sessionExpired':      'Tu sesión ha expirado. Por favor inicia sesión de nuevo.',
+      'auth.loginAgain':          'Iniciar Sesión',
+
       'common.save':             'Guardar',
       'common.cancel':           'Cancelar',
       'common.close':            'Cerrar',

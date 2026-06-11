@@ -123,4 +123,26 @@ router.post('/cashier-login', async (req, res) => {
   }
 });
 
+// Silently re-issue a token for an expired (but valid-signature) session.
+// Grace window: 30 days past expiry. Beyond that the user must log in again.
+router.post('/refresh', async (req, res) => {
+  const header = req.headers.authorization;
+  const raw = header?.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!raw) return res.status(401).json({ error: 'Missing token' });
+  try {
+    const payload = jwt.verify(raw, process.env.JWT_SECRET, { ignoreExpiration: true });
+    const nowSecs = Math.floor(Date.now() / 1000);
+    if (payload.exp && nowSecs - payload.exp > 30 * 24 * 3600) {
+      return res.status(401).json({ error: 'Token too old to refresh. Please log in again.' });
+    }
+    const { iat, exp, ...claims } = payload;
+    const token = jwt.sign(claims, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRY || '7d',
+    });
+    res.json({ token });
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
 module.exports = router;
