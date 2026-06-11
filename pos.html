@@ -488,6 +488,8 @@
             return (settings.categories || []).filter(cat => items.some(item => item.category === cat));
         }
         let currentCategory = 'all';
+        let _categoryInitialized = false;
+        let _menuRenderKey = null;
         function renderCategoryTabs(items) {
             const cats = getCategories(items);
             const tabs = document.getElementById('categoryTabs');
@@ -496,7 +498,7 @@
             const allBtn = document.createElement('button');
             allBtn.className = 'pill' + (currentCategory === 'all' ? ' active' : '');
             allBtn.innerHTML = `${t('pos.all')} <span class="pill-count">${items.length}</span>`;
-            allBtn.onclick = () => { currentCategory = 'all'; renderMenu(); };
+            allBtn.onclick = () => { currentCategory = 'all'; _menuRenderKey = null; renderMenu(); };
             tabs.appendChild(allBtn);
             // Category pills
             cats.forEach(cat => {
@@ -504,7 +506,7 @@
                 const btn = document.createElement('button');
                 btn.className = 'pill' + (currentCategory === cat ? ' active' : '');
                 btn.innerHTML = `${cat.charAt(0).toUpperCase() + cat.slice(1)} <span class="pill-count">${count}</span>`;
-                btn.onclick = () => { currentCategory = cat; renderMenu(); };
+                btn.onclick = () => { currentCategory = cat; _menuRenderKey = null; renderMenu(); };
                 tabs.appendChild(btn);
             });
         }
@@ -513,7 +515,21 @@
             renderBannerAndName();
             renderHiveAccount();
             const items = getItems();
+
+            // Default to first available category on first render (guard: fall back to 'all' if none)
+            if (!_categoryInitialized) {
+                _categoryInitialized = true;
+                const cats = getCategories(items);
+                if (cats.length > 0) currentCategory = cats[0];
+            }
+
             renderCategoryTabs(items);
+
+            // Skip grid rebuild if category and items are unchanged
+            const renderKey = currentCategory + '|' + items.length + '|' + (items[0]?.id || '') + '|' + (items[items.length - 1]?.id || '');
+            if (renderKey === _menuRenderKey) return;
+            _menuRenderKey = renderKey;
+
             const menu = document.getElementById('menuList');
             menu.innerHTML = '';
             const filtered = currentCategory === 'all' ? items : items.filter(i => i.category === currentCategory);
