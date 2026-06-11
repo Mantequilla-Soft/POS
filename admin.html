@@ -235,311 +235,357 @@
             <button class="logout-btn" id="logoutBtn" data-i18n="common.logout">🚪 Logout</button>
         </div>
     </div>
-    <form id="itemForm" enctype="multipart/form-data">
-        <input type="hidden" id="itemId">
-        <label><span data-i18n="admin.itemName">Item Name:</span>
-            <input type="text" id="itemName" required>
-        </label>
-        <label><span data-i18n="admin.category">Category:</span>
-            <select id="itemCategory" required>
-                <option value="" data-i18n="admin.selectCategory">Select category</option>
-                <option value="drink" data-i18n="admin.drink">Drink</option>
-                <option value="pastry" data-i18n="admin.pastry">Pastry</option>
-                <option value="bread" data-i18n="admin.bread">Bread</option>
-                <option value="other" data-i18n="admin.other">Other</option>
-            </select>
-        </label>
-        <label><span data-i18n="admin.imageFile">Image File:</span>
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-                <input type="text" id="itemImage" data-i18n-placeholder="admin.selectImagePlaceholder" placeholder="Select an image..." readonly required style="flex:1;">
-                <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
-                <button type="button" id="selectImageBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0" data-i18n="admin.selectImage">Select Image</button>
-            </div>
-        </label>
-        <label><span data-i18n="admin.price">Price ($):</span>
-            <input type="number" id="itemPrice" min="0" step="0.01" required>
-        </label>
-        <button type="submit" id="saveBtn" data-i18n="admin.addItem">Add Item</button>
-        <button type="button" id="cancelEditBtn" style="display:none; background:#888;" data-i18n="common.cancel">Cancel</button>
-    </form>
-    <div class="items-list" id="itemsList"></div>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TAB NAVIGATION                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <style>
+        .admin-tabs { display:flex; gap:0; margin-bottom:1.5rem; border-bottom:2px solid var(--border); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+        .admin-tabs::-webkit-scrollbar { display:none; }
+        .tab-btn {
+            flex-shrink:0; padding:.6rem 1rem; background:none; border:none; border-bottom:3px solid transparent;
+            margin-bottom:-2px; cursor:pointer; font-size:.9rem; font-weight:500; color:var(--text-2);
+            transition:color .15s, border-color .15s; white-space:nowrap; margin-top:0;
+        }
+        .tab-btn:hover { color:var(--text); background:none; }
+        .tab-btn.active { color:var(--ink); border-bottom-color:var(--ink); font-weight:700; background:none; }
+        .tab-panel { display:none; }
+        .tab-panel.active { display:block; }
+        .settings-card {
+            background:var(--surface); padding:1.25rem 1.5rem 1.5rem; margin-bottom:1.5rem;
+            border-radius:var(--r-lg); border:1px solid var(--border); box-shadow:var(--sh-sm); max-width:640px;
+        }
+        .settings-card h3 { margin:0 0 1rem; font-size:1rem; color:var(--ink); }
+        .field-group { margin-bottom:1rem; }
+        .field-group label { display:block; font-size:.85rem; font-weight:600; margin-bottom:.3rem; color:var(--text); }
+        .field-group input[type=text],
+        .field-group input[type=email],
+        .field-group input[type=number],
+        .field-group input[type=url],
+        .field-group select,
+        .field-group textarea { width:100%; box-sizing:border-box; padding:.55rem .75rem; border:1px solid var(--border); border-radius:var(--r); font-size:.9rem; background:var(--bg); color:var(--text); }
+        .field-hint { font-size:.78rem; color:var(--text-3); margin:.25rem 0 0; line-height:1.4; }
+        .feature-row { display:flex; align-items:flex-start; gap:.75rem; padding:.85rem 0; border-bottom:1px solid var(--border); }
+        .feature-row:last-child { border-bottom:none; }
+        .feature-row input[type=checkbox] { margin-top:3px; flex-shrink:0; width:1.1rem; height:1.1rem; cursor:pointer; }
+        .feature-row-body { flex:1; }
+        .feature-row-body strong { font-size:.95rem; cursor:pointer; }
+        .feature-row-body p { font-size:.82rem; color:var(--text-2); margin:.2rem 0 0; line-height:1.45; }
+        .staff-link-card { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-lg); text-decoration:none; color:var(--text); margin-bottom:1rem; }
+        .staff-link-card:hover { background:var(--bg); }
+        .staff-link-card .icon { font-size:2rem; flex-shrink:0; }
+        .staff-link-card .info strong { display:block; font-size:.95rem; }
+        .staff-link-card .info span { font-size:.82rem; color:var(--text-2); }
+        @media (max-width:600px) {
+            .tab-btn { padding:.55rem .75rem; font-size:.82rem; }
+            .settings-card { padding:1rem 1rem 1.25rem; }
+        }
+    </style>
 
-    <!-- Store Customization Section -->
-    <div id="storeSettings" style="background:var(--surface);padding:1rem 1.5rem 1.5rem 1.5rem;margin-bottom:2rem;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);max-width:600px;">
-        <h2 style="margin-top:0;" data-i18n="admin.storeSettings">Store Settings</h2>
-        <label><span data-i18n="admin.businessName">Business Name:</span>
-            <input type="text" id="businessName" placeholder="e.g. Sweet Treats Bakery" style="width:100%;margin-bottom:0.5rem;">
-        </label>
-        <!-- Logo upload -->
-        <label><span data-i18n="admin.logoImage">Store Logo:</span></label>
-        <div style="display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.5rem;">
-            <div id="logoPreviewBox" style="width:72px;height:72px;flex-shrink:0;border-radius:var(--r);border:2px dashed var(--border);background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.7em;text-align:center;">
-                <img id="logoPreviewImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
-                <span id="logoPreviewPlaceholder">Logo</span>
+    <nav class="admin-tabs" id="adminTabs">
+        <button class="tab-btn active" data-tab="store"    onclick="switchTab('store')"    data-i18n="admin.tabStore">🏪 Store</button>
+        <button class="tab-btn"        data-tab="products" onclick="switchTab('products')" data-i18n="admin.tabProducts">🛍️ Products</button>
+        <button class="tab-btn"        data-tab="payments" onclick="switchTab('payments')" data-i18n="admin.tabPayments">💳 Payments</button>
+        <button class="tab-btn"        data-tab="members"  onclick="switchTab('members')"  data-i18n="admin.tabMembers">👥 Members</button>
+        <button class="tab-btn"        data-tab="staff"    onclick="switchTab('staff')"    data-i18n="admin.tabStaff">👤 Staff</button>
+        <button class="tab-btn"        data-tab="features" onclick="switchTab('features')" data-i18n="admin.tabFeatures">🍽️ Features</button>
+        <button class="tab-btn"        data-tab="settings" onclick="switchTab('settings')" data-i18n="admin.tabSettings">⚙️ Settings</button>
+    </nav>
+
+    <!-- ═══════════════ TAB: STORE ═══════════════════════════════ -->
+    <div class="tab-panel active" id="tab-store">
+
+        <div class="settings-card">
+            <h3 data-i18n="admin.storeIdentity">🏪 Store Identity</h3>
+            <div class="field-group">
+                <label data-i18n="admin.businessName">Business Name</label>
+                <input type="text" id="businessName" data-i18n-placeholder="admin.businessNamePlaceholder" placeholder="e.g. Sweet Treats Bakery" style="width:100%;">
             </div>
-            <div style="flex:1">
-                <div style="display:flex;gap:.4rem;margin-bottom:.4rem;">
-                    <input type="text" id="logoUrl" placeholder="—" style="width:100%;margin-bottom:0;" readonly>
-                    <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
-                    <button type="button" id="selectLogoBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0;white-space:nowrap" data-i18n="admin.selectImage">Select Image</button>
+
+            <!-- Logo -->
+            <div class="field-group">
+                <label data-i18n="admin.logoImage">Store Logo</label>
+                <div style="display:flex;align-items:flex-start;gap:.75rem;">
+                    <div id="logoPreviewBox" style="width:72px;height:72px;flex-shrink:0;border-radius:var(--r);border:2px dashed var(--border);background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.7em;text-align:center;">
+                        <img id="logoPreviewImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
+                        <span id="logoPreviewPlaceholder" data-i18n="admin.logoPlaceholder">Logo</span>
+                    </div>
+                    <div style="flex:1">
+                        <div style="display:flex;gap:.4rem;margin-bottom:.35rem;">
+                            <input type="text" id="logoUrl" placeholder="—" style="width:100%;margin-bottom:0;" readonly>
+                            <input type="file" id="logoFileInput" accept="image/*" style="display:none;">
+                            <button type="button" id="selectLogoBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0;white-space:nowrap" data-i18n="admin.selectImage">Select Image</button>
+                        </div>
+                        <p class="field-hint" data-i18n="admin.logoTips">💡 Square image, min 400×400px, PNG with transparent background. Replaces store name text in POS.</p>
+                    </div>
                 </div>
-                <p style="font-size:.78em;color:var(--text-2);margin:0;line-height:1.4" data-i18n="admin.logoTips">💡 Square image, min 400×400px, PNG with transparent background. Replaces store name text in POS.</p>
             </div>
-        </div>
-        <!-- Banner upload -->
-        <label><span data-i18n="admin.bannerImage">Banner Image:</span>
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-                <input type="text" id="bannerUrl" placeholder="e.g. images/banner.png" style="width:100%;margin-bottom:0.5rem;" readonly>
-                <input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
-                <button type="button" id="selectBannerBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0" data-i18n="admin.selectImage">Select Image</button>
-            </div>
-            <p style="font-size:.78em;color:var(--text-2);margin:-.25rem 0 .5rem;line-height:1.4" data-i18n="admin.bannerTips">💡 Wide landscape image (3:1 ratio), min 1200×400px. Shown as cover photo.</p>
-        </label>
-        <label>Categories:
-            <div id="categoryTags" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;"></div>
-            <div style="display:flex;gap:0.5em;align-items:center;">
-                <input type="text" id="categoryInput" placeholder="Add category and press Enter or tap Add" style="width:100%;">
-                <button type="button" id="addCategoryBtn" style="padding:0.5em 1em;">Add</button>
-            </div>
-        </label>
-        <!-- Payment Plugins — rendered dynamically from payment-plugins.js -->
-        <div id="paymentPluginsSection" style="margin-bottom:1rem"></div>
 
-        <!-- API Server Config -->
-        <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
-            <label style="font-size:.9em;font-weight:600"><span data-i18n="admin.apiServer">API Server URL:</span>
-                <div style="display:flex;gap:.5em;margin-top:.3em">
-                    <input type="text" id="apiBaseInput" placeholder="Leave empty to use current domain" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:var(--r);font-size:.9em">
-                    <button type="button" id="saveApiBaseBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.5rem 1rem;cursor:pointer;font-size:.85em;white-space:nowrap;margin-top:0" data-i18n="common.save">Save</button>
+            <!-- Banner -->
+            <div class="field-group">
+                <label data-i18n="admin.bannerImage">Banner Image</label>
+                <div style="display:flex;align-items:center;gap:.5rem;">
+                    <input type="text" id="bannerUrl" placeholder="e.g. images/banner.png" style="width:100%;margin-bottom:0;" readonly>
+                    <input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
+                    <button type="button" id="selectBannerBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0" data-i18n="admin.selectImage">Select Image</button>
                 </div>
-            </label>
-            <p style="font-size:.78em;color:var(--text-3);margin-top:.3em">Set this to your self-hosted backend URL (e.g. https://api.yourdomain.com)</p>
+                <p class="field-hint" data-i18n="admin.bannerTips">💡 Wide landscape image (3:1), min 1200×400px. Shown as cover photo.</p>
+            </div>
         </div>
 
-        <!-- Owner Email & Monthly Backup -->
-        <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
-            <label style="font-size:.9em;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="export.ownerEmail">Owner Email (for monthly backup)</label>
-            <input type="email" id="ownerEmail"
-                data-i18n-placeholder="export.ownerEmailPlaceholder"
-                placeholder="your@email.com"
-                style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:var(--r);font-size:.9em;box-sizing:border-box;margin-bottom:.6rem">
-            <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;font-size:.85em">
-                <input type="checkbox" id="enableBackupEmail" style="margin-top:2px;flex-shrink:0">
-                <span>
-                    <strong data-i18n="export.backupToggle">Send monthly member list backup by email</strong><br>
-                    <span style="color:var(--text-3)" data-i18n="export.backupHelp">A CSV of your member list will be emailed on the 1st of each month. Requires SMTP configured in .env.</span>
-                </span>
-            </label>
+        <!-- Appearance -->
+        <div class="settings-card" id="themeSection">
+            <h3 data-i18n="admin.appearance">🎨 Appearance</h3>
+            <p class="field-hint" style="margin-bottom:1rem" data-i18n="admin.appearanceHelp">Choose a color theme for your store's POS and management pages.</p>
+            <div id="themeSwatch" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.6rem;margin-bottom:1rem"></div>
+            <div id="themeCustomPanel" style="display:none;border-top:1px solid var(--border);padding-top:1rem;margin-top:.25rem">
+                <p class="field-hint" style="margin-bottom:.75rem" data-i18n="admin.customThemeHelp">Pick your own colors. Text colors adjust automatically.</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+                    <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customBgLabel">Page Background</span><br>
+                        <input type="color" id="customBg" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
+                    <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customSurfaceLabel">Card / Panel</span><br>
+                        <input type="color" id="customSurface" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
+                    <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customInkLabel">Primary Button</span><br>
+                        <input type="color" id="customInk" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
+                    <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customAccentLabel">Accent Color</span><br>
+                        <input type="color" id="customAmber" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
+                </div>
+            </div>
         </div>
 
-        <!-- Publish Store Section -->
-        <div id="publishSection" style="margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--border);">
+        <!-- Publish -->
+        <div class="settings-card">
+            <h3 data-i18n="admin.publishTitle">🚀 Publish</h3>
             <div id="draftStatus" style="background:var(--surface-2);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--border);border-left:4px solid var(--amber);" data-i18n="admin.draftMode">
                 <strong>📝 Draft Mode:</strong> Your changes are kept in memory. Use "Save Draft" to save your progress, then "Publish Store" to make it live!
             </div>
             <div id="publishedStatus" style="background:var(--surface-2);color:var(--text);padding:1rem;border-radius:var(--r);margin-bottom:1rem;border:1px solid var(--border);border-left:4px solid var(--green);display:none;" data-i18n="admin.storePublished">
                 <strong>✅ Store Published:</strong> Your store is live! Changes are kept in memory until you save or publish.
             </div>
-            <button type="button" id="publishStoreBtn" style="background:var(--green);color:#fff;padding:1rem 2rem;font-size:1.1rem;font-weight:600;border:none;border-radius:var(--r);cursor:pointer;transition:var(--ease);margin-top:0" data-i18n="admin.publishStore">
-                🚀 Publish Store
-            </button>
-        </div>
-    </div>
-
-    <!-- Theme Section -->
-    <div id="themeSection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:2rem;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);max-width:600px;">
-        <h2 style="margin-top:0;margin-bottom:.1rem" data-i18n="admin.appearance">🎨 Appearance</h2>
-        <p style="font-size:.85em;color:var(--text-3);margin-bottom:1rem" data-i18n="admin.appearanceHelp">Choose a color theme for your store's POS and management pages.</p>
-        <div id="themeSwatch" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.6rem;margin-bottom:1rem"></div>
-        <!-- Custom color pickers — shown only when Custom is selected -->
-        <div id="themeCustomPanel" style="display:none;border-top:1px solid var(--border);padding-top:1rem;margin-top:.25rem">
-            <p style="font-size:.82em;color:var(--text-2);margin-bottom:.75rem" data-i18n="admin.customThemeHelp">Pick your own colors. Text colors adjust automatically.</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customBgLabel">Page Background</span><br>
-                    <input type="color" id="customBg" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
-                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customSurfaceLabel">Card / Panel</span><br>
-                    <input type="color" id="customSurface" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
-                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customInkLabel">Primary Button</span><br>
-                    <input type="color" id="customInk" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
-                <label style="font-size:.84em;font-weight:600"><span data-i18n="admin.customAccentLabel">Accent Color</span><br>
-                    <input type="color" id="customAmber" style="width:100%;height:36px;margin-top:.3rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></label>
+            <div id="publishSection">
+                <button type="button" id="publishStoreBtn" style="background:var(--green);color:#fff;padding:1rem 2rem;font-size:1.1rem;font-weight:600;border:none;border-radius:var(--r);cursor:pointer;transition:var(--ease);margin-top:0" data-i18n="admin.publishStore">
+                    🚀 Publish Store
+                </button>
             </div>
         </div>
-    </div>
+    </div><!-- /tab-store -->
 
-    <!-- Membership Settings Section -->
-    <div id="membershipSettingsSection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);border-left:4px solid var(--green);box-shadow:var(--sh-sm);max-width:600px;">
-        <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
-            <input type="checkbox" id="enableMemberships">
-            <span data-i18n="admin.enableMemberships">Enable Membership / Subscription Management</span>
-        </label>
-        <p style="font-size:.85em;color:var(--text-2);margin:.5em 0 1em" data-i18n="admin.membershipsHelp">Adds a Members page for gyms, clubs, or any business with recurring fees.</p>
+    <!-- ═══════════════ TAB: PRODUCTS ════════════════════════════ -->
+    <div class="tab-panel" id="tab-products">
 
-        <div id="membershipTypesPanel" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-                <strong style="font-size:.95em" data-i18n="admin.membershipPlans">Membership Plans</strong>
-                <button type="button" id="addMembershipTypeBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="admin.addPlan">+ Add Plan</button>
-            </div>
-            <div id="membershipTypesList" style="display:flex;flex-direction:column;gap:.5rem"></div>
-
-            <!-- Inline add/edit form -->
-            <div id="mtForm" style="display:none;background:var(--surface);border:1px solid var(--green-border);border-radius:var(--r);padding:1rem;margin-top:.75rem">
-                <input type="hidden" id="mtId">
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:.75rem">
-                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planName">Plan Name *</label><br>
-                        <input type="text" id="mtName" data-i18n-placeholder="admin.planNamePlaceholder" placeholder="Monthly" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
-                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planDays">Duration (days) *</label><br>
-                        <input type="number" id="mtDays" value="30" min="1" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
-                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planPrice">Price *</label><br>
-                        <input type="number" id="mtPrice" step="0.01" min="0" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
-                    <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planCurrency">Currency</label><br>
-                        <input type="text" id="mtCurrency" value="HBD" maxlength="6" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
-                </div>
-                <label style="font-size:.82em;font-weight:600" data-i18n="admin.planDescription">Description</label><br>
-                <input type="text" id="mtDesc" data-i18n-placeholder="admin.planDescPlaceholder" placeholder="Optional description" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;margin-bottom:.75rem">
-                <label style="display:flex;align-items:center;gap:.5em;font-size:.85em;margin-bottom:.75rem;cursor:pointer">
-                  <input type="checkbox" id="mtIsPass">
-                  <span data-i18n="pass.isPassLabel">Day/Week Pass (sold at POS)</span>
-                </label>
-                <div style="display:flex;gap:.5rem">
-                    <button type="button" id="saveMtBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.45rem 1rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="admin.savePlan">Save Plan</button>
-                    <button type="button" onclick="closeMtForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.45rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="common.cancel">Cancel</button>
-                </div>
-                <div id="mtError" style="color:var(--red);font-size:.82em;margin-top:.5rem"></div>
-            </div>
-
-            <!-- Email Campaigns -->
-            <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--green-border)">
-                <label style="display:flex;align-items:center;gap:0.6em;font-size:.95em;cursor:pointer">
-                    <input type="checkbox" id="enableEmailCampaigns">
-                    <strong data-i18n="admin.enableEmailCampaigns">Email Campaigns</strong>
-                </label>
-                <p style="font-size:.82em;color:var(--text-2);margin:.4em 0 0" data-i18n="admin.emailCampaignsHelp">
-                    Send broadcast emails to your members from the Campaigns page.
-                </p>
-            </div>
-
-            <!-- Email Reminders -->
-            <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--green-border)">
-                <label style="display:flex;align-items:center;gap:0.6em;font-size:.95em;cursor:pointer">
-                    <input type="checkbox" id="enableEmailReminders">
-                    <strong data-i18n="admin.enableEmailReminders">Email Reminders</strong>
-                </label>
-                <p style="font-size:.82em;color:var(--text-2);margin:.4em 0 .9rem" data-i18n="admin.emailRemindersHelp">
-                    Automatically email overdue members. Requires SMTP configured in .env.
-                </p>
-
-                <div id="emailReminderTemplatePanel" style="display:none">
-                    <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="admin.reminderSubject">Subject line</label>
-                    <input type="text" id="reminderSubject"
-                        data-i18n-placeholder="admin.reminderSubjectPlaceholder"
-                        style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;margin-bottom:.75rem;box-sizing:border-box">
-
-                    <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.25rem" data-i18n="admin.reminderBody">Message body</label>
-                    <textarea id="reminderBody" rows="6"
-                        data-i18n-placeholder="admin.reminderBodyPlaceholder"
-                        style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;resize:vertical;box-sizing:border-box"></textarea>
-                    <p style="font-size:.78em;color:var(--text-3);margin:.35rem 0 0">
-                        Variables: <code>{{memberName}}</code> <code>{{businessName}}</code> <code>{{daysOverdue}}</code> <code>{{hiveAccount}}</code>
-                    </p>
-                </div>
+        <!-- Categories -->
+        <div class="settings-card">
+            <h3 data-i18n="admin.categoriesTitle">🏷️ Categories</h3>
+            <p class="field-hint" style="margin-bottom:.75rem" data-i18n="admin.categoriesHelp">Create categories to organise your menu. Each item belongs to one category.</p>
+            <div id="categoryTags" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;min-height:2rem;"></div>
+            <div style="display:flex;gap:0.5em;align-items:center;">
+                <input type="text" id="categoryInput" data-i18n-placeholder="admin.categoryPlaceholder" placeholder="New category name…" style="flex:1;padding:.55rem .75rem;border:1px solid var(--border);border-radius:var(--r);font-size:.9rem;background:var(--bg);color:var(--text);">
+                <button type="button" id="addCategoryBtn" style="margin-top:0;padding:.55rem 1.1rem;background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);cursor:pointer;font-size:.9rem;white-space:nowrap" data-i18n="admin.addCategory">Add</button>
             </div>
         </div>
-    </div>
 
-    <!-- Tax Settings Section -->
-    <div id="taxSettings" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);max-width:600px;">
-        <label style="display:flex;align-items:center;gap:0.7em;font-size:1.1em;">
-            <input type="checkbox" id="enableTax">
-            <span data-i18n="tax.enableTax">Enable Sales Tax</span>
-        </label>
-        <form id="taxForm" style="display:none;margin-top:1em;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
-                <div>
-                    <label style="display:block;font-size:.85em;margin-bottom:.25rem" data-i18n="tax.taxName">Tax Name</label>
-                    <input type="text" id="taxName" data-i18n-placeholder="tax.taxNamePlaceholder" placeholder="e.g. IVA, Sales Tax, VAT" style="width:100%;box-sizing:border-box;">
+        <!-- Add / Edit Item form -->
+        <div class="settings-card">
+            <h3 id="itemFormTitle" data-i18n="admin.addItem">➕ Add Item</h3>
+            <form id="itemForm" enctype="multipart/form-data" style="background:none;padding:0;border:none;box-shadow:none;margin:0">
+                <input type="hidden" id="itemId">
+                <div class="field-group">
+                    <label data-i18n="admin.itemName">Item Name</label>
+                    <input type="text" id="itemName" required>
                 </div>
-                <div>
-                    <label style="display:block;font-size:.85em;margin-bottom:.25rem" data-i18n="tax.taxRate">Rate (%)</label>
-                    <input type="number" id="taxRate" min="0" max="100" step="0.01" placeholder="13" style="width:100%;box-sizing:border-box;">
+                <div class="field-group">
+                    <label data-i18n="admin.category">Category</label>
+                    <select id="itemCategory" required>
+                        <option value="" data-i18n="admin.selectCategory">Select category</option>
+                        <option value="drink" data-i18n="admin.drink">Drink</option>
+                        <option value="pastry" data-i18n="admin.pastry">Pastry</option>
+                        <option value="bread" data-i18n="admin.bread">Bread</option>
+                        <option value="other" data-i18n="admin.other">Other</option>
+                    </select>
                 </div>
-            </div>
-            <label style="display:flex;align-items:flex-start;gap:0.6em;margin-bottom:0.5rem;cursor:pointer;">
-                <input type="checkbox" id="taxInclusive" style="margin-top:3px;flex-shrink:0;">
-                <span>
-                    <strong data-i18n="tax.inclusive">Tax-inclusive pricing</strong><br>
-                    <span id="taxHelpText" style="font-size:.8em;color:var(--text-2)" data-i18n="tax.exclusiveHelp">Tax is added on top of prices at checkout.</span>
-                </span>
-            </label>
-            <button type="button" id="saveTaxBtn" class="btn btn-primary" style="margin-top:0.5rem;" data-i18n="common.save">Save</button>
-            <span id="taxSaveMsg" style="margin-left:0.75rem;font-size:.85em;"></span>
-        </form>
-    </div>
-
-    <!-- Restaurant Features Section -->
-    <div id="restaurantSettings" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);max-width:600px;">
-        <h3 style="margin:0 0 .75rem;font-size:1.05rem">🍽️ Restaurant Features</h3>
-
-        <!-- Open Tabs / Tables -->
-        <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
-            <input type="checkbox" id="enableTabs">
-            <span><strong>Open Tabs &amp; Table Management</strong></span>
-        </label>
-        <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em">Cashiers assign orders to tables, save tabs, and close them when the customer pays.</p>
-
-        <div id="tablesPanel" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
-                <strong style="font-size:.92em">Tables</strong>
-                <button type="button" id="addTableBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.35rem .8rem;cursor:pointer;font-size:.82em;margin-top:0">+ Add Table</button>
-            </div>
-            <div id="tablesList" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.5rem"></div>
-            <div id="tableForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem;margin-top:.5rem">
-                <input type="hidden" id="tableEditIdx" value="-1">
-                <div style="display:flex;gap:.5rem;align-items:flex-end">
-                    <div style="flex:1">
-                        <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem">Label *</label>
-                        <input type="text" id="tableLabelInput" placeholder="Table 1" style="width:100%;box-sizing:border-box;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+                <div class="field-group">
+                    <label data-i18n="admin.imageFile">Image</label>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <input type="text" id="itemImage" data-i18n-placeholder="admin.selectImagePlaceholder" placeholder="Select an image…" readonly required style="flex:1;margin-bottom:0;">
+                        <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
+                        <button type="button" id="selectImageBtn" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);margin-top:0;white-space:nowrap" data-i18n="admin.selectImage">Select Image</button>
                     </div>
-                    <button type="button" id="saveTableBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0;white-space:nowrap">Save</button>
-                    <button type="button" onclick="closeTableForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.4rem .75rem;cursor:pointer;font-size:.85em;margin:0;white-space:nowrap">Cancel</button>
                 </div>
-                <div id="tableFormError" style="color:var(--red);font-size:.8em;margin-top:.35rem"></div>
+                <div class="field-group">
+                    <label data-i18n="admin.price">Price</label>
+                    <input type="number" id="itemPrice" min="0" step="0.01" required>
+                </div>
+                <div style="display:flex;gap:.5rem;margin-top:.25rem">
+                    <button type="submit" id="saveBtn" style="background:var(--ink);color:var(--ink-text);border:none;padding:.65rem 1.5rem;border-radius:var(--r);cursor:pointer;font-weight:600;margin-top:0" data-i18n="admin.addItem">Add Item</button>
+                    <button type="button" id="cancelEditBtn" style="display:none;background:#888;color:#fff;border:none;padding:.65rem 1.25rem;border-radius:var(--r);cursor:pointer;margin-top:0" data-i18n="common.cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Items grid -->
+        <div class="items-list" id="itemsList"></div>
+    </div><!-- /tab-products -->
+
+    <!-- ═══════════════ TAB: PAYMENTS ════════════════════════════ -->
+    <div class="tab-panel" id="tab-payments">
+        <div class="settings-card">
+            <h3 data-i18n="admin.paymentsTitle">💳 Payment Methods</h3>
+            <p class="field-hint" style="margin-bottom:1rem" data-i18n="admin.paymentsHelp">Enable the payment methods you accept. Each method adds a button at checkout.</p>
+            <!-- Payment Plugins — rendered dynamically from payment-plugins.js -->
+            <div id="paymentPluginsSection"></div>
+        </div>
+    </div><!-- /tab-payments -->
+
+    <!-- ═══════════════ TAB: MEMBERS ═════════════════════════════ -->
+    <div class="tab-panel" id="tab-members">
+        <div id="membershipSettingsSection" style="background:var(--surface);padding:1.25rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);border-left:4px solid var(--green);box-shadow:var(--sh-sm);max-width:640px;">
+            <div class="feature-row" style="padding-top:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+                <input type="checkbox" id="enableMemberships">
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableMemberships">Membership / Subscription Management</strong>
+                    <p data-i18n="admin.membershipsHelp">Adds a Members page for gyms, clubs, or any business with recurring fees.</p>
+                </div>
+            </div>
+
+            <div id="membershipTypesPanel" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+                    <strong style="font-size:.95em" data-i18n="admin.membershipPlans">Membership Plans</strong>
+                    <button type="button" id="addMembershipTypeBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="admin.addPlan">+ Add Plan</button>
+                </div>
+                <div id="membershipTypesList" style="display:flex;flex-direction:column;gap:.5rem"></div>
+
+                <div id="mtForm" style="display:none;background:var(--surface);border:1px solid var(--green-border);border-radius:var(--r);padding:1rem;margin-top:.75rem">
+                    <input type="hidden" id="mtId">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:.75rem">
+                        <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planName">Plan Name *</label><br>
+                            <input type="text" id="mtName" data-i18n-placeholder="admin.planNamePlaceholder" placeholder="Monthly" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                        <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planDays">Duration (days) *</label><br>
+                            <input type="number" id="mtDays" value="30" min="1" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                        <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planPrice">Price *</label><br>
+                            <input type="number" id="mtPrice" step="0.01" min="0" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                        <div><label style="font-size:.82em;font-weight:600" data-i18n="admin.planCurrency">Currency</label><br>
+                            <input type="text" id="mtCurrency" value="HBD" maxlength="6" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em"></div>
+                    </div>
+                    <label style="font-size:.82em;font-weight:600" data-i18n="admin.planDescription">Description</label><br>
+                    <input type="text" id="mtDesc" data-i18n-placeholder="admin.planDescPlaceholder" placeholder="Optional description" style="width:100%;padding:.45rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;margin-bottom:.75rem">
+                    <label style="display:flex;align-items:center;gap:.5em;font-size:.85em;margin-bottom:.75rem;cursor:pointer">
+                        <input type="checkbox" id="mtIsPass">
+                        <span data-i18n="pass.isPassLabel">Day/Week Pass (sold at POS)</span>
+                    </label>
+                    <div style="display:flex;gap:.5rem">
+                        <button type="button" id="saveMtBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.45rem 1rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="admin.savePlan">Save Plan</button>
+                        <button type="button" onclick="closeMtForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.45rem .9rem;cursor:pointer;font-size:.85em;margin-top:0" data-i18n="common.cancel">Cancel</button>
+                    </div>
+                    <div id="mtError" style="color:var(--red);font-size:.82em;margin-top:.5rem"></div>
+                </div>
+
+                <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--green-border)">
+                    <div class="feature-row" style="padding-top:0">
+                        <input type="checkbox" id="enableEmailCampaigns">
+                        <div class="feature-row-body">
+                            <strong data-i18n="admin.enableEmailCampaigns">Email Campaigns</strong>
+                            <p data-i18n="admin.emailCampaignsHelp">Send broadcast emails to your members from the Campaigns page.</p>
+                        </div>
+                    </div>
+                    <div class="feature-row">
+                        <input type="checkbox" id="enableEmailReminders">
+                        <div class="feature-row-body">
+                            <strong data-i18n="admin.enableEmailReminders">Email Reminders</strong>
+                            <p data-i18n="admin.emailRemindersHelp">Automatically email overdue members. Requires SMTP configured in .env.</p>
+                        </div>
+                    </div>
+
+                    <div id="emailReminderTemplatePanel" style="display:none;margin-top:.75rem">
+                        <div class="field-group">
+                            <label data-i18n="admin.reminderSubject">Subject line</label>
+                            <input type="text" id="reminderSubject" data-i18n-placeholder="admin.reminderSubjectPlaceholder">
+                        </div>
+                        <div class="field-group">
+                            <label data-i18n="admin.reminderBody">Message body</label>
+                            <textarea id="reminderBody" rows="6" data-i18n-placeholder="admin.reminderBodyPlaceholder" style="width:100%;box-sizing:border-box;padding:.55rem .75rem;border:1px solid var(--border);border-radius:var(--r);font-size:.9rem;resize:vertical;background:var(--bg);color:var(--text)"></textarea>
+                            <p class="field-hint">Variables: <code>{{memberName}}</code> <code>{{businessName}}</code> <code>{{daysOverdue}}</code> <code>{{hiveAccount}}</code></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+    </div><!-- /tab-members -->
 
-        <!-- Discount Codes -->
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+    <!-- ═══════════════ TAB: STAFF ═══════════════════════════════ -->
+    <div class="tab-panel" id="tab-staff">
+        <div class="settings-card">
+            <h3 data-i18n="admin.staffTitle">👤 Staff & Cashiers</h3>
+            <p class="field-hint" style="margin-bottom:1.25rem" data-i18n="admin.staffHelp">Cashier accounts are managed from the Dashboard. Each cashier gets their own username and password to log into the POS.</p>
+            <a href="dashboard.html" class="staff-link-card">
+                <span class="icon">👤</span>
+                <div class="info">
+                    <strong data-i18n="admin.manageCashiers">Manage Cashiers →</strong>
+                    <span data-i18n="admin.manageCashiersHelp">Add, edit, or remove cashier accounts from the Dashboard</span>
+                </div>
+            </a>
+        </div>
+    </div><!-- /tab-staff -->
+
+    <!-- ═══════════════ TAB: FEATURES ════════════════════════════ -->
+    <div class="tab-panel" id="tab-features">
+        <div id="restaurantSettings" class="settings-card" style="max-width:640px">
+            <h3 data-i18n="admin.featuresTitle">🍽️ Restaurant Features</h3>
+
+            <div class="feature-row">
+                <input type="checkbox" id="enableTabs">
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableTabs">Open Tabs &amp; Table Management</strong>
+                    <p data-i18n="admin.tabsHelp">Cashiers assign orders to tables, save tabs, and close them when the customer pays.</p>
+                </div>
+            </div>
+            <div id="tablesPanel" style="display:none;padding:.75rem 0 .5rem 1.85rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+                    <strong style="font-size:.92em" data-i18n="admin.tablesLabel">Tables</strong>
+                    <button type="button" id="addTableBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.35rem .8rem;cursor:pointer;font-size:.82em;margin-top:0" data-i18n="admin.addTable">+ Add Table</button>
+                </div>
+                <div id="tablesList" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.5rem"></div>
+                <div id="tableForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem;margin-top:.5rem">
+                    <input type="hidden" id="tableEditIdx" value="-1">
+                    <div style="display:flex;gap:.5rem;align-items:flex-end">
+                        <div style="flex:1">
+                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem" data-i18n="admin.tableLabel">Label *</label>
+                            <input type="text" id="tableLabelInput" data-i18n-placeholder="admin.tableLabelPlaceholder" placeholder="Table 1" style="width:100%;box-sizing:border-box;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
+                        </div>
+                        <button type="button" id="saveTableBtn" style="background:var(--green);color:#fff;border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0;white-space:nowrap" data-i18n="common.save">Save</button>
+                        <button type="button" onclick="closeTableForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.4rem .75rem;cursor:pointer;font-size:.85em;margin:0;white-space:nowrap" data-i18n="common.cancel">Cancel</button>
+                    </div>
+                    <div id="tableFormError" style="color:var(--red);font-size:.8em;margin-top:.35rem"></div>
+                </div>
+            </div>
+
+            <div class="feature-row">
                 <input type="checkbox" id="enableDiscountCodes">
-                <span><strong data-i18n="admin.enableDiscountCodes">Discount Codes</strong></span>
-            </label>
-            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.discountCodesHelp">Let cashiers apply promo codes at checkout.</p>
-        </div>
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableDiscountCodes">Discount Codes</strong>
+                    <p data-i18n="admin.discountCodesHelp">Let cashiers apply promo codes at checkout.</p>
+                </div>
+            </div>
 
-        <!-- Reservations -->
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+            <div class="feature-row">
                 <input type="checkbox" id="enableReservations">
-                <span><strong data-i18n="admin.enableReservations">Table Reservations</strong></span>
-            </label>
-            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.reservationsHelp">Let guests book tables in advance. View and manage from <a href="reservations.html" target="_blank" style="color:var(--primary)">Reservations →</a></p>
-        </div>
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableReservations">Table Reservations</strong>
+                    <p data-i18n="admin.reservationsHelp">Let guests book tables in advance. <a href="reservations.html" target="_blank" style="color:var(--primary)" data-i18n="admin.openReservations">View Reservations →</a></p>
+                </div>
+            </div>
 
-        <!-- Hotel -->
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+            <div class="feature-row">
                 <input type="checkbox" id="enableHotel">
-                <span><strong data-i18n="admin.enableHotel">Hotel / Room Rentals</strong></span>
-            </label>
-            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.hotelHelp">Manage room bookings and show a public availability calendar on your website. <a href="hotel.html" target="_blank" style="color:var(--primary)">Open Hotel →</a></p>
-            <!-- Rooms management panel -->
-            <div id="hotelRoomsPanel" style="display:none">
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableHotel">Hotel / Room Rentals</strong>
+                    <p data-i18n="admin.hotelHelp">Manage room bookings and show a public availability calendar. <a href="hotel.html" target="_blank" style="color:var(--primary)" data-i18n="admin.openHotel">Open Hotel →</a></p>
+                </div>
+            </div>
+            <div id="hotelRoomsPanel" style="display:none;padding:.75rem 0 .5rem 1.85rem">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
                     <strong style="font-size:.9em" data-i18n="hotel.rooms">Rooms</strong>
                     <button class="btn btn-sm" id="addRoomBtn" data-i18n="hotel.addRoom">Add Room</button>
                 </div>
                 <div id="roomsList"></div>
-                <!-- Add/edit room form -->
                 <div id="roomFormWrap" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-top:.75rem">
                     <input type="hidden" id="roomEditId">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem">
@@ -556,7 +602,7 @@
                             <input type="number" id="roomRateInput" min="0" step="0.01" value="0" style="width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
                         </div>
                         <div>
-                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem">Currency</label>
+                            <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.2rem" data-i18n="admin.currency">Currency</label>
                             <input type="text" id="roomCurrencyInput" value="HBD" placeholder="HBD" style="width:100%;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
                         </div>
                         <div style="grid-column:1/-1">
@@ -569,28 +615,26 @@
                         <button class="btn-sm" id="cancelRoomBtn" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .65rem;cursor:pointer;font-size:.82rem" data-i18n="common.cancel">Cancel</button>
                     </div>
                 </div>
-                <!-- Shareable link + embed snippet -->
                 <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
-                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.25rem">📱 Shareable Link <span style="font-weight:400;color:var(--text-2)">(Facebook, WhatsApp, Instagram bio)</span></label>
+                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.25rem">📱 <span data-i18n="hotel.shareableLink">Shareable Link</span> <span style="font-weight:400;color:var(--text-2)" data-i18n="hotel.shareableLinkHint">(Facebook, WhatsApp, Instagram bio)</span></label>
                     <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.75rem">
                         <input id="shareableLink" readonly style="flex:1;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.82em;background:var(--bg);color:var(--text);font-family:monospace">
                         <button class="btn btn-sm" onclick="copyShareableLink()" data-i18n="hotel.copyEmbed">Copy</button>
                     </div>
-                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.25rem">🖥️ Website Embed Code <span style="font-weight:400;color:var(--text-2)">(paste into any website)</span></label>
+                    <label style="font-size:.8em;font-weight:600;display:block;margin-bottom:.25rem">🖥️ <span data-i18n="hotel.embedCode">Website Embed Code</span> <span style="font-weight:400;color:var(--text-2)" data-i18n="hotel.embedCodeHint">(paste into any website)</span></label>
                     <textarea id="embedSnippet" readonly rows="3" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.78em;background:var(--bg);color:var(--text);font-family:monospace;resize:none"></textarea>
                     <button class="btn btn-sm" style="margin-top:.4rem" onclick="copyEmbed()" data-i18n="hotel.copyEmbed">Copy</button>
                 </div>
             </div>
-        </div>
 
-        <!-- Kitchen Display -->
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+            <div class="feature-row">
                 <input type="checkbox" id="enableKitchenDisplay">
-                <span><strong data-i18n="admin.enableKitchen">Kitchen Display</strong></span>
-            </label>
-            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em"><span data-i18n="admin.kitchenHelp">A PIN-protected screen shows open orders in the kitchen.</span> <a href="kitchen.html" target="_blank" style="color:var(--primary)" data-i18n="admin.openKitchen">Open Kitchen Display →</a></p>
-            <div id="kitchenPinPanel" style="display:none">
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableKitchen">Kitchen Display</strong>
+                    <p><span data-i18n="admin.kitchenHelp">A PIN-protected screen shows open orders in the kitchen.</span> <a href="kitchen.html" target="_blank" style="color:var(--primary)" data-i18n="admin.openKitchen">Open Kitchen Display →</a></p>
+                </div>
+            </div>
+            <div id="kitchenPinPanel" style="display:none;padding:.75rem 0 .5rem 1.85rem">
                 <label style="font-size:.82em;font-weight:600;display:block;margin-bottom:.2rem"><span data-i18n="admin.kitchenPinLabel">Kitchen PIN</span> <span style="font-weight:400;color:var(--text-2)" data-i18n="admin.kitchenPinHelp">(4–10 digits, leave blank to keep current)</span></label>
                 <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
                     <input type="password" id="kitchenPinInput" placeholder="••••" maxlength="10" inputmode="numeric" style="width:130px;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em">
@@ -603,33 +647,30 @@
                     <button type="button" onclick="copyKitchenUrl()" style="margin:.3rem 0 0;padding:.2rem .5rem;font-size:.8em;background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r-sm);cursor:pointer;display:block" data-i18n="admin.copyUrl">Copy URL</button>
                 </div>
             </div>
-        </div>
 
-        <!-- Inventory -->
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+            <div class="feature-row">
                 <input type="checkbox" id="enableInventory">
-                <span><strong data-i18n="admin.enableInventory">Inventory Management</strong></span>
-            </label>
-            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.inventoryHelp">Track stock purchases and run periodic reconciliations to spot shrinkage.</p>
-        </div>
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableInventory">Inventory Management</strong>
+                    <p data-i18n="admin.inventoryHelp">Track stock purchases and run periodic reconciliations to spot shrinkage.</p>
+                </div>
+            </div>
 
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <label style="display:flex;align-items:center;gap:0.7em;font-size:1em;cursor:pointer;margin-bottom:.4rem">
+            <div class="feature-row">
                 <input type="checkbox" id="enableCloseout">
-                <span><strong data-i18n="admin.enableCloseout">End-of-Day Closeout (Cierre de Caja)</strong></span>
-            </label>
-            <p style="font-size:.82em;color:var(--text-2);margin:.3em 0 1em" data-i18n="admin.closeoutHelp">Daily cash reconciliation form — replaces the paper cierre de caja.</p>
-            <div id="closeoutConfigPanel" style="display:none">
-
-                <!-- Tips toggle -->
-                <label style="display:flex;align-items:center;gap:.6em;font-size:.9em;margin-bottom:1rem;cursor:pointer">
+                <div class="feature-row-body">
+                    <strong data-i18n="admin.enableCloseout">End-of-Day Closeout</strong>
+                    <p data-i18n="admin.closeoutHelp">Daily cash reconciliation form — replaces the paper cierre de caja.</p>
+                </div>
+            </div>
+            <div id="closeoutConfigPanel" style="display:none;padding:.75rem 0 .5rem 1.85rem">
+                <div class="feature-row" style="padding-top:0">
                     <input type="checkbox" id="enableCloseoutTips">
-                    <span data-i18n="admin.closeoutTips">Enable tips tracking</span>
-                </label>
-                <p style="font-size:.8em;color:var(--text-2);margin:-.75rem 0 1rem 1.8rem" data-i18n="admin.closeoutTipsHelp">Cashiers record cash and transfer tips per staff member per shift.</p>
-
-                <!-- Shifts -->
+                    <div class="feature-row-body">
+                        <strong data-i18n="admin.closeoutTips">Enable tips tracking</strong>
+                        <p data-i18n="admin.closeoutTipsHelp">Cashiers record cash and transfer tips per staff member per shift.</p>
+                    </div>
+                </div>
                 <div style="margin-bottom:1rem">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
                         <strong style="font-size:.9em" data-i18n="admin.closeoutShifts">Shifts</strong>
@@ -642,8 +683,6 @@
                     </div>
                     <div id="shiftsList"></div>
                 </div>
-
-                <!-- Staff Roster -->
                 <div style="margin-bottom:1rem">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
                         <strong style="font-size:.9em" data-i18n="admin.closeoutStaff">Staff Roster</strong>
@@ -653,14 +692,12 @@
                         <input type="text" id="newStaffName" class="form-control" style="margin-bottom:.4rem" data-i18n-placeholder="admin.staffName" placeholder="Name">
                         <div id="newStaffShiftsCheckboxes" style="font-size:.82em;margin-bottom:.5rem"></div>
                         <div style="display:flex;gap:.5rem">
-                            <button type="button" id="saveStaffBtn" class="btn btn-sm" style="background:var(--ink);color:var(--ink-text)">Save</button>
-                            <button type="button" id="cancelStaffBtn" class="btn btn-sm btn-secondary">Cancel</button>
+                            <button type="button" id="saveStaffBtn" class="btn btn-sm" style="background:var(--ink);color:var(--ink-text)" data-i18n="common.save">Save</button>
+                            <button type="button" id="cancelStaffBtn" class="btn btn-sm btn-secondary" data-i18n="common.cancel">Cancel</button>
                         </div>
                     </div>
                     <div id="staffList"></div>
                 </div>
-
-                <!-- Deduction Categories -->
                 <div style="margin-bottom:.5rem">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
                         <strong style="font-size:.9em" data-i18n="admin.closeoutDeductions">Deduction Categories</strong>
@@ -673,74 +710,139 @@
                     </div>
                     <div id="deductionsList"></div>
                 </div>
-
-            </div><!-- /closeoutConfigPanel -->
-        </div>
-    </div><!-- /restaurantSettings -->
-
-    <!-- Closeout History (owner review) -->
-    <div id="closeoutHistorySection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);max-width:700px;display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
-            <h3 style="margin:0;font-size:1.05rem" data-i18n="closeout.historyTitle">Closeout History</h3>
-            <a href="closeout.html" class="btn btn-sm" style="text-decoration:none" data-i18n="closeout.navLink">📋 Cierre de Caja</a>
-        </div>
-        <!-- Filters -->
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center">
-            <input type="date" id="closeoutFilterFrom" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
-            <input type="date" id="closeoutFilterTo" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
-            <select id="closeoutFilterStatus" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
-                <option value="">All</option>
-                <option value="draft">Draft</option>
-                <option value="submitted">Submitted</option>
-                <option value="reviewed">Reviewed</option>
-            </select>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="loadCloseoutHistory()">Filter</button>
-        </div>
-        <div id="closeoutHistoryList" style="font-size:.9em"></div>
-        <div id="closeoutHistoryPager" style="display:flex;gap:.5rem;justify-content:center;margin-top:.75rem;font-size:.85em"></div>
-    </div>
-
-    <!-- Discount Codes Section -->
-    <div id="discountCodesSection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);border-left:4px solid var(--ink);box-shadow:var(--sh-sm);max-width:700px;display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
-            <h3 style="margin:0;font-size:1.05rem" data-i18n="admin.discountCodesTitle">Discount Codes</h3>
-            <button type="button" id="addDiscountCodeBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0" data-i18n="admin.addDiscountCode">+ Add Code</button>
-        </div>
-        <!-- Add/Edit form -->
-        <div id="dcForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.85rem;margin-bottom:.85rem">
-            <input type="hidden" id="dcEditId">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem;margin-bottom:.6rem">
-                <div><label style="font-size:.8em;font-weight:600">Code *</label><br>
-                    <input type="text" id="dcCode" placeholder="WELCOME10" style="width:100%;text-transform:uppercase;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box" oninput="this.value=this.value.toUpperCase()"></div>
-                <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountType">Type *</label><br>
-                    <select id="dcType" style="width:100%;padding:.42rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
-                        <option value="percent">% off</option>
-                        <option value="fixed">Fixed off</option>
-                    </select></div>
-                <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountValue">Value *</label><br>
-                    <input type="number" id="dcValue" step="0.01" min="0" placeholder="10" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
-                <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountMinCart">Min Cart</label><br>
-                    <input type="number" id="dcMinCart" step="0.01" min="0" value="0" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
-                <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountMaxUses">Max Uses (0=∞)</label><br>
-                    <input type="number" id="dcMaxUses" min="0" value="0" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
-                <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountExpires">Expires</label><br>
-                    <input type="date" id="dcExpires" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
             </div>
-            <div style="display:flex;gap:.5rem">
-                <button type="button" id="saveDcBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.45rem 1rem;cursor:pointer;font-size:.85em;margin:0">Save</button>
-                <button type="button" onclick="closeDcForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.45rem .9rem;cursor:pointer;font-size:.85em;margin:0" data-i18n="common.cancel">Cancel</button>
-            </div>
-            <div id="dcError" style="color:var(--red);font-size:.82em;margin-top:.4rem"></div>
         </div>
-        <!-- Codes table -->
-        <div id="dcList" style="font-size:.88em"></div>
-    </div>
 
-    <!-- Tier Cost Info -->
-    <div id="tierCostInfo" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem 1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--text-2);max-width:700px;display:none">
-        <span id="tierCostText"></span>
-    </div>
+        <!-- Closeout History -->
+        <div id="closeoutHistorySection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);max-width:640px;display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+                <h3 style="margin:0;font-size:1.05rem" data-i18n="closeout.historyTitle">Closeout History</h3>
+                <a href="closeout.html" class="btn btn-sm" style="text-decoration:none" data-i18n="closeout.navLink">📋 Cierre de Caja</a>
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center">
+                <input type="date" id="closeoutFilterFrom" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
+                <input type="date" id="closeoutFilterTo" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
+                <select id="closeoutFilterStatus" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:.3rem .5rem;font-size:.85em;background:var(--bg);color:var(--text)">
+                    <option value="" data-i18n="admin.filterAll">All</option>
+                    <option value="draft" data-i18n="admin.filterDraft">Draft</option>
+                    <option value="submitted" data-i18n="admin.filterSubmitted">Submitted</option>
+                    <option value="reviewed" data-i18n="admin.filterReviewed">Reviewed</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="loadCloseoutHistory()" data-i18n="admin.filter">Filter</button>
+            </div>
+            <div id="closeoutHistoryList" style="font-size:.9em"></div>
+            <div id="closeoutHistoryPager" style="display:flex;gap:.5rem;justify-content:center;margin-top:.75rem;font-size:.85em"></div>
+        </div>
 
+        <!-- Discount Codes full management -->
+        <div id="discountCodesSection" style="background:var(--surface);padding:1rem 1.5rem 1.5rem;margin-bottom:1.5rem;border-radius:var(--r-lg);border:1px solid var(--border);border-left:4px solid var(--ink);box-shadow:var(--sh-sm);max-width:640px;display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+                <h3 style="margin:0;font-size:1.05rem" data-i18n="admin.discountCodesTitle">Discount Codes</h3>
+                <button type="button" id="addDiscountCodeBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.4rem .9rem;cursor:pointer;font-size:.85em;margin:0" data-i18n="admin.addDiscountCode">+ Add Code</button>
+            </div>
+            <div id="dcForm" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.85rem;margin-bottom:.85rem">
+                <input type="hidden" id="dcEditId">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem;margin-bottom:.6rem">
+                    <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountCode">Code *</label><br>
+                        <input type="text" id="dcCode" placeholder="WELCOME10" style="width:100%;text-transform:uppercase;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box" oninput="this.value=this.value.toUpperCase()"></div>
+                    <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountType">Type *</label><br>
+                        <select id="dcType" style="width:100%;padding:.42rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;background:var(--surface);color:var(--text)">
+                            <option value="percent" data-i18n="admin.discountPercent">% off</option>
+                            <option value="fixed" data-i18n="admin.discountFixed">Fixed off</option>
+                        </select></div>
+                    <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountValue">Value *</label><br>
+                        <input type="number" id="dcValue" step="0.01" min="0" placeholder="10" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
+                    <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountMinCart">Min Cart</label><br>
+                        <input type="number" id="dcMinCart" step="0.01" min="0" value="0" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
+                    <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountMaxUses">Max Uses (0=∞)</label><br>
+                        <input type="number" id="dcMaxUses" min="0" value="0" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
+                    <div><label style="font-size:.8em;font-weight:600" data-i18n="admin.discountExpires">Expires</label><br>
+                        <input type="date" id="dcExpires" style="width:100%;padding:.4rem;border:1px solid var(--border);border-radius:var(--r-sm);font-size:.9em;box-sizing:border-box"></div>
+                </div>
+                <div style="display:flex;gap:.5rem">
+                    <button type="button" id="saveDcBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.45rem 1rem;cursor:pointer;font-size:.85em;margin:0" data-i18n="common.save">Save</button>
+                    <button type="button" onclick="closeDcForm()" style="background:var(--text-3);color:#fff;border:none;border-radius:var(--r);padding:.45rem .9rem;cursor:pointer;font-size:.85em;margin:0" data-i18n="common.cancel">Cancel</button>
+                </div>
+                <div id="dcError" style="color:var(--red);font-size:.82em;margin-top:.4rem"></div>
+            </div>
+            <div id="dcList" style="font-size:.88em"></div>
+        </div>
+    </div><!-- /tab-features -->
+
+    <!-- ═══════════════ TAB: SETTINGS ════════════════════════════ -->
+    <div class="tab-panel" id="tab-settings">
+
+        <!-- Tax -->
+        <div id="taxSettings" class="settings-card">
+            <h3 data-i18n="admin.taxTitle">🧾 Sales Tax</h3>
+            <div class="feature-row" style="padding-top:0;border-bottom:1px solid var(--border);margin-bottom:.75rem">
+                <input type="checkbox" id="enableTax">
+                <div class="feature-row-body">
+                    <strong data-i18n="tax.enableTax">Enable Sales Tax</strong>
+                </div>
+            </div>
+            <form id="taxForm" style="display:none;margin:0;background:none;padding:0;border:none;box-shadow:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+                    <div>
+                        <label style="display:block;font-size:.85em;margin-bottom:.25rem" data-i18n="tax.taxName">Tax Name</label>
+                        <input type="text" id="taxName" data-i18n-placeholder="tax.taxNamePlaceholder" placeholder="e.g. IVA" style="width:100%;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:.85em;margin-bottom:.25rem" data-i18n="tax.taxRate">Rate (%)</label>
+                        <input type="number" id="taxRate" min="0" max="100" step="0.01" placeholder="13" style="width:100%;box-sizing:border-box;">
+                    </div>
+                </div>
+                <label style="display:flex;align-items:flex-start;gap:0.6em;margin-bottom:0.5rem;cursor:pointer;">
+                    <input type="checkbox" id="taxInclusive" style="margin-top:3px;flex-shrink:0;">
+                    <span>
+                        <strong data-i18n="tax.inclusive">Tax-inclusive pricing</strong><br>
+                        <span id="taxHelpText" style="font-size:.8em;color:var(--text-2)" data-i18n="tax.exclusiveHelp">Tax is added on top of prices at checkout.</span>
+                    </span>
+                </label>
+                <button type="button" id="saveTaxBtn" class="btn btn-primary" style="margin-top:0.5rem;" data-i18n="common.save">Save</button>
+                <span id="taxSaveMsg" style="margin-left:0.75rem;font-size:.85em;"></span>
+            </form>
+        </div>
+
+        <!-- API Server -->
+        <div class="settings-card">
+            <h3 data-i18n="admin.apiServerTitle">🔌 API Server</h3>
+            <div class="field-group">
+                <label data-i18n="admin.apiServer">API Server URL</label>
+                <div style="display:flex;gap:.5em;">
+                    <input type="text" id="apiBaseInput" data-i18n-placeholder="admin.apiServerPlaceholder" placeholder="Leave empty to use current domain" style="flex:1;padding:.5rem;border:1px solid var(--border);border-radius:var(--r);font-size:.9em">
+                    <button type="button" id="saveApiBaseBtn" style="background:var(--ink);color:var(--ink-text);border:none;border-radius:var(--r);padding:.5rem 1rem;cursor:pointer;font-size:.85em;white-space:nowrap;margin-top:0" data-i18n="common.save">Save</button>
+                </div>
+                <p class="field-hint" data-i18n="admin.apiServerHint">Set this to your self-hosted backend URL (e.g. https://api.yourdomain.com)</p>
+            </div>
+        </div>
+
+        <!-- Owner Email & Backup -->
+        <div class="settings-card">
+            <h3 data-i18n="admin.backupTitle">📧 Email &amp; Backup</h3>
+            <div class="field-group">
+                <label data-i18n="export.ownerEmail">Owner Email</label>
+                <input type="email" id="ownerEmail"
+                    data-i18n-placeholder="export.ownerEmailPlaceholder"
+                    placeholder="your@email.com"
+                    style="width:100%;box-sizing:border-box;">
+            </div>
+            <label style="display:flex;align-items:flex-start;gap:.6em;cursor:pointer;font-size:.9em">
+                <input type="checkbox" id="enableBackupEmail" style="margin-top:2px;flex-shrink:0">
+                <span>
+                    <strong data-i18n="export.backupToggle">Send monthly member list backup by email</strong><br>
+                    <span class="field-hint" data-i18n="export.backupHelp">A CSV of your member list will be emailed on the 1st of each month. Requires SMTP configured in .env.</span>
+                </span>
+            </label>
+        </div>
+
+        <!-- Tier cost info + Debug -->
+        <div id="tierCostInfo" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem 1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--text-2);max-width:640px;display:none">
+            <span id="tierCostText"></span>
+        </div>
+    </div><!-- /tab-settings -->
+
+    <!-- ═══════════════ GLOBAL (always in DOM) ════════════════════ -->
     <!-- Debug Window -->
     <div class="debug-window" id="debugWindow">
         <div class="debug-header">
@@ -758,7 +860,7 @@
         </div>
     </div>
 
-    <!-- Sticky save bar — must be in DOM before the script runs -->
+    <!-- Sticky save bar -->
     <div id="stickySaveBar">
         <span class="bar-msg" data-i18n="admin.unsavedChanges">Unsaved changes</span>
         <button id="stickySaveBarBtn" onclick="saveFromBar()" data-i18n="admin.saveChanges">Save changes</button>
@@ -772,7 +874,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             i18n.init();
             i18n.renderLangToggle(document.getElementById('langToggleContainer'));
+            // Restore last active tab across page loads
+            const savedTab = sessionStorage.getItem('adminTab') || 'store';
+            switchTab(savedTab, false);
         });
+
+        function switchTab(name, save = true) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+            if (save) sessionStorage.setItem('adminTab', name);
+        }
 
         // Debug Console Functionality
         let debugEntries = [];
