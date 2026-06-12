@@ -490,6 +490,24 @@
         let currentCategory = 'all';
         let _categoryInitialized = false;
         let _menuRenderKey = null;
+
+        // After a sale, mirror the backend stock decrement locally so cards
+        // update immediately without a page refresh.
+        function applyLocalStockDecrement(saleCart) {
+            const items = JSON.parse(localStorage.getItem('pos_items') || '[]');
+            let changed = false;
+            const updated = items.map(item => {
+                if (!item.trackStock) return item;
+                const sold = saleCart.reduce((sum, s) => s.id === item.id ? sum + (s.qty || 1) : sum, 0);
+                if (!sold) return item;
+                changed = true;
+                return { ...item, stockQty: Math.max(0, (item.stockQty || 0) - sold) };
+            });
+            if (changed) {
+                localStorage.setItem('pos_items', JSON.stringify(updated));
+                _menuRenderKey = null; // force renderMenu() to rebuild the grid
+            }
+        }
         function renderCategoryTabs(items) {
             const cats = getCategories(items);
             const tabs = document.getElementById('categoryTabs');
@@ -1632,6 +1650,7 @@
                     });
                     if (saleRes.ok) {
                         savedToBackend = true;
+                        applyLocalStockDecrement(saleCart);
                         if (isTabClose) {
                             stopKitchenPoll();
                             delete openTabsByTable[currentTabState.tableId];
