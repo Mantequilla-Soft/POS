@@ -562,6 +562,7 @@ const i18n = (() => {
       'sales.loading':           'Loading…',
       'sales.loginRequired':     'No admin token found. Please log in first.',
       'sales.resultsCapped':     'Showing first 500 of ${total} results. Narrow your date range for complete filtering.',
+      'sales.duesItem':          'Membership Dues',
       'sales.cashier':           'Cashier',
       'sales.allMethods':        'All methods',
 
@@ -1706,6 +1707,7 @@ const i18n = (() => {
       'sales.loading':           'Cargando…',
       'sales.loginRequired':     'Token de administrador no encontrado. Por favor inicia sesión.',
       'sales.resultsCapped':     'Mostrando los primeros 500 de ${total} resultados. Acorta el rango de fechas para filtrar completamente.',
+      'sales.duesItem':          'Cuota de Membresía',
       'sales.cashier':           'Cajero',
       'sales.allMethods':        'Todos los métodos',
 

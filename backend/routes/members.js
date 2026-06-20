@@ -239,6 +239,26 @@ router.get('/export', roleOnly('store_owner', 'superadmin'), async (req, res) =>
   }
 });
 
+// GET /api/members/payments?from=&to= — store-wide dues payments in a date range
+// (must come before GET /:id so "/payments" isn't captured as an id)
+router.get('/payments', roleOnly('store_owner', 'superadmin'), async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const filter = { storeId: req.user.storeId };
+    if (from || to) {
+      filter.paidDate = {};
+      if (from) filter.paidDate.$gte = new Date(from);
+      if (to)   filter.paidDate.$lte = new Date(to);
+    }
+    const payments = await MemberPayment.find(filter)
+      .sort({ paidDate: -1 })
+      .populate('memberId', 'name');
+    res.json({ payments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create a pass holder + activate immediately — called from POS after sale completes
 router.post('/pass-sale', async (req, res) => {
   try {

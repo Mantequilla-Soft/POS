@@ -6,7 +6,7 @@ const app = require('../server');
 const db = require('./helpers/db');
 const {
   createUser, createStore, createMembershipType,
-  createMember, tokenFor, authHeader,
+  createMember, createMemberPayment, tokenFor, authHeader,
 } = require('./helpers/factories');
 
 beforeAll(() => db.connect());
@@ -228,5 +228,74 @@ describe('GET /api/members — pagination', () => {
     expect(res.body.total).toBe(2);   // 2 Annas total
     expect(res.body.pages).toBe(2);   // split across 2 pages
     expect(res.body.members).toHaveLength(1); // only 1 per page
+  });
+});
+
+describe('GET /api/members/payments', () => {
+  it('returns dues payments for the store with populated member name', async () => {
+    const { store, mtype, token } = await setup();
+    const member = await createMember(store._id, mtype._id, { name: 'Marlon Alegria' });
+    await createMemberPayment(store._id, member._id, mtype._id, { amount: 35 });
+
+    const res = await request(app)
+      .get('/api/members/payments')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.payments).toHaveLength(1);
+    expect(res.body.payments[0].amount).toBe(35);
+    expect(res.body.payments[0].memberId.name).toBe('Marlon Alegria');
+  });
+
+  it('filters by date range on paidDate', async () => {
+    const { store, mtype, token } = await setup();
+    const member = await createMember(store._id, mtype._id);
+    await createMemberPayment(store._id, member._id, mtype._id, {
+      amount: 35, paidDate: new Date('2099-06-20T00:00:00.000Z'),
+    });
+    await createMemberPayment(store._id, member._id, mtype._id, {
+      amount: 25, paidDate: new Date('2020-01-01T00:00:00.000Z'),
+    });
+
+    const res = await request(app)
+      .get('/api/members/payments?from=2099-01-01&to=2099-12-31')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.payments).toHaveLength(1);
+    expect(res.body.payments[0].amount).toBe(35);
+  });
+
+  it('multi-tenancy: only returns payments from the requesting store', async () => {
+    const { token } = await setup();
+
+    const ownerB = await createUser({ username: 'ownerb' });
+    const storeB = await createStore(ownerB._id);
+    const mtypeB = await createMembershipType(storeB._id);
+    const memberB = await createMember(storeB._id, mtypeB._id);
+    await createMemberPayment(storeB._id, memberB._id, mtypeB._id, { amount: 99 });
+
+    const res = await request(app)
+      .get('/api/members/payments')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.payments).toHaveLength(0);
+  });
+
+  it('blocks cashiers', async () => {
+    const { store } = await setup();
+    const jwt = require('jsonwebtoken');
+    const cashierToken = jwt.sign(
+      { cashierId: 'c1', storeId: store._id, role: 'cashier', username: 'frontdesk' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    const res = await request(app)
+      .get('/api/members/payments')
+      .set(authHeader(cashierToken));
+
+    expect(res.status).toBe(403);
   });
 });

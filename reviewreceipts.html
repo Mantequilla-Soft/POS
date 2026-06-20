@@ -270,15 +270,36 @@
         document.getElementById('paginationRow').innerHTML   = '';
 
         try {
-            const res = await fetch(`${API_BASE}/sales?${params}`, { headers: authHeaders() });
-            if (!res.ok) throw new Error(res.status);
-            const { sales, total } = await res.json();
-            allSales = sales;
+            const duesParams = new URLSearchParams();
+            if (from) duesParams.set('from', from);
+            if (to)   duesParams.set('to', to);
+
+            const [salesRes, duesRes] = await Promise.all([
+                fetch(`${API_BASE}/sales?${params}`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/members/payments?${duesParams}`, { headers: authHeaders() }),
+            ]);
+            if (!salesRes.ok) throw new Error(salesRes.status);
+            const { sales, total } = await salesRes.json();
+            const { payments: dues } = duesRes.ok ? await duesRes.json() : { payments: [] };
+
+            const duesAsSales = dues.map(p => ({
+                _id: p._id,
+                createdAt: p.paidDate,
+                paymentMethod: p.method,
+                total: p.amount,
+                tip: 0,
+                hiveFrom: p.hiveFrom || '',
+                paymentNotes: p.paymentNotes || p.notes || '',
+                type: 'dues',
+                items: [{ name: p.memberId?.name || '', qty: 1, price: p.amount }],
+            }));
+
+            allSales = [...sales, ...duesAsSales].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
             buildMethodFilters();
             applyFilter();
 
-            // Show a note if the result was capped at 500
+            // Show a note if the result was capped at 500 (sales side only)
             if (total > 500) {
                 const el = document.getElementById('paginationRow');
                 el.innerHTML = `<span style="font-size:.8rem;color:var(--text-2)">${t('sales.resultsCapped', { total })}</span>`;
@@ -357,7 +378,9 @@
             const dt   = new Date(s.createdAt).toLocaleString();
             const meth = s.paymentMethod || 'other';
             const methLabel = t('pay.method_' + meth) || meth.replace(/_/g, ' ').toUpperCase();
-            const itemsSummary = s.items.map(i => `${i.qty}× ${i.name}`).join(', ');
+            const itemsSummary = s.type === 'dues'
+                ? `${t('sales.duesItem')} — ${s.items[0]?.name || ''}`
+                : s.items.map(i => `${i.qty}× ${i.name}`).join(', ');
             const from = s.hiveFrom ? `@${s.hiveFrom}` : '—';
             const notesTooltip = s.paymentNotes ? ` title="${s.paymentNotes.replace(/"/g,'&quot;')}"` : '';
             const proofThumb = s.transferProofUrl
@@ -377,7 +400,9 @@
                 <tr class="items-row" id="items-${idx}" style="display:none">
                     <td colspan="5">
                         <ul class="items-list">
-                            ${s.items.map(i => `<li>${i.qty}× ${i.name} — $${(i.price*i.qty).toFixed(2)}</li>`).join('')}
+                            ${s.type === 'dues'
+                                ? `<li>${t('sales.duesItem')} — ${s.items[0]?.name || ''} — $${Number(s.total).toFixed(2)}</li>`
+                                : s.items.map(i => `<li>${i.qty}× ${i.name} — $${(i.price*i.qty).toFixed(2)}</li>`).join('')}
                         </ul>
                     </td>
                 </tr>`;
