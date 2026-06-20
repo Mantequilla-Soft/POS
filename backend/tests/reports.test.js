@@ -119,6 +119,37 @@ describe('GET /api/reports/revenue-by-day', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(0);
   });
+
+  it('adds membership dues alongside POS revenue on a day with both', async () => {
+    const { store, token } = await setup();
+    await createSale(store._id, { total: 10 });
+
+    const membershipType = await createMembershipType(store._id);
+    const member = await createMember(store._id, membershipType._id);
+    await createMemberPayment(store._id, member._id, membershipType._id, { amount: 50 });
+
+    const res = await request(app).get('/api/reports/revenue-by-day').set(authHeader(token));
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].revenue).toBe(10);
+    expect(res.body[0].duesRevenue).toBe(50);
+    expect(res.body[0].totalRevenue).toBe(60);
+  });
+
+  it('includes a day with dues but no POS sales', async () => {
+    const { store, token } = await setup();
+
+    const membershipType = await createMembershipType(store._id);
+    const member = await createMember(store._id, membershipType._id);
+    await createMemberPayment(store._id, member._id, membershipType._id, { amount: 30 });
+
+    const res = await request(app).get('/api/reports/revenue-by-day').set(authHeader(token));
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].revenue).toBe(0);
+    expect(res.body[0].duesRevenue).toBe(30);
+    expect(res.body[0].totalRevenue).toBe(30);
+  });
 });
 
 // ── Top items ─────────────────────────────────────────────────────────────────

@@ -2,8 +2,9 @@
 const router     = require('express').Router();
 const mongoose   = require('mongoose');
 const { authenticate, roleOnly } = require('../middleware/auth');
-const Closeout   = require('../models/Closeout');
-const Sale       = require('../models/Sale');
+const Closeout      = require('../models/Closeout');
+const Sale          = require('../models/Sale');
+const MemberPayment = require('../models/MemberPayment');
 
 function toObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
@@ -37,7 +38,14 @@ function computeTotals(closeout) {
   const cashDelivered = cashSales + totalTipsCash - totalDeductions;
   const bankTotal     = transferAmt + totalTipsTransfer;
 
-  return { totalTipsCash, totalTipsTransfer, totalDeductions, cashDelivered, bankTotal };
+  // null actualCashCounted means "not counted yet" — variance stays 0 until
+  // there's an actual count to compare against. Positive = over, negative = short.
+  const actualCashCounted = closeout.actualCashCounted;
+  const cashVariance = (actualCashCounted === null || actualCashCounted === undefined)
+    ? 0
+    : Math.round((Number(actualCashCounted) - cashDelivered) * 100) / 100;
+
+  return { totalTipsCash, totalTipsTransfer, totalDeductions, cashDelivered, bankTotal, cashVariance };
 }
 
 // GET /api/closeouts/sales-summary?from=ISO&to=ISO  (preferred — respects client timezone)
@@ -58,11 +66,17 @@ router.get('/sales-summary', roleOnly('store_owner', 'cashier'), async (req, res
       end   = new Date(start.getTime() + 86400000);
     }
 
-    const sales = await Sale.find({
-      storeId:   sid,
-      status:    { $ne: 'open' },
-      createdAt: { $gte: start, $lt: end },
-    }).select('total paymentMethod');
+    const [sales, duesPayments] = await Promise.all([
+      Sale.find({
+        storeId:   sid,
+        status:    { $ne: 'open' },
+        createdAt: { $gte: start, $lt: end },
+      }).select('total paymentMethod'),
+      MemberPayment.find({
+        storeId:  sid,
+        paidDate: { $gte: start, $lt: end },
+      }).select('amount method'),
+    ]);
 
     let totalSales = 0, transferAmount = 0;
     sales.forEach(s => {
@@ -71,8 +85,25 @@ router.get('/sales-summary', roleOnly('store_owner', 'cashier'), async (req, res
       if (TRANSFER_METHODS.has(s.paymentMethod)) transferAmount += amt;
     });
 
+    // Dues paid in cash sit in the same drawer as POS cash sales, so they must
+    // be folded into totalSales/cashSales or "Cash to Hand Over" undercounts
+    // the drawer. duesTotal/duesCash/duesTransfer are returned separately too,
+    // purely for display so the breakdown isn't hidden inside totalSales.
+    let duesTotal = 0, duesCash = 0, duesTransfer = 0;
+    duesPayments.forEach(p => {
+      const amt = Number(p.amount) || 0;
+      duesTotal += amt;
+      totalSales += amt;
+      if (TRANSFER_METHODS.has(p.method)) {
+        duesTransfer    += amt;
+        transferAmount  += amt;
+      } else {
+        duesCash += amt;
+      }
+    });
+
     const cashSales = totalSales - transferAmount;
-    res.json({ totalSales, transferAmount, cashSales });
+    res.json({ totalSales, transferAmount, cashSales, duesTotal, duesCash, duesTransfer });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -105,10 +136,11 @@ router.get('/report', roleOnly('store_owner'), async (req, res) => {
         deductions:    { $sum: '$totalDeductions' },
         transferSales: { $sum: '$transferAmount' },
         cashSales:     { $sum: '$cashSales' },
+        cashVariance:  { $sum: '$cashVariance' },
       }},
     ]);
 
-    res.json(agg || { count: 0, totalSales: 0, cashDelivered: 0, bankTotal: 0, tipsCash: 0, tipsTransfer: 0, deductions: 0, transferSales: 0, cashSales: 0 });
+    res.json(agg || { count: 0, totalSales: 0, cashDelivered: 0, bankTotal: 0, tipsCash: 0, tipsTransfer: 0, deductions: 0, transferSales: 0, cashSales: 0, cashVariance: 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -169,13 +201,19 @@ router.post('/', roleOnly('store_owner', 'cashier'), async (req, res) => {
     const sid = getStoreId(req);
     if (!sid) return res.status(400).json({ error: 'No store' });
 
-    const { date, totalSales, transferAmount, cashSales, shifts, deductions, notes, status } = req.body;
+    const {
+      date, totalSales, transferAmount, cashSales, shifts, deductions, notes, status,
+      actualCashCounted, cashVarianceNote,
+    } = req.body;
     if (!date) return res.status(400).json({ error: 'date required' });
 
     const existing = await Closeout.findOne({ storeId: sid, date });
     if (existing) return res.status(409).json({ error: 'duplicate', message: 'A closeout for this date already exists.' });
 
-    const doc = { storeId: sid, date, totalSales, transferAmount, cashSales, shifts, deductions, notes };
+    const doc = {
+      storeId: sid, date, totalSales, transferAmount, cashSales, shifts, deductions, notes,
+      actualCashCounted: actualCashCounted ?? null, cashVarianceNote: cashVarianceNote || '',
+    };
     const totals = computeTotals(doc);
     Object.assign(doc, totals);
 
@@ -200,8 +238,11 @@ router.put('/:id', roleOnly('store_owner', 'cashier'), async (req, res) => {
       return res.status(409).json({ error: 'Cannot edit a submitted closeout.' });
     }
 
-    const { totalSales, transferAmount, cashSales, shifts, deductions, notes } = req.body;
-    const patch = { totalSales, transferAmount, cashSales, shifts, deductions, notes };
+    const { totalSales, transferAmount, cashSales, shifts, deductions, notes, actualCashCounted, cashVarianceNote } = req.body;
+    const patch = {
+      totalSales, transferAmount, cashSales, shifts, deductions, notes,
+      actualCashCounted: actualCashCounted ?? null, cashVarianceNote: cashVarianceNote || '',
+    };
     const totals = computeTotals({ ...closeout.toObject(), ...patch });
     Object.assign(patch, totals);
 
@@ -220,6 +261,12 @@ router.patch('/:id/submit', roleOnly('store_owner', 'cashier'), async (req, res)
     if (!closeout) return res.status(404).json({ error: 'Not found' });
     if (closeout.status !== 'draft') {
       return res.status(409).json({ error: 'Already submitted.' });
+    }
+    if (closeout.actualCashCounted === null || closeout.actualCashCounted === undefined) {
+      return res.status(400).json({ error: 'cash_count_required', message: 'Count the cash drawer before submitting.' });
+    }
+    if (closeout.cashVariance !== 0 && !closeout.cashVarianceNote) {
+      return res.status(400).json({ error: 'variance_note_required', message: 'Add a note explaining the cash variance before submitting.' });
     }
     closeout.status      = 'submitted';
     closeout.submittedBy = req.user.username || req.user.userId;

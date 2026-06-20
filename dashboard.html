@@ -540,6 +540,7 @@
                             <div class="metric-card" id="todayRevenueCard" style="cursor:pointer" onclick="window.location.href='reviewreceipts.html'" title="View sales report">
                                 <div class="metric-number" id="todayRevenueNum">…</div>
                                 <div class="metric-label">${t('dashboard.metricTodayRevenue')}</div>
+                                <div class="metric-sublabel" id="todayRevenueBreakdown" style="font-size:.75em;opacity:.7;display:none"></div>
                             </div>
                             <div class="metric-card" id="overdueWidget" style="display:none;border-color:#f39c12;cursor:pointer" onclick="window.location.href='members.html?status=overdue'">
                                 <div class="metric-number" id="overdueCount" style="color:#e67e22">0</div>
@@ -893,9 +894,19 @@
                 if (!res.ok) return;
                 const s = await res.json();
                 const el = document.getElementById('todayRevenueNum');
+                const breakdownEl = document.getElementById('todayRevenueBreakdown');
                 const currency = userStore?.settings?.currency || userStore?.currency || '';
                 const symbol = currency === 'HBD' ? '$' : (currency ? currency + ' ' : '$');
-                if (el) el.textContent = symbol + (s.revenue || 0).toFixed(2);
+                const totalRevenue = s.totalRevenue ?? (s.revenue || 0);
+                if (el) el.textContent = symbol + totalRevenue.toFixed(2);
+                if (breakdownEl) {
+                    if (s.duesRevenue > 0) {
+                        breakdownEl.textContent = `${t('dashboard.metricSales')} ${symbol}${(s.revenue || 0).toFixed(2)} · ${t('dashboard.metricDues')} ${symbol}${s.duesRevenue.toFixed(2)}`;
+                        breakdownEl.style.display = '';
+                    } else {
+                        breakdownEl.style.display = 'none';
+                    }
+                }
             } catch {}
         }
 

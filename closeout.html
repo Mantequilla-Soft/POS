@@ -40,6 +40,9 @@
     .totals-box .row.divider { border-top: 1px solid var(--border); margin-top: .4rem; padding-top: .4rem; }
     .totals-box .row.total-row { font-weight: 700; font-size: 1.05em; border-top: 2px solid var(--border); margin-top: .5rem; padding-top: .5rem; }
     .totals-box .row.total-row .val { color: var(--ink); }
+    .var-pos { color: var(--green, #16a34a); font-weight: 700; }
+    .var-neg { color: var(--red, #dc2626); font-weight: 700; }
+    .var-zero { color: var(--text-2); }
     .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: .75rem 1rem; display: flex; gap: .65rem; justify-content: flex-end; z-index: 200; }
     .submitted-banner { background: var(--green-light, #ecfdf5); border: 1px solid var(--green); border-radius: var(--r); padding: .7rem 1rem; color: var(--green); font-weight: 600; margin-bottom: 1rem; }
     .status-chip { font-size: .75em; font-weight: 700; padding: .15rem .55rem; border-radius: 20px; }
@@ -172,6 +175,10 @@
   <div id="ownerApprovePanel" style="display:none;background:#fef3c711;border:2px solid var(--amber,#f59e0b);border-radius:var(--r-lg);padding:1rem 1.25rem;margin-bottom:1.25rem">
     <h3 style="margin:0 0 .4rem;font-size:.95rem;color:var(--amber,#f59e0b)" data-i18n="closeout.pendingReview">⏳ Pending Your Approval</h3>
     <p style="font-size:.84em;color:var(--text-2);margin:0 0 .75rem" data-i18n="closeout.reviewInstructions">Review the figures above, add a note if needed, then approve.</p>
+    <div id="ownerVarianceInfo" style="display:none;margin-bottom:.75rem;padding:.6rem .75rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);font-size:.88em">
+      <div><strong data-i18n="closeout.cashVarianceLabel">Cash Variance</strong>: <span id="ownerVarianceVal"></span></div>
+      <div id="ownerVarianceNoteRow" style="display:none;margin-top:.3rem;color:var(--text-2)"></div>
+    </div>
     <textarea id="ownerReviewComment" rows="2" style="width:100%;box-sizing:border-box;padding:.45rem .6rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:.9em;resize:vertical;margin-bottom:.65rem"></textarea>
     <button type="button" id="approveCloseoutBtn" class="btn" style="background:var(--green);color:#fff;width:100%;font-size:1rem;padding:.7rem 1rem;border-radius:var(--r)" data-i18n="closeout.approve">✅ Approve &amp; Archive</button>
   </div>
@@ -187,6 +194,7 @@
       <label data-i18n="closeout.totalSales">Total Sales</label>
       <input type="number" id="inputTotalSales" min="0" step="0.01" placeholder="0.00" oninput="recalc()">
     </div>
+    <div id="duesNote" style="font-size:.8em;color:var(--text-2);margin:-.3rem 0 .3rem;display:none"></div>
     <div class="field-row">
       <label data-i18n="closeout.transfers">Bank / Transfer Sales</label>
       <span class="minus">−</span>
@@ -227,6 +235,7 @@
     <h2 data-i18n="closeout.sectionTotals">Summary</h2>
     <div class="totals-box">
       <div class="row"><span data-i18n="closeout.totalSales">Total Sales</span><span id="totTotalSales">0.00</span></div>
+      <div class="row" id="duesNoteRow" style="display:none"><span style="font-size:.85em;color:var(--text-2)" data-i18n="closeout.includesDues">&nbsp;&nbsp;↳ incl. membership dues</span><span id="totDuesTotal" style="font-size:.85em;color:var(--text-2)">0.00</span></div>
       <div class="row"><span>− <span data-i18n="closeout.transfers">Transfers</span></span><span id="totTransfers">0.00</span></div>
       <div class="row divider"><span data-i18n="closeout.cashSales">Cash from Sales</span><span id="totCashSales">0.00</span></div>
       <div class="row" id="totTipsCashRow"><span>+ <span data-i18n="closeout.totalTipsCash">Total Cash Tips</span></span><span id="totTipsCash">0.00</span></div>
@@ -234,6 +243,18 @@
       <div class="row"><span>− <span data-i18n="closeout.totalDeductions">Total Deductions</span></span><span id="totDeductions">0.00</span></div>
       <div class="row total-row"><span data-i18n="closeout.cashDelivered">Cash to Hand Over</span><span class="val" id="totCashDelivered">0.00</span></div>
       <div class="row total-row"><span data-i18n="closeout.bankTotal">Total to Bank</span><span class="val" id="totBankTotal">0.00</span></div>
+    </div>
+
+    <div class="field-row" style="margin-top:.9rem">
+      <label data-i18n="closeout.cashCounted">Actual Cash Counted</label>
+      <input type="number" id="inputActualCash" min="0" step="0.01" placeholder="0.00" oninput="recalc()">
+    </div>
+    <div class="totals-box" style="margin-bottom:.6rem">
+      <div class="row total-row"><span data-i18n="closeout.cashVarianceLabel">Cash Variance</span><span class="val var-zero" id="totCashVariance">—</span></div>
+    </div>
+    <div id="varianceNoteWrap" style="display:none;margin-bottom:.6rem">
+      <label style="font-size:.85em;color:var(--text-2);display:block;margin-bottom:.3rem" data-i18n="closeout.varianceNoteLabel">Explain the discrepancy</label>
+      <textarea id="inputVarianceNote" rows="2" data-i18n-placeholder="closeout.varianceNotePlaceholder" style="width:100%;box-sizing:border-box;padding:.5rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:.92em;resize:vertical"></textarea>
     </div>
   </div>
 
@@ -259,8 +280,22 @@ let closeoutId   = null;
 let closeoutCfg  = null;
 let tipsEnabled  = false;
 let readOnly     = false;
+let duesTotal    = 0;
 
 function fmt(n) { return (Number(n) || 0).toFixed(2); }
+
+function renderDuesNote() {
+  const show = duesTotal > 0;
+  const note     = document.getElementById('duesNote');
+  const noteRow  = document.getElementById('duesNoteRow');
+  const totDues  = document.getElementById('totDuesTotal');
+  note.style.display    = show ? '' : 'none';
+  noteRow.style.display  = show ? '' : 'none';
+  if (show) {
+    note.textContent = t('closeout.includesDuesNote', { amount: fmt(duesTotal) });
+    totDues.textContent = fmt(duesTotal);
+  }
+}
 function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── Date helpers ────────────────────────────────────────────────────────────
@@ -327,7 +362,9 @@ async function loadData(date) {
       `${API_BASE}/closeouts/sales-summary?from=${encodeURIComponent(localStart.toISOString())}&to=${encodeURIComponent(localEnd.toISOString())}`,
       { headers: { 'Authorization': 'Bearer ' + token } }
     );
-    const summary = sumRes.ok ? await sumRes.json() : { totalSales: 0, transferAmount: 0, cashSales: 0 };
+    const summary = sumRes.ok ? await sumRes.json() : { totalSales: 0, transferAmount: 0, cashSales: 0, duesTotal: 0 };
+    duesTotal = summary.duesTotal || 0;
+    renderDuesNote();
 
     // Check for existing closeout
     let existing = null;
@@ -364,9 +401,26 @@ function populateForm(c) {
   document.getElementById('inputTotalSales').value     = fmt(c.totalSales);
   document.getElementById('inputTransferAmount').value = fmt(c.transferAmount);
   document.getElementById('inputNotes').value          = c.notes || '';
+  document.getElementById('inputActualCash').value     = (c.actualCashCounted === null || c.actualCashCounted === undefined) ? '' : fmt(c.actualCashCounted);
+  document.getElementById('inputVarianceNote').value   = c.cashVarianceNote || '';
   buildShifts(c.shifts);
   buildDeductions(c.deductions);
   recalc();
+
+  // Owner approval panel — surface the variance before they sign off on it
+  const variance = Number(c.cashVariance) || 0;
+  const infoBox   = document.getElementById('ownerVarianceInfo');
+  const valEl      = document.getElementById('ownerVarianceVal');
+  const noteRowEl  = document.getElementById('ownerVarianceNoteRow');
+  infoBox.style.display = '';
+  valEl.textContent = (variance > 0 ? '+' : '') + fmt(variance);
+  valEl.className = variance > 0 ? 'var-pos' : variance < 0 ? 'var-neg' : 'var-zero';
+  if (variance !== 0 && c.cashVarianceNote) {
+    noteRowEl.style.display = '';
+    noteRowEl.textContent = '💬 ' + c.cashVarianceNote;
+  } else {
+    noteRowEl.style.display = 'none';
+  }
 }
 
 function setStatus(status) {
@@ -385,7 +439,7 @@ function setStatus(status) {
 }
 
 function lockForm() {
-  document.querySelectorAll('#inputTotalSales,#inputTransferAmount,#inputNotes,#deductBody input,#shiftsContainer input,#addCustomDeductBtn').forEach(el => {
+  document.querySelectorAll('#inputTotalSales,#inputTransferAmount,#inputNotes,#inputActualCash,#inputVarianceNote,#deductBody input,#shiftsContainer input,#addCustomDeductBtn').forEach(el => {
     if (el.tagName === 'BUTTON') el.style.display = 'none';
     else el.disabled = true;
   });
@@ -497,6 +551,20 @@ function recalc() {
   document.getElementById('totDeductions').textContent    = fmt(totalDeductions);
   document.getElementById('totCashDelivered').textContent = fmt(cashDelivered);
   document.getElementById('totBankTotal').textContent     = fmt(bankTotal);
+
+  const actualRaw = document.getElementById('inputActualCash').value;
+  const varianceEl = document.getElementById('totCashVariance');
+  const noteWrap   = document.getElementById('varianceNoteWrap');
+  if (actualRaw === '') {
+    varianceEl.textContent = '—';
+    varianceEl.className = 'val var-zero';
+    noteWrap.style.display = 'none';
+  } else {
+    const variance = Math.round((parseFloat(actualRaw) - cashDelivered) * 100) / 100;
+    varianceEl.textContent = (variance > 0 ? '+' : '') + fmt(variance);
+    varianceEl.className = 'val ' + (variance > 0 ? 'var-pos' : variance < 0 ? 'var-neg' : 'var-zero');
+    noteWrap.style.display = variance !== 0 ? '' : 'none';
+  }
 }
 
 // ── Collect form data ────────────────────────────────────────────────────────
@@ -506,6 +574,10 @@ function collectFormData(status) {
   const cashSales      = totalSales - transferAmount;
   const date           = document.getElementById('inputDate').value;
   const notes          = document.getElementById('inputNotes').value;
+
+  const actualCashRaw  = document.getElementById('inputActualCash').value;
+  const actualCashCounted = actualCashRaw === '' ? null : parseFloat(actualCashRaw);
+  const cashVarianceNote  = document.getElementById('inputVarianceNote').value.trim();
 
   // Shifts
   const shifts = [];
@@ -537,7 +609,7 @@ function collectFormData(status) {
     deductions.push({ categoryId: tr.dataset.categoryId || 'custom', label: label || '', amount, note });
   });
 
-  return { date, totalSales, transferAmount, cashSales, shifts, deductions, notes, status };
+  return { date, totalSales, transferAmount, cashSales, shifts, deductions, notes, status, actualCashCounted, cashVarianceNote };
 }
 
 // ── Save ─────────────────────────────────────────────────────────────────────
@@ -655,6 +727,13 @@ async function runReport() {
         <div class="sc-label">${escHtml(t('closeout.reportCierres'))}</div>
         <div class="sc-value">${d.count}</div>
       </div>`;
+    const variance = Number(d.cashVariance) || 0;
+    const varianceClass = variance > 0 ? 'var-pos' : variance < 0 ? 'var-neg' : 'var-zero';
+    const statVariance = `
+      <div class="stat-card">
+        <div class="sc-label">${escHtml(t('closeout.reportVariance'))}</div>
+        <div class="sc-value ${varianceClass}">${(variance > 0 ? '+' : '') + fmt(variance)}</div>
+      </div>`;
     el.innerHTML = `<div class="stat-grid">
       ${count}
       ${hero(t('closeout.reportTotalSales'),    fmt(d.totalSales))}
@@ -665,6 +744,7 @@ async function runReport() {
       ${stat(t('closeout.reportTipsCash'),      fmt(d.tipsCash))}
       ${stat(t('closeout.reportTipsTransfer'),  fmt(d.tipsTransfer))}
       ${stat(t('closeout.reportDeductions'),    fmt(d.deductions))}
+      ${statVariance}
     </div>`;
   } catch(e) {
     el.innerHTML = `<p style="color:var(--text-3);font-size:.85em">${t('closeout.loadFail')}</p>`;
@@ -740,6 +820,15 @@ document.getElementById('approveCloseoutBtn').onclick = async function() {
 };
 
 document.getElementById('submitBtn').onclick = async function() {
+  if (document.getElementById('inputActualCash').value === '') {
+    alert(t('closeout.cashCountRequired'));
+    return;
+  }
+  if (document.getElementById('varianceNoteWrap').style.display !== 'none'
+      && !document.getElementById('inputVarianceNote').value.trim()) {
+    alert(t('closeout.varianceNoteRequired'));
+    return;
+  }
   if (!confirm(t('closeout.submitConfirm'))) return;
   this.disabled = true;
   // Save as draft first if needed, then submit
@@ -750,7 +839,12 @@ document.getElementById('submitBtn').onclick = async function() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
     });
-    if (!r.ok) throw new Error();
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (err.error === 'cash_count_required') { alert(t('closeout.cashCountRequired')); this.disabled = false; return; }
+      if (err.error === 'variance_note_required') { alert(t('closeout.varianceNoteRequired')); this.disabled = false; return; }
+      throw new Error();
+    }
     setStatus('submitted');
     lockForm();
   } catch (e) {

@@ -32,6 +32,12 @@ const closeoutSchema = new mongoose.Schema({
   transferAmount: { type: Number, default: 0 },
   cashSales:      { type: Number, default: 0 },
 
+  // Physical cash drawer reconciliation — null means "not counted yet",
+  // distinct from a counted value of 0.
+  actualCashCounted: { type: Number, default: null },
+  cashVariance:      { type: Number, default: 0 },
+  cashVarianceNote:  { type: String, default: '' },
+
   shifts:     { type: [shiftEntrySchema],  default: [] },
   deductions: { type: [deductionSchema],   default: [] },
 

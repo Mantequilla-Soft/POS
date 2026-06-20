@@ -181,7 +181,15 @@
   <div class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-value" id="kpiRevenue">—</div>
-      <div class="kpi-label" data-i18n="reports.totalRevenue">Total Revenue</div>
+      <div class="kpi-label" data-i18n="reports.posSales">POS Sales</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiDues">—</div>
+      <div class="kpi-label" data-i18n="reports.duesRevenue">Membership Dues</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiTotalIncome">—</div>
+      <div class="kpi-label" data-i18n="reports.totalIncome">Total Income</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-value" id="kpiTx">—</div>
@@ -422,10 +430,13 @@
   async function loadRevenue(q) {
     try {
       const rows = await apiFetch('/reports/revenue-by-day' + q);
-      const totalRev = rows.reduce((s, r) => s + (r.revenue || 0), 0);
-      const totalTx  = rows.reduce((s, r) => s + (r.count   || 0), 0);
-      const totalTax = rows.reduce((s, r) => s + (r.tax     || 0), 0);
-      document.getElementById('kpiRevenue').textContent = formatCurrency(totalRev);
+      const totalRev  = rows.reduce((s, r) => s + (r.revenue || 0), 0);
+      const totalDues = rows.reduce((s, r) => s + (r.duesRevenue || 0), 0);
+      const totalTx   = rows.reduce((s, r) => s + (r.count   || 0), 0);
+      const totalTax  = rows.reduce((s, r) => s + (r.tax     || 0), 0);
+      document.getElementById('kpiRevenue').textContent     = formatCurrency(totalRev);
+      document.getElementById('kpiDues').textContent        = formatCurrency(totalDues);
+      document.getElementById('kpiTotalIncome').textContent = formatCurrency(totalRev + totalDues);
       document.getElementById('kpiTx').textContent      = totalTx;
       document.getElementById('kpiAvg').textContent     = totalTx ? formatCurrency(totalRev / totalTx) : '—';
       document.getElementById('kpiTax').textContent     = formatCurrency(totalTax);

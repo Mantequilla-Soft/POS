@@ -6,7 +6,10 @@ const jwt = require('jsonwebtoken');
 const app = require('../server');
 const db = require('./helpers/db');
 const Store = require('../models/Store');
-const { createUser, createStore, tokenFor, authHeader } = require('./helpers/factories');
+const {
+  createUser, createStore, tokenFor, authHeader,
+  createMembershipType, createMember, createMemberPayment,
+} = require('./helpers/factories');
 
 beforeAll(() => db.connect());
 afterEach(() => db.clearAll());
@@ -226,6 +229,46 @@ describe('GET /api/sales/summary', () => {
     expect(res.status).toBe(200);
     expect(res.body.revenue).toBe(0);
     expect(res.body.count).toBe(0);
+  });
+
+  it('folds membership dues into totalRevenue without changing revenue', async () => {
+    const { store, token } = await setup();
+
+    await request(app).post('/api/sales').set(authHeader(token))
+      .send({ items: sampleItems, total: 8.00, currency: 'HBD', paymentMethod: 'cash' });
+
+    const membershipType = await createMembershipType(store._id);
+    const member = await createMember(store._id, membershipType._id);
+    await createMemberPayment(store._id, member._id, membershipType._id, { amount: 50 });
+
+    const res = await request(app)
+      .get('/api/sales/summary')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.revenue).toBe(8.00);
+    expect(res.body.duesRevenue).toBe(50);
+    expect(res.body.duesCount).toBe(1);
+    expect(res.body.totalRevenue).toBe(58.00);
+  });
+
+  it('excludes dues payments outside the date range', async () => {
+    const { store, token } = await setup();
+
+    const membershipType = await createMembershipType(store._id);
+    const member = await createMember(store._id, membershipType._id);
+    await createMemberPayment(store._id, member._id, membershipType._id, {
+      amount: 50,
+      paidDate: new Date('2099-06-01'),
+    });
+
+    const res = await request(app)
+      .get('/api/sales/summary?from=2020-01-01&to=2020-01-31')
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.duesRevenue).toBe(0);
+    expect(res.body.totalRevenue).toBe(0);
   });
 });
 

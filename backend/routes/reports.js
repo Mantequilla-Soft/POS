@@ -126,17 +126,45 @@ router.get('/revenue-by-day', async (req, res) => {
   try {
     const { from, to } = req.query;
     const match = { ...storeMatch(req), ...dateMatch(from, to) };
-    const rows = await Sale.aggregate([
-      { $match: match },
-      { $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          revenue: { $sum: '$total' },
-          count:   { $sum: 1 },
-          tax:     { $sum: '$taxAmount' },
-      }},
-      { $sort: { _id: 1 } },
+    const dateRange = dateMatch(from, to).createdAt;
+    const duesMatch = { ...storeMatch(req), ...(dateRange ? { paidDate: dateRange } : {}) };
+
+    const [rows, duesRows] = await Promise.all([
+      Sale.aggregate([
+        { $match: match },
+        { $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            revenue: { $sum: '$total' },
+            count:   { $sum: 1 },
+            tax:     { $sum: '$taxAmount' },
+        }},
+      ]),
+      // Membership dues, grouped the same way but keyed off paidDate
+      MemberPayment.aggregate([
+        { $match: duesMatch },
+        { $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$paidDate' } },
+            duesRevenue: { $sum: '$amount' },
+        }},
+      ]),
     ]);
-    res.json(rows);
+
+    const duesByDate = Object.fromEntries(duesRows.map(r => [r._id, r.duesRevenue]));
+    const merged = rows.map(r => {
+      const duesRevenue = duesByDate[r._id] || 0;
+      return { ...r, duesRevenue, totalRevenue: r.revenue + duesRevenue };
+    });
+
+    // Days with dues collected but no POS sales still need to show up
+    const salesDates = new Set(rows.map(r => r._id));
+    for (const [date, duesRevenue] of Object.entries(duesByDate)) {
+      if (!salesDates.has(date)) {
+        merged.push({ _id: date, revenue: 0, count: 0, tax: 0, duesRevenue, totalRevenue: duesRevenue });
+      }
+    }
+
+    merged.sort((a, b) => (a._id < b._id ? -1 : a._id > b._id ? 1 : 0));
+    res.json(merged);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

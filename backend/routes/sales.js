@@ -4,6 +4,7 @@ const { requireRole, authenticate, requireActiveSubscription } = require('../mid
 const Sale = require('../models/Sale');
 const Store = require('../models/Store');
 const DiscountCode = require('../models/DiscountCode');
+const MemberPayment = require('../models/MemberPayment');
 const { validateCode } = require('./discountCodes');
 
 // Atomically decrement stockQty for every tracked item in a completed sale
@@ -152,7 +153,13 @@ router.get('/summary', requireRole('store_owner', 'superadmin'), async (req, res
       if (to)   match.createdAt.$lte = new Date(to);
     }
 
-    const [totals, byMethod, byDay] = await Promise.all([
+    // Membership dues are recorded separately from Sale (see MemberPayment),
+    // so they need their own match/aggregate on paidDate, then get added to
+    // revenue as a clearly separate figure rather than blended into it.
+    const duesMatch = { storeId: match.storeId };
+    if (match.createdAt) duesMatch.paidDate = match.createdAt;
+
+    const [totals, byMethod, byDay, duesTotals] = await Promise.all([
       // Overall totals
       Sale.aggregate([
         { $match: match },
@@ -174,11 +181,22 @@ router.get('/summary', requireRole('store_owner', 'superadmin'), async (req, res
         }},
         { $sort: { _id: 1 } },
       ]),
+      // Membership dues totals
+      MemberPayment.aggregate([
+        { $match: duesMatch },
+        { $group: { _id: null, revenue: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ]),
     ]);
 
+    const revenue     = totals[0]?.revenue ?? 0;
+    const duesRevenue = duesTotals[0]?.revenue ?? 0;
+
     res.json({
-      revenue: totals[0]?.revenue ?? 0,
+      revenue,
       count:   totals[0]?.count   ?? 0,
+      duesRevenue,
+      duesCount: duesTotals[0]?.count ?? 0,
+      totalRevenue: revenue + duesRevenue,
       byMethod,
       byDay,
     });
